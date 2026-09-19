@@ -4,7 +4,10 @@ import {
   JWT_ALGORITHM,
   JWT_AUDIENCE,
   JWT_ISSUER,
+  createUser,
+  deleteUser,
   findUserByEmail,
+  listUsers,
   contentDispositionAttachment,
   getArtifactDownloadForUser,
   getArtifactPreviewForUser,
@@ -87,6 +90,8 @@ export default defineChannel({
     preflight("/api/chats/:id"),
     preflight("/api/settings/model"),
     preflight("/api/settings/model/presets"),
+    preflight("/api/settings/users"),
+    preflight("/api/settings/users/:email"),
     preflight("/api/memory"),
     preflight("/api/chats/:id/artifacts/:artifactId"),
     preflight("/api/chats/:id/artifacts/:artifactId/preview"),
@@ -126,7 +131,7 @@ export default defineChannel({
       if (!auth) {
         return json({ ok: false, error: "Unauthorized" }, 401, request);
       }
-      const user = findUserByEmail(auth.principalId);
+      const user = await findUserByEmail(auth.principalId);
       return json(
         {
           ok: true,
@@ -318,6 +323,90 @@ export default defineChannel({
         200,
         request,
       );
+    }),
+
+    GET("/api/settings/users", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      try {
+        const users = await listUsers();
+        return json({ ok: true, users }, 200, request);
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error: err instanceof Error ? err.message : "Failed to list users",
+          },
+          500,
+          request,
+        );
+      }
+    }),
+
+    POST("/api/settings/users", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+
+      let body: { email?: string; password?: string };
+      try {
+        body = (await request.json()) as { email?: string; password?: string };
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400, request);
+      }
+
+      try {
+        const user = await createUser({
+          email: body.email ?? "",
+          password: body.password ?? "",
+        });
+        return json({ ok: true, user }, 201, request);
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error: err instanceof Error ? err.message : "Failed to create user",
+          },
+          400,
+          request,
+        );
+      }
+    }),
+
+    DELETE("/api/settings/users/:email", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+
+      const email = decodeURIComponent(params.email ?? "").trim();
+      if (!email) {
+        return json({ ok: false, error: "Email is required" }, 400, request);
+      }
+      if (email.toLowerCase() === auth.principalId.toLowerCase()) {
+        return json(
+          { ok: false, error: "You cannot delete your own account" },
+          400,
+          request,
+        );
+      }
+
+      try {
+        await deleteUser(email);
+        return json({ ok: true }, 200, request);
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error: err instanceof Error ? err.message : "Failed to delete user",
+          },
+          400,
+          request,
+        );
+      }
     }),
 
     PUT("/api/settings/model", async (request) => {

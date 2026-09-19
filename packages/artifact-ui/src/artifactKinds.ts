@@ -71,6 +71,9 @@ export function canPreviewArtifact(spec: ArtifactSpec): boolean {
   if (isMarkdownPreviewable(spec)) {
     return Boolean(spec.content?.trim() || spec.download_url?.trim());
   }
+  if (isWordArtifact(spec) || isPptArtifact(spec)) {
+    return Boolean(spec.download_url?.trim());
+  }
   return false;
 }
 

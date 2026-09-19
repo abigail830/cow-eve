@@ -17,8 +17,3 @@ export const PRESET_USERS: readonly PlatformUser[] = [
       "$2b$12$.NoBHp1pyqGtiPjQ3CgSt.AkCLA..0NPRMKfx9RufeUsAObDiOffq",
   },
 ];
-
-export function findUserByEmail(email: string): PlatformUser | undefined {
-  const normalized = email.trim().toLowerCase();
-  return PRESET_USERS.find((u) => u.email.toLowerCase() === normalized);
-}

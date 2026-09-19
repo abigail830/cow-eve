@@ -150,47 +150,119 @@
   }
 }
 
-.artifact-preview-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.45);
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-}
-
-.artifact-preview-modal {
-  width: min(960px, 100%);
-  height: min(80vh, 720px);
+.artifact-preview-panel {
+  flex-shrink: 0;
+  width: min(520px, 45vw);
+  height: 100%;
   background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
+  border-left: 1px solid #ececec;
   display: flex;
   flex-direction: column;
 }
 
-.artifact-preview-modal-header {
+.artifact-preview-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #ececec;
+  flex-shrink: 0;
 }
 
-.artifact-preview-modal-body {
+.artifact-preview-panel-title {
+  margin: 0;
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artifact-preview-panel-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.artifact-preview-panel-close:hover {
+  background: #f3f4f6;
+  color: #333;
+}
+
+.artifact-preview-panel-body {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
-.artifact-preview-modal-body iframe {
+.artifact-preview-panel-body iframe {
   width: 100%;
   height: 100%;
   border: 0;
 }
 
 .artifact-preview-markdown {
+  margin: 0;
   padding: 1rem;
   overflow: auto;
   height: 100%;
+  box-sizing: border-box;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.artifact-preview-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.artifact-preview-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.artifact-preview-status {
+  margin: 0;
+  padding: 1rem;
+  color: #6b7280;
+  font-size: 0.88rem;
+}
+
+.artifact-ooxml-preview {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+}
+
+.artifact-ooxml-preview-host {
+  height: 100%;
+  min-height: 0;
+}
+
+.artifact-ooxml-preview-host[hidden] {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .artifact-preview-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    width: 100%;
+    border-left: none;
+  }
 }

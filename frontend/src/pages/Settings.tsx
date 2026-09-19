@@ -4,14 +4,18 @@ import {
   Cpu,
   Pencil,
   Plus,
-  SlidersHorizontal,
   Trash2,
+  Users,
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import {
+  createUser,
+  deleteUser,
   fetchModelPresets,
   fetchModelSettings,
+  fetchUsers,
   saveModelCatalog,
+  type PlatformUserPublic,
   type ModelCatalogPublic,
   type ModelEntryPublic,
   type ModelPreset,
@@ -27,7 +31,7 @@ import { IconButton } from "../components/IconButton";
 import { useAuth } from "../lib/auth";
 import "./Settings.css";
 
-type TabId = "model" | "general";
+type TabId = "model" | "users";
 
 const REASONING_OPTIONS: ModelReasoning[] = [
   "provider-default",
@@ -38,6 +42,11 @@ const REASONING_OPTIONS: ModelReasoning[] = [
   "high",
   "xhigh",
 ];
+
+function formatDateTime(iso: string | null) {
+  if (!iso) return "从未登录";
+  return new Date(iso).toLocaleString();
+}
 
 export function SettingsPage() {
   const { token } = useAuth();
@@ -67,27 +76,227 @@ export function SettingsPage() {
           </button>
           <button
             type="button"
-            className={tab === "general" ? "active" : ""}
-            onClick={() => setTab("general")}
+            className={tab === "users" ? "active" : ""}
+            onClick={() => setTab("users")}
           >
-            <SlidersHorizontal size={16} strokeWidth={2} />
-            General
+            <Users size={16} strokeWidth={2} />
+            Users
           </button>
         </nav>
 
         <div className="settings-panel">
-          {tab === "model" ? <ModelSettingsTab /> : <GeneralPlaceholder />}
+          {tab === "model" ? <ModelSettingsTab /> : <UsersSettingsTab />}
         </div>
       </div>
     </div>
   );
 }
 
-function GeneralPlaceholder() {
+function UsersSettingsTab() {
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState<PlatformUserPublic[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function loadUsers() {
+    const res = await fetchUsers();
+    setUsers(res.users);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    loadUsers()
+      .then(() => {
+        if (!cancelled) setError(null);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "加载用户失败");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function onAddUser(e: FormEvent) {
+    e.preventDefault();
+    if (pending) return;
+    setError(null);
+    setMessage(null);
+    setPending(true);
+    try {
+      await createUser(email.trim(), password);
+      await loadUsers();
+      setEmail("");
+      setPassword("");
+      setShowAdd(false);
+      setMessage("用户已添加");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "添加用户失败");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function onDeleteUser(target: PlatformUserPublic) {
+    if (pending) return;
+    if (
+      !window.confirm(`确定删除用户 ${target.email}？此操作不可撤销。`)
+    ) {
+      return;
+    }
+    setError(null);
+    setMessage(null);
+    setPending(true);
+    try {
+      await deleteUser(target.email);
+      await loadUsers();
+      setMessage("用户已删除");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除用户失败");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (loading) {
+    return <p className="settings-muted">加载用户列表…</p>;
+  }
+
   return (
-    <div className="settings-placeholder">
-      <h2>General</h2>
-      <p>More platform settings will land here in later milestones.</p>
+    <div className="model-settings">
+      <div className="model-form-intro">
+        <h2>Users</h2>
+        <p>
+          管理平台登录账号。可添加或删除用户，不支持编辑；密码会以 bcrypt 加密后存储。
+        </p>
+      </div>
+
+      <div className="model-toolbar">
+        <span className="settings-muted">
+          {users.length} {users.length === 1 ? "user" : "users"}
+        </span>
+        <button
+          type="button"
+          className="model-add"
+          onClick={() => {
+            setError(null);
+            setMessage(null);
+            setShowAdd(true);
+          }}
+          disabled={pending || showAdd}
+        >
+          <Plus size={15} strokeWidth={2} />
+          添加用户
+        </button>
+      </div>
+
+      <div className="model-table-wrap">
+        <table className="model-table">
+          <thead>
+            <tr>
+              <th>用户名</th>
+              <th>显示名</th>
+              <th>上次登录</th>
+              <th>创建时间</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((item) => {
+              const isSelf =
+                currentUser?.email.toLowerCase() === item.email.toLowerCase();
+              const isLast = users.length <= 1;
+              return (
+                <tr key={item.email}>
+                  <td className="model-mono">{item.email}</td>
+                  <td>{item.displayName}</td>
+                  <td>{formatDateTime(item.lastLoginAt)}</td>
+                  <td>{formatDateTime(item.createdAt)}</td>
+                  <td>
+                    <div className="model-row-actions">
+                      <IconButton
+                        icon={Trash2}
+                        label={
+                          isSelf
+                            ? "不能删除当前登录账号"
+                            : isLast
+                              ? "至少保留一个用户"
+                              : `删除 ${item.email}`
+                        }
+                        size={16}
+                        className="danger"
+                        disabled={pending || isSelf || isLast}
+                        onClick={() => void onDeleteUser(item)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {showAdd ? (
+        <form className="model-editor" onSubmit={onAddUser} autoComplete="off">
+          <h3>添加用户</h3>
+          <div className="model-editor-grid">
+            <label className="wide">
+              用户名（邮箱）
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@example.com"
+                autoComplete="off"
+                required
+              />
+            </label>
+            <label className="wide">
+              密码
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="至少 8 位"
+                autoComplete="new-password"
+                minLength={8}
+                required
+              />
+            </label>
+          </div>
+          <div className="model-editor-actions">
+            <button type="submit" disabled={pending}>
+              {pending ? "添加中…" : "添加"}
+            </button>
+            <button
+              type="button"
+              className="model-cancel"
+              onClick={() => {
+                setShowAdd(false);
+                setEmail("");
+                setPassword("");
+              }}
+              disabled={pending}
+            >
+              取消
+            </button>
+          </div>
+        </form>
+      ) : null}
+
+      {error ? <p className="settings-error">{error}</p> : null}
+      {message ? <p className="settings-ok">{message}</p> : null}
     </div>
   );
 }

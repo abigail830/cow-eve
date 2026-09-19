@@ -1,15 +1,4 @@
-import { X } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ArtifactSpec } from "@fde/artifact-spec";
-import { isMarkdownPreviewable } from "./artifactKinds";
-import { resolveArtifactUrl } from "./api";
-
-type Props = {
-  spec: ArtifactSpec | null;
-  apiBase: string;
-  token?: string | null;
-  onClose: () => void;
-};
 
 /** reveal.js and similar decks call history.replaceState; blob: iframes reject that. */
 const HISTORY_GUARD = `<script>(function(){try{var n=function(){};history.pushState=n;history.replaceState=n;}catch(e){}})();</script>`;
@@ -24,15 +13,13 @@ function withHistoryGuard(html: string): string {
   return `${HISTORY_GUARD}${html}`;
 }
 
-function PreviewFrame({
-  url,
-  token,
-  title,
-}: {
+type Props = {
   url: string;
   token?: string | null;
   title: string;
-}) {
+};
+
+export function HtmlPreviewFrame({ url, token, title }: Props) {
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,44 +64,8 @@ function PreviewFrame({
   }, [url, token]);
 
   if (error) return <pre className="artifact-preview-markdown">{error}</pre>;
-  if (!src) return <pre className="artifact-preview-markdown">Loading preview…</pre>;
+  if (!src) return <p className="artifact-preview-status">Loading preview…</p>;
   // allow-scripts only: pairing with allow-same-origin lets pages escape the sandbox
   // and also surfaces Chrome's security warning. Self-contained HTML slides don't need it.
   return <iframe title={title} src={src} sandbox="allow-scripts" />;
-}
-
-export function ArtifactPreviewModal({ spec, apiBase, token, onClose }: Props) {
-  if (!spec) return null;
-
-  const previewUrl = resolveArtifactUrl(spec.preview_url, apiBase);
-
-  return (
-    <div className="artifact-preview-modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="artifact-preview-modal"
-        role="dialog"
-        aria-label={spec.title}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="artifact-preview-modal-header">
-          <strong>{spec.title}</strong>
-          <button type="button" className="artifact-inline-action-btn" onClick={onClose} aria-label="Close">
-            <X size={16} />
-          </button>
-        </div>
-        <div className="artifact-preview-modal-body">
-          {isMarkdownPreviewable(spec) && spec.content ? (
-            <pre className="artifact-preview-markdown">{spec.content}</pre>
-          ) : spec.kind === "diagram_svg" && spec.content ? (
-            <div
-              className="artifact-preview-markdown"
-              dangerouslySetInnerHTML={{ __html: spec.content }}
-            />
-          ) : previewUrl ? (
-            <PreviewFrame url={previewUrl} token={token} title={spec.title} />
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
 }

@@ -50,6 +50,16 @@ export const chatEvents = pgTable(
   ],
 );
 
+export const platformUsers = pgTable("platform_users", {
+  email: text("email").primaryKey(),
+  displayName: text("display_name").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 /** Singleton (and future) platform config rows — e.g. id = "model". */
 export const platformSettings = pgTable("platform_settings", {
   id: text("id").primaryKey(),
@@ -61,4 +71,5 @@ export const platformSettings = pgTable("platform_settings", {
 
 export type ChatRow = typeof chats.$inferSelect;
 export type ChatEventRow = typeof chatEvents.$inferSelect;
+export type PlatformUserRow = typeof platformUsers.$inferSelect;
 export type PlatformSettingsRow = typeof platformSettings.$inferSelect;

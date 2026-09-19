@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
-import { ArtifactPreviewModal } from "@fde/artifact-ui";
+import { ArtifactPreviewPanel } from "@fde/artifact-ui";
 import { useEveAgent } from "eve/react";
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
 import {
@@ -429,9 +429,16 @@ function AgentChatSession({
     void loadMemory();
   }, [memoryOpen, loadMemory]);
 
+  const handlePreviewArtifact = useCallback((spec: ArtifactSpec) => {
+    setHistoryOpen(false);
+    setMemoryOpen(false);
+    setPreviewArtifact(spec);
+  }, []);
+
   function closePanels() {
     setHistoryOpen(false);
     setMemoryOpen(false);
+    setPreviewArtifact(null);
   }
 
   return (
@@ -463,6 +470,7 @@ function AgentChatSession({
               label="Memory"
               active={memoryOpen}
               onClick={() => {
+                setPreviewArtifact(null);
                 setHistoryOpen(false);
                 setMemoryOpen((open) => !open);
               }}
@@ -474,6 +482,7 @@ function AgentChatSession({
               label="Chat history"
               active={historyOpen}
               onClick={() => {
+                setPreviewArtifact(null);
                 setMemoryOpen(false);
                 setHistoryOpen((open) => !open);
               }}
@@ -506,7 +515,7 @@ function AgentChatSession({
                   streaming={isBusy}
                   apiBase={API_URL}
                   token={token}
-                  onPreviewArtifact={setPreviewArtifact}
+                  onPreviewArtifact={handlePreviewArtifact}
                 />
                 {cancelling && isBusy ? (
                   <p className="chat-status" role="status">
@@ -532,7 +541,14 @@ function AgentChatSession({
         />
       </div>
 
-      {historyOpen ? (
+      {previewArtifact ? (
+        <ArtifactPreviewPanel
+          spec={previewArtifact}
+          apiBase={API_URL}
+          token={token}
+          onClose={() => setPreviewArtifact(null)}
+        />
+      ) : historyOpen ? (
         <aside className="chat-history-panel">
           <div className="chat-history-panel-header">
             <h3>Chat History ({chats.length})</h3>
@@ -628,7 +644,7 @@ function AgentChatSession({
         />
       ) : null}
 
-      {memoryOpen ? (
+      {!previewArtifact && memoryOpen ? (
         <MemoryPanel
           agentName={agent.displayName}
           memory={memory}
@@ -637,13 +653,6 @@ function AgentChatSession({
           onClose={() => setMemoryOpen(false)}
         />
       ) : null}
-
-      <ArtifactPreviewModal
-        spec={previewArtifact}
-        apiBase={API_URL}
-        token={token}
-        onClose={() => setPreviewArtifact(null)}
-      />
     </div>
   );
 }

@@ -1,15 +1,19 @@
 import type { ArtifactSpec } from "@fde/artifact-spec";
-import { DownloadOnlyAction } from "./ArtifactCardActions";
+import { canPreviewArtifact } from "./artifactKinds";
+import { PreviewDownloadActions } from "./ArtifactCardActions";
 import { InlineArtifactCardShell } from "./InlineArtifactCardShell";
 
 type Props = {
   spec: ArtifactSpec;
   apiBase: string;
   token?: string | null;
+  onPreview?: (spec: ArtifactSpec) => void;
 };
 
-/** PowerPoint (.pptx) deliverable — slides cover, download only. */
-export function PptArtifactCard({ spec, apiBase, token }: Props) {
+/** PowerPoint (.pptx) deliverable — slides cover, preview + download. */
+export function PptArtifactCard({ spec, apiBase, token, onPreview }: Props) {
+  const canDownload = Boolean(spec.download_url?.trim() || spec.content?.trim());
+
   return (
     <InlineArtifactCardShell
       spec={spec}
@@ -17,7 +21,16 @@ export function PptArtifactCard({ spec, apiBase, token }: Props) {
       cardClassName="ppt-artifact-card"
       actionsAriaLabel="PowerPoint actions"
       actions={
-        <DownloadOnlyAction spec={spec} apiBase={apiBase} token={token} downloadLabel="Download" />
+        <PreviewDownloadActions
+          spec={spec}
+          apiBase={apiBase}
+          token={token}
+          onPreview={onPreview}
+          canPreview={canPreviewArtifact(spec)}
+          canDownload={canDownload}
+          previewLabel="Preview"
+          downloadLabel="Download"
+        />
       }
     />
   );

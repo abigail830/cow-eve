@@ -14,7 +14,16 @@ export {
   JWT_AUDIENCE,
   JWT_ISSUER,
 } from "../domain/auth/auth.constants";
-export { findUserByEmail } from "../domain/auth/user.entity";
+export {
+  createUser,
+  deleteUser,
+  findUserByEmail,
+  listUsers,
+} from "../application/auth/user-admin.use-case";
+export type {
+  CreateUserInput,
+  PlatformUserPublic,
+} from "../application/auth/user-admin.use-case";
 export type { PlatformUser } from "../domain/auth/user.entity";
 export {
   getFrontendOrigins,

@@ -7,7 +7,8 @@ export { MarkdownArtifactCard } from "./MarkdownArtifactCard";
 export { SlideDeckArtifactCard } from "./SlideDeckArtifactCard";
 export { DiagramArtifactCard } from "./DiagramArtifactCard";
 export { ContentDocumentArtifactCard } from "./ContentDocumentArtifactCard";
-export { ArtifactPreviewModal } from "./ArtifactPreviewModal";
+export { ArtifactPreviewPanel } from "./ArtifactPreviewPanel";
+export { ArtifactPreviewContent } from "./ArtifactPreviewContent";
 export { resolveArtifactToolPart } from "./resolveToolRenderer";
 export {
   downloadArtifactFile,

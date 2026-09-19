@@ -13,6 +13,7 @@
   "dependencies": {
     "@fde/artifact-spec": "file:../packages/artifact-spec",
     "@fde/artifact-ui": "file:../packages/artifact-ui",
+    "@silurus/ooxml": "^0.87.0",
     "eve": "^0.62.0",
     "zod": "4.5.4",
     "lucide-react": "^1.47.0",

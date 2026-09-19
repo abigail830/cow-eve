@@ -5,7 +5,10 @@ import {
   JWT_AUDIENCE,
   JWT_ISSUER,
 } from "../../domain/auth/auth.constants";
-import { findUserByEmail } from "../../domain/auth/user.entity";
+import {
+  findUserByEmail,
+  recordUserLogin,
+} from "./user-admin.use-case";
 import { getJwtSecret } from "../../infrastructure/config/env.config";
 
 export type LoginSuccess = {
@@ -19,7 +22,7 @@ export async function loginWithPassword(
   email: string,
   password: string,
 ): Promise<LoginSuccess | LoginFailure> {
-  const user = findUserByEmail(email);
+  const user = await findUserByEmail(email);
   if (!user) {
     return { error: "Invalid email or password" };
   }
@@ -28,6 +31,8 @@ export async function loginWithPassword(
   if (!ok) {
     return { error: "Invalid email or password" };
   }
+
+  await recordUserLogin(user.email);
 
   const secret = new TextEncoder().encode(getJwtSecret());
   const token = await new SignJWT({

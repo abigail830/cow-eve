@@ -208,3 +208,28 @@ export async function fetchMemory(agentId: string) {
     `/api/memory?agentId=${encodeURIComponent(agentId)}`,
   );
 }
+
+export type PlatformUserPublic = {
+  email: string;
+  displayName: string;
+  lastLoginAt: string | null;
+  createdAt: string;
+};
+
+export async function fetchUsers() {
+  return api<{ ok: true; users: PlatformUserPublic[] }>("/api/settings/users");
+}
+
+export async function createUser(email: string, password: string) {
+  return api<{ ok: true; user: PlatformUserPublic }>("/api/settings/users", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function deleteUser(email: string) {
+  return api<{ ok: true }>(
+    `/api/settings/users/${encodeURIComponent(email)}`,
+    { method: "DELETE" },
+  );
+}
