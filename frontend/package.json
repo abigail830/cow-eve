@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "postinstall": "npm install --prefix ../packages/artifact-spec && npm install --prefix ../packages/artifact-ui",
+    "postinstall": "npm install --prefix ../packages/artifact-spec && npm install --prefix ../packages/artifact-ui --omit=peer",
     "preview": "vite preview"
   },
   "dependencies": {
