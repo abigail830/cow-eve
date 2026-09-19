@@ -4,4 +4,11 @@ export {
   requireDb,
   type PlatformDb,
 } from "./client";
-export { chats, chatEvents, type Chat, type ChatEvent } from "./schema";
+export {
+  chats,
+  chatEvents,
+  platformSettings,
+  type Chat,
+  type ChatEvent,
+  type PlatformSettingsRow,
+} from "./schema";

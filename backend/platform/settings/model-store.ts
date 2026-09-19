@@ -1,5 +1,7 @@
+import { eq } from "drizzle-orm";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { getDb, getDatabaseUrl, platformSettings } from "../db";
 import { decryptSecret, encryptSecret } from "./crypto";
 
 export type ModelReasoning =
@@ -18,7 +20,7 @@ export type ModelSettings = {
   displayName: string;
   /** OpenAI-compatible base URL, e.g. https://api.deepseek.com/v1 */
   baseURL: string;
-  /** Provider model id, e.g. deepseek-chat / qwen-plus */
+  /** Provider model id, e.g. deepseek-flash / qwen-plus */
   modelId: string;
   contextWindowTokens: number;
   reasoning: ModelReasoning;
@@ -46,15 +48,15 @@ export type ModelSettingsUpdate = {
 export const MODEL_PRESETS = [
   {
     id: "deepseek",
-    label: "DeepSeek Chat",
-    displayName: "DeepSeek Chat",
+    label: "DeepSeek Flash",
+    displayName: "DeepSeek Flash",
     baseURL: "https://api.deepseek.com/v1",
-    modelId: "deepseek-chat",
+    modelId: "deepseek-flash",
     contextWindowTokens: 128_000,
   },
   {
     id: "deepseek-reasoner",
-    label: "DeepSeek Reasoner",
+    label: "DeepSeek Reasoner (legacy)",
     displayName: "DeepSeek Reasoner",
     baseURL: "https://api.deepseek.com/v1",
     modelId: "deepseek-reasoner",
@@ -86,16 +88,20 @@ export const MODEL_PRESETS = [
   },
 ] as const;
 
+const MODEL_SETTINGS_ID = "model";
+
 const DEFAULT_SETTINGS: ModelSettings = {
   presetId: "deepseek",
-  displayName: "DeepSeek Chat",
+  displayName: "DeepSeek Flash",
   baseURL: "https://api.deepseek.com/v1",
-  modelId: "deepseek-chat",
+  modelId: "deepseek-flash",
   contextWindowTokens: 128_000,
   reasoning: "provider-default",
   apiKeyEncrypted: null,
   updatedAt: null,
 };
+
+let memoryCache: ModelSettings | null = null;
 
 function findBackendRoot(): string {
   let dir = process.cwd();
@@ -115,30 +121,34 @@ function findBackendRoot(): string {
   return process.cwd();
 }
 
-function settingsPath(): string {
+function settingsFilePath(): string {
   if (process.env.PLATFORM_DATA_DIR) {
     return join(process.env.PLATFORM_DATA_DIR, "model-settings.json");
   }
   return join(findBackendRoot(), "platform", "data", "model-settings.json");
 }
 
-export function loadModelSettings(): ModelSettings {
-  const path = settingsPath();
+function normalizeSettings(raw: Partial<ModelSettings> | null | undefined): ModelSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    ...raw,
+    apiKeyEncrypted: raw?.apiKeyEncrypted ?? null,
+  };
+}
+
+function loadFromFile(): ModelSettings {
+  const path = settingsFilePath();
   if (!existsSync(path)) return { ...DEFAULT_SETTINGS };
   try {
     const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<ModelSettings>;
-    return {
-      ...DEFAULT_SETTINGS,
-      ...raw,
-      apiKeyEncrypted: raw.apiKeyEncrypted ?? null,
-    };
+    return normalizeSettings(raw);
   } catch {
     return { ...DEFAULT_SETTINGS };
   }
 }
 
-export function saveModelSettings(next: ModelSettings): ModelSettings {
-  const path = settingsPath();
+function saveToFile(next: ModelSettings): ModelSettings {
+  const path = settingsFilePath();
   mkdirSync(dirname(path), { recursive: true });
   const toWrite: ModelSettings = {
     ...next,
@@ -146,6 +156,73 @@ export function saveModelSettings(next: ModelSettings): ModelSettings {
   };
   writeFileSync(path, `${JSON.stringify(toWrite, null, 2)}\n`, "utf8");
   return toWrite;
+}
+
+export async function loadModelSettings(): Promise<ModelSettings> {
+  if (memoryCache) return memoryCache;
+
+  const db = getDb();
+  if (db) {
+    const row = await db.query.platformSettings.findFirst({
+      where: eq(platformSettings.id, MODEL_SETTINGS_ID),
+    });
+    memoryCache = normalizeSettings(
+      row?.payload as Partial<ModelSettings> | undefined,
+    );
+    return memoryCache;
+  }
+
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    if (!getDatabaseUrl()) {
+      console.warn(
+        "[model-store] DATABASE_URL missing in production; using defaults (cannot persist)",
+      );
+    }
+    memoryCache = { ...DEFAULT_SETTINGS };
+    return memoryCache;
+  }
+
+  memoryCache = loadFromFile();
+  return memoryCache;
+}
+
+export async function saveModelSettings(
+  next: ModelSettings,
+): Promise<ModelSettings> {
+  const toWrite: ModelSettings = {
+    ...next,
+    updatedAt: new Date().toISOString(),
+  };
+
+  const db = getDb();
+  if (db) {
+    await db
+      .insert(platformSettings)
+      .values({
+        id: MODEL_SETTINGS_ID,
+        payload: toWrite,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: platformSettings.id,
+        set: {
+          payload: toWrite,
+          updatedAt: new Date(),
+        },
+      });
+    memoryCache = toWrite;
+    return toWrite;
+  }
+
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    throw new Error(
+      "DATABASE_URL is required to save model settings on Vercel (filesystem is read-only)",
+    );
+  }
+
+  const saved = saveToFile(toWrite);
+  memoryCache = saved;
+  return saved;
 }
 
 export function toPublicSettings(settings: ModelSettings): ModelSettingsPublic {

@@ -12,8 +12,8 @@ import {
 export function platformDynamicModel() {
   return defineDynamic({
     events: {
-      "step.started": () => {
-        const settings = loadModelSettings();
+      "step.started": async () => {
+        const settings = await loadModelSettings();
         if (!settings.baseURL || !settings.modelId) {
           throw new Error(
             "Model API is not configured. Open Settings → Model and set Base URL + Model ID.",

@@ -47,5 +47,15 @@ export const chatEvents = pgTable(
   ],
 );
 
+/** Singleton (and future) platform config rows — e.g. id = "model". */
+export const platformSettings = pgTable("platform_settings", {
+  id: text("id").primaryKey(),
+  payload: jsonb("payload").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export type Chat = typeof chats.$inferSelect;
 export type ChatEvent = typeof chatEvents.$inferSelect;
+export type PlatformSettingsRow = typeof platformSettings.$inferSelect;

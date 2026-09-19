@@ -275,10 +275,11 @@ export default defineChannel({
       if (!auth) {
         return json({ ok: false, error: "Unauthorized" }, 401, request);
       }
+      const settings = await loadModelSettings();
       return json(
         {
           ok: true,
-          settings: toPublicSettings(loadModelSettings()),
+          settings: toPublicSettings(settings),
         },
         200,
         request,
@@ -299,8 +300,9 @@ export default defineChannel({
       }
 
       try {
-        const next = applyModelSettingsUpdate(loadModelSettings(), body);
-        const saved = saveModelSettings(next);
+        const current = await loadModelSettings();
+        const next = applyModelSettingsUpdate(current, body);
+        const saved = await saveModelSettings(next);
         return json(
           { ok: true, settings: toPublicSettings(saved) },
           200,
