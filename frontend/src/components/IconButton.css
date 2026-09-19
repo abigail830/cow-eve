@@ -1,0 +1,53 @@
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  background: #fff;
+  color: #555;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.icon-btn:hover:not(:disabled) {
+  border-color: #f5c9a8;
+  color: #f27a2a;
+  background: #fffaf6;
+}
+
+.icon-btn.active {
+  border-color: #f5c9a8;
+  color: #f27a2a;
+  background: #fff0e6;
+}
+
+.icon-btn.bare {
+  width: auto;
+  height: auto;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 6px;
+  color: #666;
+}
+
+.icon-btn.bare:hover:not(:disabled) {
+  background: #f5f5f5;
+  color: #f27a2a;
+}
+
+.icon-btn.bare.active {
+  background: transparent;
+  color: #f27a2a;
+}
+
+.icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

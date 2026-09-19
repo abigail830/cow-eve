@@ -1,8 +1,11 @@
 import { API_URL } from "./config";
 import { getToken } from "./session";
 
+export type AgentCategory = "omni" | "domain";
+
 export type AgentInfo = {
   id: string;
+  category: AgentCategory;
   displayName: string;
   description: string;
   avatar: string;
@@ -63,6 +66,23 @@ export type ChatDetail = ChatSummary & {
   events: unknown[];
 };
 
+export type PreferenceEntry = {
+  index: number;
+  text: string;
+};
+
+export type MemoryEntry = {
+  id: string;
+  text: string;
+  source: string | null;
+  sessionId: string | null;
+};
+
+export type UserMemorySnapshot = {
+  globalPreferences: PreferenceEntry[];
+  agentMemories: MemoryEntry[];
+};
+
 async function api<T>(
   path: string,
   init?: RequestInit & { auth?: boolean },
@@ -74,8 +94,22 @@ async function api<T>(
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
-  const data = (await res.json()) as T & { ok?: boolean; error?: string };
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...init, headers });
+  } catch {
+    throw new Error(
+      `Cannot reach API at ${API_URL}. Is the backend running?`,
+    );
+  }
+
+  let data: T & { ok?: boolean; error?: string };
+  try {
+    data = (await res.json()) as T & { ok?: boolean; error?: string };
+  } catch {
+    throw new Error(`Invalid response from API (${res.status})`);
+  }
+
   if (!res.ok) {
     throw new Error(
       (data as { error?: string }).error ?? `Request failed (${res.status})`,
@@ -133,4 +167,10 @@ export async function deleteChat(chatId: string) {
   return api<{ ok: true }>(`/api/chats/${encodeURIComponent(chatId)}`, {
     method: "DELETE",
   });
+}
+
+export async function fetchMemory(agentId: string) {
+  return api<{ ok: true; memory: UserMemorySnapshot }>(
+    `/api/memory?agentId=${encodeURIComponent(agentId)}`,
+  );
 }

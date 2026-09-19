@@ -1,6 +1,9 @@
 :root {
-  font-family: "DM Sans", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+  --font-body: "DM Sans", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", sans-serif;
+  --font-heading: "Space Grotesk", "DM Sans", "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-body);
   line-height: 1.4;
   font-weight: 400;
   color: #1a1a1a;
@@ -10,6 +13,11 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   --accent: #f27a2a;
+  --paper-cover: #f9f6f2;
+  --paper-cover-soft: color-mix(in srgb, var(--paper-cover) 68%, transparent);
+  --paper-cover-muted: color-mix(in srgb, var(--paper-cover) 38%, transparent);
+  --paper-cover-faint: color-mix(in srgb, #fff 88%, var(--paper-cover));
+  --paper-cover-border: color-mix(in srgb, var(--paper-cover) 72%, rgba(0, 0, 0, 0.06));
 }
 
 *,
@@ -22,10 +30,20 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  font-family: var(--font-body);
 }
 
 #root {
   min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
 }
 
 button,

@@ -1,15 +1,31 @@
 import type { EveMessage, EveMessagePart } from "eve/react";
+import { ChevronRight } from "lucide-react";
+import { MarkdownContent } from "./MarkdownContent";
 import "./MessageStream.css";
+
+function StepChevron() {
+  return (
+    <ChevronRight
+      size={14}
+      strokeWidth={2}
+      className="msg-step-chevron"
+      aria-hidden
+    />
+  );
+}
 
 function PartView({ part }: { part: EveMessagePart }) {
   if (part.type === "text") {
-    return <div className="msg-text">{part.text}</div>;
+    return <MarkdownContent text={part.text} className="msg-text" />;
   }
   if (part.type === "reasoning") {
     return (
       <details className="msg-step">
-        <summary>Reasoning</summary>
-        <pre>{part.text}</pre>
+        <summary>
+          <StepChevron />
+          <span>Reasoning</span>
+        </summary>
+        <MarkdownContent text={part.text} />
       </details>
     );
   }
@@ -19,7 +35,9 @@ function PartView({ part }: { part: EveMessagePart }) {
     return (
       <details className="msg-step" open={state === "input-streaming"}>
         <summary>
-          <span className="step-check">✓</span> {name}
+          <StepChevron />
+          <span className="step-check">✓</span>
+          <span>{name}</span>
         </summary>
         {"input" in part && part.input != null ? (
           <pre>{JSON.stringify(part.input, null, 2)}</pre>
@@ -60,9 +78,11 @@ export function MessageStream({ messages }: { messages: readonly EveMessage[] })
             <div className="msg-bubble user">
               {msg.parts
                 .filter((p) => p.type === "text")
-                .map((p, i) => (
-                  <div key={i}>{"text" in p ? p.text : null}</div>
-                ))}
+                .map((p, i) =>
+                  "text" in p ? (
+                    <MarkdownContent key={i} text={p.text} />
+                  ) : null,
+                )}
             </div>
           ) : (
             <div className="msg-assistant">

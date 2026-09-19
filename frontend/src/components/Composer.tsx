@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { ArrowUp, Paperclip } from "lucide-react";
 import "./Composer.css";
 
 type Props = {
@@ -8,8 +9,32 @@ type Props = {
   onCancel?: () => void;
 };
 
+const MIN_LINES = 2;
+const MAX_LINES = 4;
+
+function resizeTextarea(el: HTMLTextAreaElement) {
+  const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+  const minHeight = lineHeight * MIN_LINES;
+  const maxHeight = lineHeight * MAX_LINES;
+
+  el.style.height = "0px";
+  const nextHeight = Math.min(maxHeight, Math.max(minHeight, el.scrollHeight));
+  el.style.height = `${nextHeight}px`;
+  el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+}
+
 export function Composer({ disabled, statusLabel, onSend, onCancel }: Props) {
   const [text, setText] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const syncHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (el) resizeTextarea(el);
+  }, []);
+
+  useEffect(() => {
+    syncHeight();
+  }, [text, syncHeight]);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -23,7 +48,8 @@ export function Composer({ disabled, statusLabel, onSend, onCancel }: Props) {
     <form className="composer" onSubmit={submit}>
       <div className="composer-box">
         <textarea
-          rows={1}
+          ref={textareaRef}
+          rows={MIN_LINES}
           placeholder="Message... (type @ to reference attachments)"
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -36,9 +62,15 @@ export function Composer({ disabled, statusLabel, onSend, onCancel }: Props) {
         />
         <div className="composer-bar">
           <div className="composer-left">
-            <span className="composer-icon" title="Attach (soon)">
-              📎
-            </span>
+            <button
+              type="button"
+              className="composer-icon-btn"
+              title="Attach (soon)"
+              aria-label="Attach file"
+              disabled
+            >
+              <Paperclip size={18} strokeWidth={2} />
+            </button>
           </div>
           <div className="composer-right">
             <span className="model-tag">{statusLabel ?? "eve"}</span>
@@ -53,7 +85,7 @@ export function Composer({ disabled, statusLabel, onSend, onCancel }: Props) {
               disabled={disabled || !text.trim()}
               aria-label="Send"
             >
-              ↑
+              <ArrowUp size={18} strokeWidth={2.5} />
             </button>
           </div>
         </div>

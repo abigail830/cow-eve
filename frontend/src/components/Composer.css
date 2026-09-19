@@ -1,32 +1,40 @@
 .composer {
-  padding: 12px 20px 20px;
+  flex-shrink: 0;
+  width: 100%;
+  padding: 12px 5% 24px;
+  box-sizing: border-box;
 }
 
 .composer-box {
-  border: 1px solid #e6e6e6;
+  width: 100%;
+  border: 1px solid #f5c9a8;
   border-radius: 16px;
   background: #fff;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  padding: 12px 14px 10px;
+  box-shadow: 0 2px 16px rgba(242, 122, 42, 0.08);
+  padding: 10px 14px 8px;
 }
 
 .composer-box textarea {
+  display: block;
   width: 100%;
   border: none;
   resize: none;
   outline: none;
   font: inherit;
   font-size: 0.95rem;
-  min-height: 28px;
-  max-height: 160px;
+  line-height: 1.35;
   color: #222;
+  padding: 0;
+  margin: 0;
+  overflow-y: hidden;
+  box-sizing: border-box;
 }
 
 .composer-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .composer-left,
@@ -36,9 +44,15 @@
   gap: 10px;
 }
 
-.composer-icon {
-  opacity: 0.45;
-  font-size: 0.9rem;
+.composer-icon-btn {
+  border: none;
+  background: transparent;
+  color: #aaa;
+  padding: 2px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: not-allowed;
 }
 
 .model-tag {
@@ -48,16 +62,15 @@
 }
 
 .send-btn {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border: none;
   border-radius: 10px;
   background: #f27a2a;
   color: #fff;
-  font-size: 1.1rem;
-  font-weight: 700;
   cursor: pointer;
-  line-height: 1;
+  display: grid;
+  place-items: center;
 }
 
 .send-btn:disabled {

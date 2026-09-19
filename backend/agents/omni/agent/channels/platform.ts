@@ -8,6 +8,7 @@ import {
   getChatForUser,
   getDatabaseUrl,
   getJwtSecret,
+  getUserMemorySnapshot,
   listAgents,
   listChats,
   loadModelSettings,
@@ -81,6 +82,7 @@ export default defineChannel({
     preflight("/api/chats/:id"),
     preflight("/api/settings/model"),
     preflight("/api/settings/model/presets"),
+    preflight("/api/memory"),
 
     POST("/api/auth/login", async (request) => {
       let body: { email?: string; password?: string };
@@ -250,6 +252,33 @@ export default defineChannel({
           {
             ok: false,
             error: err instanceof Error ? err.message : "Failed to delete chat",
+          },
+          500,
+          request,
+        );
+      }
+    }),
+
+    GET("/api/memory", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+
+      const url = new URL(request.url);
+      const agentId = url.searchParams.get("agentId")?.trim() || "omni";
+
+      try {
+        const memory = await getUserMemorySnapshot({
+          userEmail: auth.principalId,
+          agentId,
+        });
+        return json({ ok: true, memory }, 200, request);
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error: err instanceof Error ? err.message : "Failed to load memory",
           },
           500,
           request,

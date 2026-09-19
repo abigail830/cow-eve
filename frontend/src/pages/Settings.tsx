@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { ChevronLeft, Cpu, SlidersHorizontal } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import {
   fetchModelPresets,
@@ -37,7 +38,8 @@ export function SettingsPage() {
     <div className="settings-page">
       <header className="settings-header">
         <Link to="/" className="settings-back">
-          ← Back
+          <ChevronLeft size={18} strokeWidth={2} />
+          Back
         </Link>
         <h1>Settings</h1>
       </header>
@@ -49,6 +51,7 @@ export function SettingsPage() {
             className={tab === "model" ? "active" : ""}
             onClick={() => setTab("model")}
           >
+            <Cpu size={16} strokeWidth={2} />
             Model
           </button>
           <button
@@ -56,6 +59,7 @@ export function SettingsPage() {
             className={tab === "general" ? "active" : ""}
             onClick={() => setTab("general")}
           >
+            <SlidersHorizontal size={16} strokeWidth={2} />
             General
           </button>
         </nav>

@@ -1,5 +1,8 @@
+export type AgentCategory = "omni" | "domain";
+
 export type AgentRegistryEntry = {
   id: string;
+  category: AgentCategory;
   displayName: string;
   description: string;
   /** Path under frontend public/, e.g. /agents/content-studio.png */
@@ -17,7 +20,8 @@ export type AgentRegistryEntry = {
 export const AGENT_REGISTRY: readonly AgentRegistryEntry[] = [
   {
     id: "omni",
-    displayName: "haoyu-omni",
+    category: "omni",
+    displayName: "HaoYu",
     description: "统一入口：轻量任务自完成，复杂任务调度专精 agent",
     avatar: "/agents/haoyu.png",
     eveAgent: "omni",
@@ -25,6 +29,7 @@ export const AGENT_REGISTRY: readonly AgentRegistryEntry[] = [
   },
   {
     id: "content-studio",
+    category: "domain",
     displayName: "Content Studio",
     description: "文档、一页纸 PPT 与内容撰写专精 agent",
     avatar: "/agents/content-studio.png",

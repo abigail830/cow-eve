@@ -61,6 +61,14 @@ export type {
   PersistableEvent,
 } from "../application/chat/chat.use-case";
 
+// Memory
+export { getUserMemorySnapshot } from "../application/memory/memory.use-case";
+export type {
+  MemoryEntry,
+  PreferenceEntry,
+  UserMemorySnapshot,
+} from "../application/memory/memory.use-case";
+
 // Database (health checks / diagnostics)
 export { getDatabaseUrl } from "../infrastructure/persistence/database";
 
