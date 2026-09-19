@@ -68,7 +68,7 @@ curl -X POST http://127.0.0.1:2000/eve/v1/dev/schedules/heartbeat
 
 Link and deploy with Eve / Vercel from this directory (`eve link`, `eve deploy`). Set the env vars above on the Vercel project. Point `CONTENT_STUDIO_URL` at the content-studio public origin when agents are separate services.
 
-`backend/vercel.json` sets serverless `maxDuration` to **300s** (Vercel Pro). Eve also configures the workflow flow route to `maxDuration: "max"` (Pro ceiling).
+Eve configures the workflow flow route to `maxDuration: "max"` (Vercel Pro ceiling, typically 300s). Do **not** add a classic `vercel.json` `functions.**/*` maxDuration — Eve uses Build Output services, and that pattern fails the build (`unmatched-function-pattern`).
 
 After setting `DATABASE_URL`, run `npm run db:migrate` once against Neon (locally or in CI) before relying on chat history.
 
