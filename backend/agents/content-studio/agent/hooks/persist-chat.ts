@@ -1,5 +1,5 @@
 import { defineHook } from "eve/hooks";
-import { persistStreamEvent } from "#platform/chat/persist.js";
+import { persistStreamEvent } from "#platform/composition/public-api.js";
 
 
 export default defineHook({

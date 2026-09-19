@@ -6,8 +6,16 @@ import { fileURLToPath } from "node:url";
 
 const url = process.env.DATABASE_URL?.trim();
 if (!url) {
-  console.error("DATABASE_URL is required to run migrations");
-  process.exit(1);
+  if (process.env.VERCEL) {
+    console.error(
+      "DATABASE_URL is required on Vercel to apply Neon migrations during build",
+    );
+    process.exit(1);
+  }
+  console.warn(
+    "[db:migrate] DATABASE_URL not set — skipping (run manually before production deploy)",
+  );
+  process.exit(0);
 }
 
 const migrationsFolder = join(

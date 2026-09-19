@@ -8,7 +8,7 @@ export {
   chats,
   chatEvents,
   platformSettings,
-  type Chat,
-  type ChatEvent,
+  type ChatRow,
+  type ChatEventRow,
   type PlatformSettingsRow,
 } from "./schema";

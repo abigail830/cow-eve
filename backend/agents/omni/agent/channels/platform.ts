@@ -1,29 +1,24 @@
 import { defineChannel, DELETE, GET, OPTIONS, POST, PUT } from "eve/channels";
 import { extractBearerToken, verifyJwtHmac } from "eve/channels/auth";
-import { loginWithPassword } from "../../../../platform/auth/login";
 import {
   JWT_ALGORITHM,
   JWT_AUDIENCE,
   JWT_ISSUER,
-  getJwtSecret,
-  resolveCorsOrigin,
-} from "../../../../platform/auth/config";
-import { findUserByEmail } from "../../../../platform/auth/users";
-import {
+  findUserByEmail,
   getChatForUser,
+  getDatabaseUrl,
+  getJwtSecret,
+  listAgents,
   listChats,
-  softDeleteChat,
-} from "../../../../platform/chat/persist";
-import { getDatabaseUrl } from "../../../../platform/db";
-import { listAgents } from "../../../../platform/registry/agents";
-import {
-  MODEL_PRESETS,
-  applyModelSettingsUpdate,
   loadModelSettings,
+  loginWithPassword,
+  MODEL_PRESETS,
+  resolveCorsOrigin,
   saveModelSettings,
+  softDeleteChat,
   toPublicSettings,
   type ModelSettingsUpdate,
-} from "../../../../platform/settings/model-store";
+} from "../../../../platform/composition/public-api";
 
 function corsHeaders(request?: Request): HeadersInit {
   return {
@@ -300,9 +295,7 @@ export default defineChannel({
       }
 
       try {
-        const current = await loadModelSettings();
-        const next = applyModelSettingsUpdate(current, body);
-        const saved = await saveModelSettings(next);
+        const saved = await saveModelSettings(body);
         return json(
           { ok: true, settings: toPublicSettings(saved) },
           200,

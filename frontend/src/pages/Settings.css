@@ -33,8 +33,7 @@
 .settings-shell {
   display: flex;
   gap: 0;
-  max-width: 960px;
-  margin: 24px auto;
+  margin: 24px 28px 32px;
   background: #fff;
   border-radius: 14px;
   border: 1px solid #ececec;
@@ -43,7 +42,7 @@
 }
 
 .settings-tabs {
-  width: 180px;
+  width: 200px;
   flex-shrink: 0;
   border-right: 1px solid #f0f0f0;
   padding: 16px 10px;
@@ -76,7 +75,8 @@
 
 .settings-panel {
   flex: 1;
-  padding: 28px 32px;
+  padding: 28px 40px 36px;
+  min-width: 0;
 }
 
 .settings-placeholder h2,
@@ -94,10 +94,14 @@
 }
 
 .model-form {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 14px;
-  max-width: 560px;
+  width: 100%;
+}
+
+.model-form-intro {
+  grid-column: 1 / -1;
 }
 
 .model-form label {
@@ -117,6 +121,7 @@
   color: #1a1a1a;
   background: #fafafa;
   outline: none;
+  width: 100%;
 }
 
 .model-form input:focus,
@@ -129,11 +134,13 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+  grid-column: 1 / -1;
 }
 
 .model-form button[type="submit"] {
   margin-top: 8px;
-  align-self: flex-start;
+  justify-self: start;
+  grid-column: 1 / -1;
   border: none;
   border-radius: 10px;
   background: #f27a2a;
@@ -152,16 +159,35 @@
   margin: 0;
   color: #c0392b;
   font-size: 0.85rem;
+  grid-column: 1 / -1;
 }
 
 .settings-ok {
   margin: 0;
   color: #1e8449;
   font-size: 0.85rem;
+  grid-column: 1 / -1;
 }
 
 .settings-muted {
   color: #999;
+}
+
+@media (min-width: 900px) {
+  .model-form {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 24px;
+  }
+
+  .model-form label:nth-of-type(2),
+  .model-form label:nth-of-type(4),
+  .model-form label:nth-of-type(5) {
+    grid-column: span 1;
+  }
+
+  .model-form label:nth-of-type(3) {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 720px) {
@@ -176,6 +202,10 @@
     border-right: none;
     border-bottom: 1px solid #f0f0f0;
     overflow-x: auto;
+  }
+
+  .settings-panel {
+    padding: 20px 18px 28px;
   }
 
   .model-form-row {

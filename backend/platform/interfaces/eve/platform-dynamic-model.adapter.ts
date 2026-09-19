@@ -3,7 +3,7 @@ import { defineDynamic } from "eve";
 import {
   getDecryptedApiKey,
   loadModelSettings,
-} from "../settings/model-store";
+} from "../../application/settings/model-settings.use-case";
 
 /**
  * Resolve the platform OpenAI-compatible model at each model step.

@@ -56,6 +56,6 @@ export const platformSettings = pgTable("platform_settings", {
     .notNull(),
 });
 
-export type Chat = typeof chats.$inferSelect;
-export type ChatEvent = typeof chatEvents.$inferSelect;
+export type ChatRow = typeof chats.$inferSelect;
+export type ChatEventRow = typeof chatEvents.$inferSelect;
 export type PlatformSettingsRow = typeof platformSettings.$inferSelect;

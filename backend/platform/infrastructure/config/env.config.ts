@@ -1,9 +1,5 @@
 /** Shared JWT / auth constants for platform login and Eve channel verification. */
 
-export const JWT_ISSUER = "cow-eve";
-export const JWT_AUDIENCE = "agent-platform";
-export const JWT_ALGORITHM = "HS256" as const;
-
 /** True while Eve is evaluating agent modules for a Vercel build output. */
 function isEveVercelBuild(): boolean {
   return Boolean(
@@ -18,9 +14,6 @@ export function getJwtSecret(): string {
     return secret;
   }
 
-  // `eve build` on Vercel imports channel modules with VERCEL=1. Project secrets
-  // are often Runtime-only, so allow a build-time placeholder during graph
-  // discovery. Cold starts re-import with runtime env and must have JWT_SECRET.
   if (isEveVercelBuild()) {
     return "cow-eve-build-placeholder-secret";
   }

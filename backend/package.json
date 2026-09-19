@@ -7,14 +7,14 @@
     "#platform/*": "./platform/*"
   },
   "scripts": {
-    "build": "eve build",
+    "build": "npm run db:migrate && eve build",
     "deploy": "eve deploy",
     "dev": "eve dev --agent omni --no-ui --port 2000",
     "dev:omni": "eve dev --agent omni --no-ui --port 2000",
     "dev:content-studio": "eve dev --agent content-studio --no-ui --port 2001",
     "dev:ui": "eve dev --agent omni",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx platform/db/migrate.ts",
+    "db:migrate": "tsx platform/infrastructure/persistence/database/migrate.ts",
     "eval": "eve eval",
     "start": "eve start",
     "typecheck": "tsc"

@@ -1,5 +1,5 @@
 import { defineAgent } from "eve";
-import { platformDynamicModel } from "../../../platform/models/platform-model";
+import { platformDynamicModel } from "../../../platform/composition/public-api";
 
 export default defineAgent({
   model: platformDynamicModel(),

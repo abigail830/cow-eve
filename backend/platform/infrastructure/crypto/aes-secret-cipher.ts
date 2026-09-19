@@ -1,8 +1,15 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-import { getJwtSecret } from "../auth/config";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from "node:crypto";
+import { getJwtSecret } from "../config/env.config";
 
 function encryptionKey(): Buffer {
-  return createHash("sha256").update(`cow-eve-model-key:${getJwtSecret()}`).digest();
+  return createHash("sha256")
+    .update(`cow-eve-model-key:${getJwtSecret()}`)
+    .digest();
 }
 
 /** Encrypt a secret for at-rest storage (AES-256-GCM). */

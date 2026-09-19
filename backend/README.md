@@ -74,4 +74,6 @@ After setting `DATABASE_URL`, run `npm run db:migrate` once against Neon (locall
 
 ## Preset user
 
-Login only (no registration). Password is stored as bcrypt in `platform/auth/users.ts`.
+Login only (no registration). Password is stored as bcrypt in `platform/domain/auth/user.entity.ts`.
+
+Platform code follows DDD-style layers — see `platform/ARCHITECTURE.md`. Agent code should import from `platform/composition/public-api.ts` only.

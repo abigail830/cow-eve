@@ -35,7 +35,7 @@ cd backend && npm install && cd ../frontend && npm install && cd ..
 
 配置模型凭证（对话必需）：登录后打开 **Settings → Model**，填写 DeepSeek / Qwen 等 OpenAI 兼容接口的 Base URL、Model ID 与 API Key。
 
-预置账号（无注册）：见 backend `platform/auth/users.ts`（密码 bcrypt 存储）。
+预置账号（无注册）：见 backend `platform/domain/auth/user.entity.ts`（密码 bcrypt 存储）。Platform 分层说明见 `backend/platform/ARCHITECTURE.md`。
 
 ## 远端仓库
 

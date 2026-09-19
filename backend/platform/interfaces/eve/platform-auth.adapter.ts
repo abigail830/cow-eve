@@ -8,9 +8,11 @@ import {
   JWT_ALGORITHM,
   JWT_AUDIENCE,
   JWT_ISSUER,
+} from "../../domain/auth/auth.constants";
+import {
   getFrontendOrigins,
   getJwtSecret,
-} from "./config";
+} from "../../infrastructure/config/env.config";
 
 /** Platform JWT first, then Vercel OIDC / local dev fallbacks. */
 export function platformRouteAuth(): AuthFn<Request>[] {

@@ -2,7 +2,7 @@ import { eveChannel } from "eve/channels/eve";
 import {
   platformCors,
   platformRouteAuth,
-} from "../../../../platform/auth/eve-auth";
+} from "../../../../platform/composition/public-api";
 
 export default eveChannel({
   auth: platformRouteAuth(),

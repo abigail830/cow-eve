@@ -4,9 +4,9 @@ import {
   JWT_ALGORITHM,
   JWT_AUDIENCE,
   JWT_ISSUER,
-  getJwtSecret,
-} from "./config";
-import { findUserByEmail } from "./users";
+} from "../../domain/auth/auth.constants";
+import { findUserByEmail } from "../../domain/auth/user.entity";
+import { getJwtSecret } from "../../infrastructure/config/env.config";
 
 export type LoginSuccess = {
   token: string;

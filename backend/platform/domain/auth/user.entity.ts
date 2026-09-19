@@ -13,7 +13,6 @@ export const PRESET_USERS: readonly PlatformUser[] = [
   {
     email: "abigail830@163.com",
     displayName: "Sara Qian",
-    // bcrypt of the seed password; generated with bcryptjs cost 12
     passwordHash:
       "$2b$12$.NoBHp1pyqGtiPjQ3CgSt.AkCLA..0NPRMKfx9RufeUsAObDiOffq",
   },
