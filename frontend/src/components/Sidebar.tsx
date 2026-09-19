@@ -22,7 +22,7 @@ export function Sidebar({
     <aside className="sidebar">
       <div className="sidebar-brand">
         <img src="/cow.png" alt="" width={28} height={28} />
-        <span>Agent Team</span>
+        <span>FDE Desk</span>
       </div>
 
       <div className="sidebar-section-label">AGENTS</div>

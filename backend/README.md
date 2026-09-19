@@ -57,7 +57,7 @@ curl -X POST http://127.0.0.1:2000/eve/v1/dev/schedules/heartbeat
 | Variable | Purpose |
 |----------|---------|
 | `JWT_SECRET` | HMAC secret for platform JWT (≥16 chars). **Required at Vercel Runtime** (Production/Preview). Build no longer requires it. |
-| `FRONTEND_ORIGIN` | CORS origins, comma-separated (default `http://127.0.0.1:5273,http://localhost:5273`) |
+| `FRONTEND_ORIGIN` | Extra CORS origins, comma-separated (defaults always include local + `https://fde-desk.vercel.app`) |
 | `CONTENT_STUDIO_URL` | Omni → Content Studio remote base (default `http://127.0.0.1:2001`) |
 | `DATABASE_URL` | Neon Postgres connection string for chat history |
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL for Eve memory |
@@ -66,7 +66,7 @@ curl -X POST http://127.0.0.1:2000/eve/v1/dev/schedules/heartbeat
 
 ## Deploy
 
-Link and deploy with Eve / Vercel from this directory (`eve link`, `eve deploy`). Set the env vars above on the Vercel project. Point `CONTENT_STUDIO_URL` at the content-studio public origin when agents are separate services.
+Link and deploy with Eve / Vercel from this directory (`eve link`, `eve deploy`), or Git push with Root Directory `backend`. [`vercel.ts`](vercel.ts) publishes `/api/*` to the `eve-omni` service (platform login/chats/settings). Set the env vars above on the Vercel project. Point `CONTENT_STUDIO_URL` at `https://<backend-host>/eve/content-studio` in production.
 
 Eve configures the workflow flow route to `maxDuration: "max"` (Vercel Pro ceiling, typically 300s). Do **not** add a classic `vercel.json` `functions.**/*` maxDuration — Eve uses Build Output services, and that pattern fails the build (`unmatched-function-pattern`).
 

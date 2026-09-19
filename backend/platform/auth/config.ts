@@ -34,16 +34,20 @@ export function getJwtSecret(): string {
 const DEFAULT_FRONTEND_ORIGINS = [
   "http://127.0.0.1:5273",
   "http://localhost:5273",
+  "https://fde-desk.vercel.app",
 ];
 
-/** Allowed browser origins for CORS (comma-separated FRONTEND_ORIGIN). */
+/** Allowed browser origins for CORS (defaults + comma-separated FRONTEND_ORIGIN). */
 export function getFrontendOrigins(): string[] {
+  const allowed = new Set(DEFAULT_FRONTEND_ORIGINS);
   const raw = process.env.FRONTEND_ORIGIN?.trim();
-  if (!raw) return [...DEFAULT_FRONTEND_ORIGINS];
-  return raw
-    .split(",")
-    .map((s) => s.trim().replace(/\/$/, ""))
-    .filter(Boolean);
+  if (raw) {
+    for (const origin of raw.split(",")) {
+      const normalized = origin.trim().replace(/\/$/, "");
+      if (normalized) allowed.add(normalized);
+    }
+  }
+  return [...allowed];
 }
 
 /** Pick Access-Control-Allow-Origin for an inbound request. */
