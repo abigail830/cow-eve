@@ -1,0 +1,16 @@
+.chat-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.chat-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-load-error {
+  padding: 48px 24px;
+  color: #c0392b;
+  text-align: center;
+}

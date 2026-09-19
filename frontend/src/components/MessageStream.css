@@ -1,0 +1,87 @@
+.msg-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0 24px;
+}
+
+.msg-empty {
+  color: #999;
+  text-align: center;
+  margin-top: 20vh;
+  font-size: 0.95rem;
+}
+
+.msg-row.user {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.msg-bubble.user {
+  max-width: 70%;
+  background: #fff0e6;
+  color: #1a1a1a;
+  padding: 10px 14px;
+  border-radius: 14px 14px 4px 14px;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.msg-assistant {
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msg-text {
+  white-space: pre-wrap;
+  line-height: 1.55;
+  color: #222;
+  font-size: 0.95rem;
+}
+
+.msg-step {
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  background: #fafafa;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.msg-step summary {
+  cursor: pointer;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+}
+
+.msg-step summary::-webkit-details-marker {
+  display: none;
+}
+
+.step-check {
+  color: #2ecc71;
+  font-size: 0.75rem;
+}
+
+.msg-step pre {
+  margin: 8px 0 4px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 6px;
+  overflow: auto;
+  font-size: 0.75rem;
+  color: #444;
+}
+
+.tool-out {
+  border-top: 1px dashed #e0e0e0;
+}
+
+.msg-file {
+  font-size: 0.85rem;
+  color: #666;
+}

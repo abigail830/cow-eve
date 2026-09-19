@@ -1,0 +1,10 @@
+{
+  "name": "cow-eve",
+  "private": true,
+  "scripts": {
+    "start": "./scripts/start.sh",
+    "stop": "./scripts/stop.sh",
+    "restart": "./scripts/restart.sh",
+    "status": "./scripts/status.sh"
+  }
+}
