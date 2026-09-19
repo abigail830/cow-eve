@@ -8,6 +8,10 @@ import {
   type ModelReasoning,
   type ModelSettingsPublic,
 } from "../lib/api";
+import {
+  DEFAULT_MODEL_PRESETS,
+  DEFAULT_MODEL_SETTINGS,
+} from "../lib/model-defaults";
 import { useAuth } from "../lib/auth";
 import "./Settings.css";
 
@@ -74,14 +78,20 @@ function GeneralPlaceholder() {
 }
 
 function ModelSettingsTab() {
-  const [presets, setPresets] = useState<ModelPreset[]>([]);
+  const [presets, setPresets] = useState<ModelPreset[]>(DEFAULT_MODEL_PRESETS);
   const [settings, setSettings] = useState<ModelSettingsPublic | null>(null);
-  const [presetId, setPresetId] = useState("deepseek");
-  const [displayName, setDisplayName] = useState("");
-  const [baseURL, setBaseURL] = useState("");
-  const [modelId, setModelId] = useState("");
-  const [contextWindowTokens, setContextWindowTokens] = useState(128000);
-  const [reasoning, setReasoning] = useState<ModelReasoning>("provider-default");
+  const [presetId, setPresetId] = useState(DEFAULT_MODEL_SETTINGS.presetId);
+  const [displayName, setDisplayName] = useState(
+    DEFAULT_MODEL_SETTINGS.displayName,
+  );
+  const [baseURL, setBaseURL] = useState(DEFAULT_MODEL_SETTINGS.baseURL);
+  const [modelId, setModelId] = useState(DEFAULT_MODEL_SETTINGS.modelId);
+  const [contextWindowTokens, setContextWindowTokens] = useState(
+    DEFAULT_MODEL_SETTINGS.contextWindowTokens,
+  );
+  const [reasoning, setReasoning] = useState<ModelReasoning>(
+    DEFAULT_MODEL_SETTINGS.reasoning,
+  );
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -93,13 +103,24 @@ function ModelSettingsTab() {
     Promise.all([fetchModelSettings(), fetchModelPresets()])
       .then(([settingsRes, presetsRes]) => {
         if (cancelled) return;
-        setPresets(presetsRes.presets);
+        setPresets(
+          presetsRes.presets.length > 0
+            ? presetsRes.presets
+            : DEFAULT_MODEL_PRESETS,
+        );
         applySettings(settingsRes.settings);
+        setError(null);
       })
       .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load settings");
-        }
+        if (cancelled) return;
+        // Keep usable defaults so the form is not empty for browser autofill.
+        setPresets(DEFAULT_MODEL_PRESETS);
+        applySettings(DEFAULT_MODEL_SETTINGS);
+        setError(
+          err instanceof Error
+            ? `${err.message} — showing defaults; fix the API connection then reload.`
+            : "Failed to load settings — showing defaults",
+        );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -111,7 +132,7 @@ function ModelSettingsTab() {
 
   function applySettings(s: ModelSettingsPublic) {
     setSettings(s);
-    setPresetId(s.presetId);
+    setPresetId(s.presetId || "deepseek");
     setDisplayName(s.displayName);
     setBaseURL(s.baseURL);
     setModelId(s.modelId);
@@ -159,7 +180,11 @@ function ModelSettingsTab() {
   }
 
   return (
-    <form className="model-form" onSubmit={onSubmit}>
+    <form
+      className="model-form"
+      onSubmit={onSubmit}
+      autoComplete="off"
+    >
       <div className="model-form-intro">
         <h2>Model API</h2>
         <p>
@@ -170,7 +195,11 @@ function ModelSettingsTab() {
 
       <label>
         Preset
-        <select value={presetId} onChange={(e) => onPresetChange(e.target.value)}>
+        <select
+          value={presetId}
+          onChange={(e) => onPresetChange(e.target.value)}
+          autoComplete="off"
+        >
           {presets.map((p) => (
             <option key={p.id} value={p.id}>
               {p.label}
@@ -185,6 +214,8 @@ function ModelSettingsTab() {
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Shown in the chat composer"
+          name="model-display-name"
+          autoComplete="off"
           required
         />
       </label>
@@ -198,6 +229,8 @@ function ModelSettingsTab() {
             setBaseURL(e.target.value);
           }}
           placeholder="https://api.deepseek.com/v1"
+          name="model-base-url"
+          autoComplete="off"
           required
         />
       </label>
@@ -210,7 +243,11 @@ function ModelSettingsTab() {
             setPresetId("custom");
             setModelId(e.target.value);
           }}
-          placeholder="deepseek-chat"
+          placeholder="deepseek-flash"
+          name="model-id"
+          autoComplete="off"
+          data-1p-ignore
+          data-lpignore="true"
           required
         />
       </label>
@@ -226,7 +263,10 @@ function ModelSettingsTab() {
               ? `Saved ${settings.apiKeyHint ?? "••••"} — leave blank to keep`
               : "sk-…"
           }
-          autoComplete="off"
+          name="model-api-key"
+          autoComplete="new-password"
+          data-1p-ignore
+          data-lpignore="true"
         />
       </label>
 
@@ -239,6 +279,8 @@ function ModelSettingsTab() {
             step={1024}
             value={contextWindowTokens}
             onChange={(e) => setContextWindowTokens(Number(e.target.value))}
+            name="model-context-window"
+            autoComplete="off"
             required
           />
         </label>
@@ -248,6 +290,7 @@ function ModelSettingsTab() {
           <select
             value={reasoning}
             onChange={(e) => setReasoning(e.target.value as ModelReasoning)}
+            autoComplete="off"
           >
             {REASONING_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
