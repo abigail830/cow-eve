@@ -17,9 +17,9 @@ export type AgentRegistryEntry = {
 export const AGENT_REGISTRY: readonly AgentRegistryEntry[] = [
   {
     id: "omni",
-    displayName: "Omni",
+    displayName: "haoyu-omni",
     description: "统一入口：轻量任务自完成，复杂任务调度专精 agent",
-    avatar: "/agents/avatar5.png",
+    avatar: "/agents/haoyu.png",
     eveAgent: "omni",
     defaultDevUrl: "http://127.0.0.1:2000",
   },

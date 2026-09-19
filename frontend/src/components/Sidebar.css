@@ -19,7 +19,8 @@
 }
 
 .sidebar-brand img {
-  image-rendering: pixelated;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .sidebar-section-label {

@@ -4,5 +4,5 @@ import { defineSchedule } from "eve/schedules";
 export default defineSchedule({
   cron: "0 9 * * 1",
   markdown:
-    "Platform heartbeat: briefly note that Omni is healthy and list one capability reminder for maintainers (skills, memory, or remote Content Studio).",
+    "Platform heartbeat: briefly note that haoyu-omni is healthy and list one capability reminder for maintainers (skills, memory, or remote Content Studio).",
 });

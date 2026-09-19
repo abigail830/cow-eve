@@ -30,7 +30,7 @@ export function LoginPage() {
   return (
     <div className="login-page">
       <form className="login-card" onSubmit={onSubmit}>
-        <img className="login-logo" src="/cow.png" alt="FDE Desk" />
+        <img className="login-logo" src="/agents/haoyu.png" alt="FDE Desk" />
         <h1>FDE Desk</h1>
         <p className="login-sub">Sign in with your email and password</p>
 
