@@ -13,6 +13,8 @@ type PreviewDownloadProps = {
   canDownload: boolean;
   previewLabel?: string;
   downloadLabel?: string;
+  chatId?: string | null;
+  compact?: boolean;
 };
 
 export function PreviewDownloadActions({
@@ -24,6 +26,8 @@ export function PreviewDownloadActions({
   canDownload,
   previewLabel = "Preview",
   downloadLabel = "Download",
+  chatId,
+  compact = false,
 }: PreviewDownloadProps) {
   const [downloading, setDownloading] = useState(false);
 
@@ -33,7 +37,7 @@ export function PreviewDownloadActions({
     if (!canDownload || downloading) return;
     setDownloading(true);
     try {
-      await downloadArtifactFile(spec, apiBase, token ?? null);
+      await downloadArtifactFile(spec, apiBase, token ?? null, chatId);
     } finally {
       setDownloading(false);
     }
@@ -45,12 +49,12 @@ export function PreviewDownloadActions({
         <>
           <button
             type="button"
-            className="artifact-inline-action-btn"
+            className={`artifact-inline-action-btn${compact ? " icon-only" : ""}`}
             onClick={() => onPreview?.(spec)}
             aria-label={previewLabel}
           >
             <Eye size={14} />
-            <span>{previewLabel}</span>
+            {compact ? null : <span>{previewLabel}</span>}
           </button>
           {canDownload ? <span className="artifact-inline-action-divider" aria-hidden /> : null}
         </>
@@ -58,13 +62,13 @@ export function PreviewDownloadActions({
       {canDownload ? (
         <button
           type="button"
-          className="artifact-inline-action-btn"
+          className={`artifact-inline-action-btn${compact ? " icon-only" : ""}`}
           disabled={downloading}
           onClick={() => void handleDownload()}
           aria-label={downloadLabel}
         >
           {downloading ? <Loader2 size={14} className="artifact-spin" /> : <Download size={14} />}
-          <span>{downloadLabel}</span>
+          {compact ? null : <span>{downloadLabel}</span>}
         </button>
       ) : null}
     </ArtifactActionGroup>
@@ -111,10 +115,19 @@ type DiagramActionsProps = {
   spec: ArtifactSpec;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
+  compact?: boolean;
   onPreview?: (spec: ArtifactSpec) => void;
 };
 
-export function DiagramCardActions({ spec, apiBase, token, onPreview }: DiagramActionsProps) {
+export function DiagramCardActions({
+  spec,
+  apiBase,
+  token,
+  chatId,
+  compact = false,
+  onPreview,
+}: DiagramActionsProps) {
   const [downloading, setDownloading] = useState<"svg" | "png" | null>(null);
   const canDownloadPng = Boolean(spec.png_download_url?.trim());
 
@@ -125,7 +138,7 @@ export function DiagramCardActions({ spec, apiBase, token, onPreview }: DiagramA
       if (variant === "png") {
         await downloadArtifactVariant(spec, "png", apiBase, token ?? null);
       } else {
-        await downloadArtifactFile(spec, apiBase, token ?? null);
+        await downloadArtifactFile(spec, apiBase, token ?? null, chatId);
       }
     } finally {
       setDownloading(null);
@@ -136,36 +149,36 @@ export function DiagramCardActions({ spec, apiBase, token, onPreview }: DiagramA
     <ArtifactActionGroup>
       <button
         type="button"
-        className="artifact-inline-action-btn"
+        className={`artifact-inline-action-btn${compact ? " icon-only" : ""}`}
         onClick={() => onPreview?.(spec)}
         aria-label="Preview diagram"
       >
         <Eye size={14} />
-        <span>Preview</span>
+        {compact ? null : <span>Preview</span>}
       </button>
       <span className="artifact-inline-action-divider" aria-hidden />
       <button
         type="button"
-        className="artifact-inline-action-btn"
+        className={`artifact-inline-action-btn${compact ? " icon-only" : ""}`}
         disabled={downloading !== null}
         onClick={() => void handleDownload("svg")}
         aria-label="Download SVG"
       >
         {downloading === "svg" ? <Loader2 size={14} className="artifact-spin" /> : <Download size={14} />}
-        <span>SVG</span>
+        {compact ? null : <span>SVG</span>}
       </button>
       {canDownloadPng ? (
         <>
           <span className="artifact-inline-action-divider" aria-hidden />
           <button
             type="button"
-            className="artifact-inline-action-btn"
+            className={`artifact-inline-action-btn${compact ? " icon-only" : ""}`}
             disabled={downloading !== null}
             onClick={() => void handleDownload("png")}
             aria-label="Download PNG"
           >
             {downloading === "png" ? <Loader2 size={14} className="artifact-spin" /> : <Download size={14} />}
-            <span>PNG</span>
+            {compact ? null : <span>PNG</span>}
           </button>
         </>
       ) : null}

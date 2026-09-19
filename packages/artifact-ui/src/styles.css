@@ -15,7 +15,6 @@
   align-items: stretch;
   gap: 0.875rem;
   width: 100%;
-  max-width: 68%;
   min-width: min(100%, 14rem);
   margin-top: 0.125rem;
   padding: 0.625rem 0.75rem;
@@ -133,6 +132,12 @@
 
 .artifact-inline-action-btn:hover {
   background: #f9fafb;
+}
+
+.artifact-inline-action-btn.icon-only {
+  justify-content: center;
+  width: 2.125rem;
+  padding: 0;
 }
 
 .artifact-inline-action-divider {

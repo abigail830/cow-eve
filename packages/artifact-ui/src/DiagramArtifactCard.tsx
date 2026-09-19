@@ -6,11 +6,20 @@ type Props = {
   spec: ArtifactSpec;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
+  compactActions?: boolean;
   onPreview?: (spec: ArtifactSpec) => void;
 };
 
 /** Diagram (SVG/PNG) — flowchart cover, preview + SVG/PNG download. */
-export function DiagramArtifactCard({ spec, apiBase, token, onPreview }: Props) {
+export function DiagramArtifactCard({
+  spec,
+  apiBase,
+  token,
+  chatId,
+  compactActions,
+  onPreview,
+}: Props) {
   return (
     <InlineArtifactCardShell
       spec={spec}
@@ -18,7 +27,14 @@ export function DiagramArtifactCard({ spec, apiBase, token, onPreview }: Props) 
       cardClassName="diagram-artifact-card"
       actionsAriaLabel="Diagram actions"
       actions={
-        <DiagramCardActions spec={spec} apiBase={apiBase} token={token} onPreview={onPreview} />
+        <DiagramCardActions
+          spec={spec}
+          apiBase={apiBase}
+          token={token}
+          chatId={chatId}
+          compact={compactActions}
+          onPreview={onPreview}
+        />
       }
     />
   );

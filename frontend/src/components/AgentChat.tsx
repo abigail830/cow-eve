@@ -47,6 +47,37 @@ type BoundSession = {
   key: string;
 };
 
+function AgentChatLoading({ agent }: { agent: AgentInfo }) {
+  return (
+    <div className="agent-chat">
+      <div className="chat-main-column">
+        <header className="chat-header">
+          <div className="chat-header-left">
+            <img src={agent.avatar} alt="" width={36} height={36} />
+            <div>
+              <h2>{agent.displayName}</h2>
+              <p>{agent.description}</p>
+            </div>
+          </div>
+        </header>
+        <div className="chat-body">
+          <div className="chat-content-column">
+            <div className="chat-loading" role="status" aria-live="polite">
+              <Loader2
+                size={28}
+                strokeWidth={2}
+                className="chat-loading-spinner"
+                aria-hidden
+              />
+              <span>Loading conversation…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AgentChat({
   agent,
   restoreChatId = null,
@@ -62,6 +93,8 @@ export function AgentChat({
     () => restoreChatId ?? null,
   );
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
+  /** Wait for restore/open fetch before mounting the eve session (avoids empty → remount flash). */
+  const [historyReady, setHistoryReady] = useState(() => !restoreChatId);
   const [bound, setBound] = useState<BoundSession>(() => ({
     chatId: null,
     session: undefined,
@@ -146,9 +179,11 @@ export function AgentChat({
     const chatToRestore = restoreChatId;
 
     if (chatToRestore) {
+      setHistoryReady(false);
       setLoadingChatId(chatToRestore);
       setActiveChatId(chatToRestore);
     } else {
+      setHistoryReady(true);
       setLoadingChatId(null);
       setActiveChatId(null);
       setBound({
@@ -185,6 +220,7 @@ export function AgentChat({
           /* bindChat sets historyError */
         }
         if (!cancelled) {
+          setHistoryReady(true);
           await chatsTask.catch(() => undefined);
         }
         return;
@@ -234,6 +270,11 @@ export function AgentChat({
   };
 
   const modelLabel = model?.displayName || model?.modelId || "Configure model";
+  const pendingHistory = loadingChatId !== null || !historyReady;
+
+  if (pendingHistory) {
+    return <AgentChatLoading agent={agent} />;
+  }
 
   return (
     <AgentChatSession
@@ -338,8 +379,8 @@ function AgentChatSession({
   const isBusy = status === "submitted" || status === "streaming";
   const isResuming = status === "resuming";
   const conversationLoading =
-    loadingChatId !== null ||
-    (isResuming && data.messages.length === 0);
+    (isResuming && data.messages.length === 0) ||
+    (bound.resume && bound.events === undefined && data.messages.length === 0);
   const turnFailure =
     isBusy || isResuming ? undefined : latestTurnFailure(events);
   const errorMessage =
@@ -515,6 +556,8 @@ function AgentChatSession({
                   streaming={isBusy}
                   apiBase={API_URL}
                   token={token}
+                  chatId={activeChatId ?? bound.chatId}
+                  previewArtifactId={previewArtifact?.artifact_id ?? null}
                   onPreviewArtifact={handlePreviewArtifact}
                 />
                 {cancelling && isBusy ? (
@@ -546,6 +589,7 @@ function AgentChatSession({
           spec={previewArtifact}
           apiBase={API_URL}
           token={token}
+          chatId={activeChatId ?? bound.chatId}
           onClose={() => setPreviewArtifact(null)}
         />
       ) : historyOpen ? (

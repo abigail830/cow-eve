@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 
 type OoxmlKind = "docx" | "pptx";
 
+/** Served from frontend/public/ooxml (copied on postinstall). */
+const OOXML_WASM: Record<OoxmlKind, string> = {
+  docx: "/ooxml/docx_parser_bg.wasm",
+  pptx: "/ooxml/pptx_parser_bg.wasm",
+};
+
 type ScrollViewer = {
   load: (source: string | ArrayBuffer) => Promise<void>;
   destroy: () => void;
@@ -24,13 +30,15 @@ async function createScrollViewer(
     paddingTop: 16,
   };
 
+  const wasmUrl = OOXML_WASM[kind];
+
   if (kind === "docx") {
     const { DocxScrollViewer } = await import("@silurus/ooxml/docx");
-    return new DocxScrollViewer(container, deskOptions);
+    return new DocxScrollViewer(container, { ...deskOptions, wasmUrl });
   }
 
   const { PptxScrollViewer } = await import("@silurus/ooxml/pptx");
-  return new PptxScrollViewer(container, deskOptions);
+  return new PptxScrollViewer(container, { ...deskOptions, wasmUrl });
 }
 
 export function OoxmlPreview({ kind, url, token, title }: Props) {

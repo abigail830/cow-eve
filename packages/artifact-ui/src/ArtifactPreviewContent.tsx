@@ -4,7 +4,7 @@ import {
   isPptArtifact,
   isWordArtifact,
 } from "./artifactKinds";
-import { resolveArtifactUrl } from "./api";
+import { resolveArtifactUrls } from "./api";
 import { HtmlPreviewFrame } from "./HtmlPreviewFrame";
 import { OoxmlPreview } from "./OoxmlPreview";
 
@@ -12,11 +12,11 @@ type Props = {
   spec: ArtifactSpec;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
 };
 
-export function ArtifactPreviewContent({ spec, apiBase, token }: Props) {
-  const previewUrl = resolveArtifactUrl(spec.preview_url, apiBase);
-  const downloadUrl = resolveArtifactUrl(spec.download_url, apiBase);
+export function ArtifactPreviewContent({ spec, apiBase, token, chatId }: Props) {
+  const { previewUrl, downloadUrl } = resolveArtifactUrls(spec, apiBase, chatId);
 
   if (isWordArtifact(spec) && downloadUrl) {
     return (

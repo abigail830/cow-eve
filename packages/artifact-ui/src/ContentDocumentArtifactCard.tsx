@@ -8,11 +8,20 @@ type Props = {
   spec: ArtifactSpec;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
+  compactActions?: boolean;
   onPreview?: (spec: ArtifactSpec) => void;
 };
 
 /** Generic content_document fallback (pdf, etc.). */
-export function ContentDocumentArtifactCard({ spec, apiBase, token, onPreview }: Props) {
+export function ContentDocumentArtifactCard({
+  spec,
+  apiBase,
+  token,
+  chatId,
+  compactActions,
+  onPreview,
+}: Props) {
   const canDownload = Boolean(spec.download_url?.trim() || spec.content?.trim());
   const canPreview = canPreviewArtifact(spec);
 
@@ -27,6 +36,8 @@ export function ContentDocumentArtifactCard({ spec, apiBase, token, onPreview }:
           spec={spec}
           apiBase={apiBase}
           token={token}
+          chatId={chatId}
+          compact={compactActions}
           onPreview={onPreview}
           canPreview={canPreview}
           canDownload={canDownload}

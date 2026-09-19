@@ -11,6 +11,8 @@ type Props = {
   streaming?: boolean;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
+  previewArtifactId?: string | null;
   onPreviewArtifact?: (spec: ArtifactSpec) => void;
 };
 
@@ -29,11 +31,15 @@ function PartView({
   part,
   apiBase,
   token,
+  chatId,
+  previewArtifactId,
   onPreviewArtifact,
 }: {
   part: EveMessagePart;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
+  previewArtifactId?: string | null;
   onPreviewArtifact?: (spec: ArtifactSpec) => void;
 }) {
   if (part.type === "text") {
@@ -61,6 +67,8 @@ function PartView({
             output,
             apiBase,
             token,
+            chatId,
+            previewArtifactId,
             onPreview: onPreviewArtifact,
           })
         : null;
@@ -103,6 +111,8 @@ export function MessageStream({
   streaming = false,
   apiBase,
   token,
+  chatId,
+  previewArtifactId,
   onPreviewArtifact,
 }: Props) {
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
@@ -145,6 +155,8 @@ export function MessageStream({
                     part={part}
                     apiBase={apiBase}
                     token={token}
+                    chatId={chatId}
+                    previewArtifactId={previewArtifactId}
                     onPreviewArtifact={onPreviewArtifact}
                   />
                 ))}

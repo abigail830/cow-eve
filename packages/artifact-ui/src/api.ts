@@ -1,4 +1,8 @@
-import type { ArtifactSpec } from "@fde/artifact-spec";
+import {
+  artifactDownloadPath,
+  artifactPreviewPath,
+  type ArtifactSpec,
+} from "@fde/artifact-spec";
 
 export function resolveArtifactUrl(url: string | null | undefined, apiBase: string): string {
   const trimmed = url?.trim();
@@ -6,6 +10,25 @@ export function resolveArtifactUrl(url: string | null | undefined, apiBase: stri
   if (/^https?:\/\//i.test(trimmed)) return trimmed;
   const base = apiBase.replace(/\/$/, "");
   return trimmed.startsWith("/") ? `${base}${trimmed}` : `${base}/${trimmed}`;
+}
+
+/** Prefer the live chat id over URLs baked into persisted tool output. */
+export function resolveArtifactUrls(
+  spec: ArtifactSpec,
+  apiBase: string,
+  chatId?: string | null,
+): { downloadUrl: string; previewUrl: string } {
+  const artifactId = spec.artifact_id?.trim();
+  if (chatId?.trim() && artifactId) {
+    return {
+      downloadUrl: resolveArtifactUrl(artifactDownloadPath(chatId.trim(), artifactId), apiBase),
+      previewUrl: resolveArtifactUrl(artifactPreviewPath(chatId.trim(), artifactId), apiBase),
+    };
+  }
+  return {
+    downloadUrl: resolveArtifactUrl(spec.download_url, apiBase),
+    previewUrl: resolveArtifactUrl(spec.preview_url, apiBase),
+  };
 }
 
 async function downloadFromUrl(
@@ -35,10 +58,11 @@ export async function downloadArtifactFile(
   spec: ArtifactSpec,
   apiBase: string,
   token: string | null,
+  chatId?: string | null,
 ): Promise<void> {
-  const url = resolveArtifactUrl(spec.download_url, apiBase);
-  if (!url) return;
-  await downloadFromUrl(url, spec.filename || "download", token);
+  const { downloadUrl } = resolveArtifactUrls(spec, apiBase, chatId);
+  if (!downloadUrl) return;
+  await downloadFromUrl(downloadUrl, spec.filename || "download", token);
 }
 
 export async function downloadArtifactVariant(

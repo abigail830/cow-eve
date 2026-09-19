@@ -13,6 +13,8 @@ export function resolveArtifactToolPart(input: {
   output: unknown;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
+  previewArtifactId?: string | null;
   onPreview?: (spec: ArtifactSpec) => void;
 }): ReactNode | null {
   if (!PUBLISH_TOOL_NAMES.has(input.toolName)) return null;
@@ -26,6 +28,11 @@ export function resolveArtifactToolPart(input: {
       spec={parsed.data}
       apiBase={input.apiBase}
       token={input.token}
+      chatId={input.chatId}
+      compactActions={Boolean(
+        input.previewArtifactId &&
+          input.previewArtifactId === parsed.data.artifact_id,
+      )}
       onPreview={input.onPreview}
     />
   );

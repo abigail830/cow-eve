@@ -7,6 +7,8 @@ type Props = {
   spec: ArtifactSpec;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
+  compactActions?: boolean;
   onPreview?: (spec: ArtifactSpec) => void;
 };
 
@@ -14,7 +16,14 @@ type Props = {
  * Slide deck deliverable (HTML slides today; slidev would use the same card + slides cover).
  * Cover resolves to `web` for .html decks, `slides` for slidev if ever published.
  */
-export function HtmlArtifactCard({ spec, apiBase, token, onPreview }: Props) {
+export function HtmlArtifactCard({
+  spec,
+  apiBase,
+  token,
+  chatId,
+  compactActions,
+  onPreview,
+}: Props) {
   return (
     <InlineArtifactCardShell
       spec={spec}
@@ -26,6 +35,8 @@ export function HtmlArtifactCard({ spec, apiBase, token, onPreview }: Props) {
           spec={spec}
           apiBase={apiBase}
           token={token}
+          chatId={chatId}
+          compact={compactActions}
           onPreview={onPreview}
           canPreview={Boolean(spec.preview_url?.trim())}
           canDownload={Boolean(spec.download_url?.trim())}

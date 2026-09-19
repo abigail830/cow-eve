@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "postinstall": "npm install --prefix ../packages/artifact-spec && npm install --prefix ../packages/artifact-ui --omit=peer",
+    "postinstall": "npm install --prefix ../packages/artifact-spec && npm install --prefix ../packages/artifact-ui --omit=peer && npm run copy:ooxml-wasm",
+    "copy:ooxml-wasm": "mkdir -p public/ooxml && cp node_modules/@silurus/ooxml/dist/docx_parser_bg.wasm node_modules/@silurus/ooxml/dist/pptx_parser_bg.wasm public/ooxml/",
     "preview": "vite preview"
   },
   "dependencies": {

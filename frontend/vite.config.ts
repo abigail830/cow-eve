@@ -4,6 +4,11 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react()],
+  // @silurus/ooxml loads *.wasm via `new URL(..., import.meta.url)`; pre-bundling
+  // rewrites that URL and the dev server returns 404 → WebAssembly compile fails.
+  optimizeDeps: {
+    exclude: ["@silurus/ooxml", "@silurus/ooxml/docx", "@silurus/ooxml/pptx"],
+  },
   resolve: {
     // Workspace packages must share the app React — a second copy breaks hooks.
     dedupe: ["react", "react-dom"],

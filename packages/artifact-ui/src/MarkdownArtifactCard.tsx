@@ -7,11 +7,20 @@ type Props = {
   spec: ArtifactSpec;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
+  compactActions?: boolean;
   onPreview?: (spec: ArtifactSpec) => void;
 };
 
 /** Markdown deliverable — markdown cover, preview + download. */
-export function MarkdownArtifactCard({ spec, apiBase, token, onPreview }: Props) {
+export function MarkdownArtifactCard({
+  spec,
+  apiBase,
+  token,
+  chatId,
+  compactActions,
+  onPreview,
+}: Props) {
   const canDownload = Boolean(spec.download_url?.trim() || spec.content?.trim());
 
   return (
@@ -25,6 +34,8 @@ export function MarkdownArtifactCard({ spec, apiBase, token, onPreview }: Props)
           spec={spec}
           apiBase={apiBase}
           token={token}
+          chatId={chatId}
+          compact={compactActions}
           onPreview={onPreview}
           canPreview={canPreviewArtifact(spec)}
           canDownload={canDownload}

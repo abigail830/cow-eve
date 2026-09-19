@@ -11,6 +11,8 @@ type Props = {
   spec: ArtifactSpec;
   apiBase: string;
   token?: string | null;
+  chatId?: string | null;
+  compactActions?: boolean;
   onPreview?: (spec: ArtifactSpec) => void;
 };
 
