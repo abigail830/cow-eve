@@ -5,20 +5,25 @@ import {
   JWT_AUDIENCE,
   JWT_ISSUER,
   findUserByEmail,
+  contentDispositionAttachment,
+  getArtifactDownloadForUser,
+  getArtifactPreviewForUser,
   getChatForUser,
   getDatabaseUrl,
   getJwtSecret,
   getUserMemorySnapshot,
   listAgents,
   listChats,
-  loadModelSettings,
+  loadModelCatalog,
   loginWithPassword,
   MODEL_PRESETS,
   resolveCorsOrigin,
-  saveModelSettings,
-  softDeleteChat,
+  saveModelCatalog,
+  deleteChatForUser,
+  toPublicCatalog,
   toPublicSettings,
-  type ModelSettingsUpdate,
+  defaultModelSettings,
+  type ModelCatalogUpdate,
 } from "../../../../platform/composition/public-api";
 
 function corsHeaders(request?: Request): HeadersInit {
@@ -83,6 +88,9 @@ export default defineChannel({
     preflight("/api/settings/model"),
     preflight("/api/settings/model/presets"),
     preflight("/api/memory"),
+    preflight("/api/chats/:id/artifacts/:artifactId"),
+    preflight("/api/chats/:id/artifacts/:artifactId/preview"),
+    preflight("/api/chats/:id/artifacts/:artifactId/preview/:filePath*"),
 
     POST("/api/auth/login", async (request) => {
       let body: { email?: string; password?: string };
@@ -207,6 +215,7 @@ export default defineChannel({
             ok: true,
             chat: {
               ...toChatSummary(chat),
+              streamIndex: chat.eveStreamIndex,
               events: chat.events.map((event) => event.payload),
             },
           },
@@ -239,7 +248,7 @@ export default defineChannel({
       }
       const chatId = params.id;
       try {
-        const deleted = await softDeleteChat({
+        const deleted = await deleteChatForUser({
           userId: auth.principalId,
           chatId,
         });
@@ -299,11 +308,12 @@ export default defineChannel({
       if (!auth) {
         return json({ ok: false, error: "Unauthorized" }, 401, request);
       }
-      const settings = await loadModelSettings();
+      const catalog = await loadModelCatalog();
       return json(
         {
           ok: true,
-          settings: toPublicSettings(settings),
+          settings: toPublicSettings(defaultModelSettings(catalog)),
+          catalog: toPublicCatalog(catalog),
         },
         200,
         request,
@@ -316,17 +326,21 @@ export default defineChannel({
         return json({ ok: false, error: "Unauthorized" }, 401, request);
       }
 
-      let body: ModelSettingsUpdate;
+      let body: ModelCatalogUpdate;
       try {
-        body = (await request.json()) as ModelSettingsUpdate;
+        body = (await request.json()) as ModelCatalogUpdate;
       } catch {
         return json({ ok: false, error: "Invalid JSON body" }, 400, request);
       }
 
       try {
-        const saved = await saveModelSettings(body);
+        const saved = await saveModelCatalog(body);
         return json(
-          { ok: true, settings: toPublicSettings(saved) },
+          {
+            ok: true,
+            settings: toPublicSettings(defaultModelSettings(saved)),
+            catalog: toPublicCatalog(saved),
+          },
           200,
           request,
         );
@@ -340,6 +354,82 @@ export default defineChannel({
           request,
         );
       }
+    }),
+
+    GET("/api/chats/:id/artifacts/:artifactId", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      const variant = new URL(request.url).searchParams.get("format");
+      const payload = await getArtifactDownloadForUser({
+        userId: auth.principalId,
+        chatId: params.id,
+        artifactId: params.artifactId,
+        variant,
+      });
+      if (!payload) {
+        return json({ ok: false, error: "Artifact not found" }, 404, request);
+      }
+      return new Response(Buffer.from(payload.data), {
+        status: 200,
+        headers: {
+          ...corsHeaders(request),
+          "Content-Type": payload.mediaType,
+          "Content-Disposition": contentDispositionAttachment(payload.filename),
+          "Content-Length": String(payload.data.byteLength),
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }),
+
+    GET("/api/chats/:id/artifacts/:artifactId/preview", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      const preview = await getArtifactPreviewForUser({
+        userId: auth.principalId,
+        chatId: params.id,
+        artifactId: params.artifactId,
+        filePath: "index.html",
+      });
+      if (!preview) {
+        return json({ ok: false, error: "Preview not found" }, 404, request);
+      }
+      return new Response(Buffer.from(preview.data), {
+        status: 200,
+        headers: {
+          ...corsHeaders(request),
+          "Content-Type": preview.mediaType,
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }),
+
+    GET("/api/chats/:id/artifacts/:artifactId/preview/:filePath*", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      const filePath = params.filePath ?? "index.html";
+      const preview = await getArtifactPreviewForUser({
+        userId: auth.principalId,
+        chatId: params.id,
+        artifactId: params.artifactId,
+        filePath,
+      });
+      if (!preview) {
+        return json({ ok: false, error: "Preview not found" }, 404, request);
+      }
+      return new Response(Buffer.from(preview.data), {
+        status: 200,
+        headers: {
+          ...corsHeaders(request),
+          "Content-Type": preview.mediaType,
+          "Cache-Control": "private, no-store",
+        },
+      });
     }),
   ],
 });

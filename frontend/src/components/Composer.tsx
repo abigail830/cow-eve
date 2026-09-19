@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowUp, Paperclip } from "lucide-react";
+import { ArrowUp, Paperclip, Square } from "lucide-react";
 import "./Composer.css";
 
 type Props = {
   disabled?: boolean;
-  statusLabel?: string;
+  modelLabel?: string;
+  /** Eve status is `submitted` or `streaming`. */
+  busy?: boolean;
+  /** Eve status is `resuming` — no send, no Stop. */
+  resuming?: boolean;
+  /** cancel() accepted; still waiting for turn.cancelled / session.waiting. */
+  cancelling?: boolean;
   onSend: (text: string) => void;
-  onCancel?: () => void;
+  onStop: () => void;
 };
 
 const MIN_LINES = 2;
@@ -23,9 +29,18 @@ function resizeTextarea(el: HTMLTextAreaElement) {
   el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
 }
 
-export function Composer({ disabled, statusLabel, onSend, onCancel }: Props) {
+export function Composer({
+  disabled = false,
+  modelLabel,
+  busy = false,
+  resuming = false,
+  cancelling = false,
+  onSend,
+  onStop,
+}: Props) {
   const [text, setText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isComposingRef = useRef(false);
 
   const syncHeight = useCallback(() => {
     const el = textareaRef.current;
@@ -39,10 +54,16 @@ export function Composer({ disabled, statusLabel, onSend, onCancel }: Props) {
   function submit(e: FormEvent) {
     e.preventDefault();
     const value = text.trim();
-    if (!value || disabled) return;
+    if (!value || disabled || resuming) return;
     onSend(value);
     setText("");
   }
+
+  // Mirror eve scaffold ComposerAction: empty + busy → Stop; draft → Send
+  // (steer while busy). Resuming locks input and hides Stop.
+  const hasDraft = text.trim().length > 0;
+  const showStop = busy && !hasDraft && !resuming;
+  const inputLocked = disabled || resuming;
 
   return (
     <form className="composer" onSubmit={submit}>
@@ -51,9 +72,28 @@ export function Composer({ disabled, statusLabel, onSend, onCancel }: Props) {
           ref={textareaRef}
           rows={MIN_LINES}
           placeholder="Message... (type @ to reference attachments)"
+          disabled={inputLocked}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onCompositionStart={() => {
+            isComposingRef.current = true;
+          }}
+          onCompositionEnd={() => {
+            // Some IMEs fire compositionend before the confirming Enter keydown.
+            // Delay clearing so that Enter confirms the candidate instead of sending.
+            requestAnimationFrame(() => {
+              isComposingRef.current = false;
+            });
+          }}
           onKeyDown={(e) => {
+            const native = e.nativeEvent;
+            if (
+              isComposingRef.current ||
+              native.isComposing ||
+              native.keyCode === 229
+            ) {
+              return;
+            }
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               submit(e);
@@ -73,20 +113,32 @@ export function Composer({ disabled, statusLabel, onSend, onCancel }: Props) {
             </button>
           </div>
           <div className="composer-right">
-            <span className="model-tag">{statusLabel ?? "eve"}</span>
-            {onCancel ? (
-              <button type="button" className="cancel-btn" onClick={onCancel}>
-                Stop
+            {modelLabel ? <span className="model-tag">{modelLabel}</span> : null}
+            {showStop ? (
+              <button
+                type="button"
+                className="send-btn stop-btn"
+                disabled={cancelling}
+                aria-busy={cancelling}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onStop();
+                }}
+                aria-label={cancelling ? "Stopping" : "Stop"}
+              >
+                <Square size={12} fill="currentColor" strokeWidth={0} />
               </button>
-            ) : null}
-            <button
-              type="submit"
-              className="send-btn"
-              disabled={disabled || !text.trim()}
-              aria-label="Send"
-            >
-              <ArrowUp size={18} strokeWidth={2.5} />
-            </button>
+            ) : (
+              <button
+                type="submit"
+                className="send-btn"
+                disabled={inputLocked || !hasDraft}
+                aria-label="Send"
+              >
+                <ArrowUp size={18} strokeWidth={2.5} />
+              </button>
+            )}
           </div>
         </div>
       </div>

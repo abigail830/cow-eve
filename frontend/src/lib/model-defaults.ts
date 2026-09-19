@@ -1,4 +1,9 @@
-import type { ModelPreset, ModelReasoning, ModelSettingsPublic } from "./api";
+import type {
+  ModelCatalogPublic,
+  ModelPreset,
+  ModelReasoning,
+  ModelSettingsPublic,
+} from "./api";
 
 /** Keep in sync with backend MODEL_PRESETS / DEFAULT_SETTINGS. */
 export const DEFAULT_MODEL_PRESETS: ModelPreset[] = [
@@ -55,3 +60,26 @@ export const DEFAULT_MODEL_SETTINGS: ModelSettingsPublic = {
   apiKeyHint: null,
   updatedAt: null,
 };
+
+export function catalogFromSettings(
+  settings: ModelSettingsPublic,
+  id = "default",
+): ModelCatalogPublic {
+  return {
+    defaultId: id,
+    updatedAt: settings.updatedAt,
+    models: [
+      {
+        id,
+        presetId: settings.presetId,
+        displayName: settings.displayName,
+        baseURL: settings.baseURL,
+        modelId: settings.modelId,
+        contextWindowTokens: settings.contextWindowTokens,
+        reasoning: settings.reasoning,
+        hasApiKey: settings.hasApiKey,
+        apiKeyHint: settings.apiKeyHint,
+      },
+    ],
+  };
+}

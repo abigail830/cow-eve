@@ -1,5 +1,6 @@
 import {
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -15,6 +16,8 @@ export const chats = pgTable(
     userId: text("user_id").notNull(),
     agentId: text("agent_id").notNull(),
     eveSessionId: text("eve_session_id").notNull().unique(),
+    /** Eve session stream cursor — equals persisted event count when storage is complete. */
+    eveStreamIndex: integer("eve_stream_index").notNull().default(0),
     title: text("title"),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })

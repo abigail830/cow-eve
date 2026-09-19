@@ -3,9 +3,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { ModelSettingsRepository } from "../../../domain/settings/model-settings.repository";
 import {
-  DEFAULT_MODEL_SETTINGS,
-  normalizeModelSettings,
-  type ModelSettings,
+  normalizeModelCatalog,
+  type ModelCatalog,
 } from "../../../domain/settings/model-settings.entity";
 import {
   getDb,
@@ -15,7 +14,7 @@ import {
 
 const MODEL_SETTINGS_ID = "model";
 
-let memoryCache: ModelSettings | null = null;
+let memoryCache: ModelCatalog | null = null;
 
 function wrapDbError(err: unknown): Error {
   const msg = err instanceof Error ? err.message : String(err);
@@ -57,21 +56,21 @@ function settingsFilePath(): string {
   return join(findBackendRoot(), "platform", "data", "model-settings.json");
 }
 
-function loadFromFile(): ModelSettings {
+function loadFromFile(): ModelCatalog {
   const path = settingsFilePath();
-  if (!existsSync(path)) return { ...DEFAULT_MODEL_SETTINGS };
+  if (!existsSync(path)) return normalizeModelCatalog(undefined);
   try {
-    const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<ModelSettings>;
-    return normalizeModelSettings(raw);
+    const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+    return normalizeModelCatalog(raw);
   } catch {
-    return { ...DEFAULT_MODEL_SETTINGS };
+    return normalizeModelCatalog(undefined);
   }
 }
 
-function saveToFile(next: ModelSettings): ModelSettings {
+function saveToFile(next: ModelCatalog): ModelCatalog {
   const path = settingsFilePath();
   mkdirSync(dirname(path), { recursive: true });
-  const toWrite: ModelSettings = {
+  const toWrite: ModelCatalog = {
     ...next,
     updatedAt: new Date().toISOString(),
   };
@@ -80,7 +79,7 @@ function saveToFile(next: ModelSettings): ModelSettings {
 }
 
 export class DrizzleModelSettingsRepository implements ModelSettingsRepository {
-  async load(): Promise<ModelSettings> {
+  async load(): Promise<ModelCatalog> {
     if (memoryCache) return memoryCache;
 
     const db = getDb();
@@ -89,9 +88,7 @@ export class DrizzleModelSettingsRepository implements ModelSettingsRepository {
         const row = await db.query.platformSettings.findFirst({
           where: eq(platformSettings.id, MODEL_SETTINGS_ID),
         });
-        memoryCache = normalizeModelSettings(
-          row?.payload as Partial<ModelSettings> | undefined,
-        );
+        memoryCache = normalizeModelCatalog(row?.payload);
         return memoryCache;
       } catch (err) {
         throw wrapDbError(err);
@@ -104,7 +101,7 @@ export class DrizzleModelSettingsRepository implements ModelSettingsRepository {
           "[model-store] DATABASE_URL missing in production; using defaults (cannot persist)",
         );
       }
-      memoryCache = { ...DEFAULT_MODEL_SETTINGS };
+      memoryCache = normalizeModelCatalog(undefined);
       return memoryCache;
     }
 
@@ -112,8 +109,8 @@ export class DrizzleModelSettingsRepository implements ModelSettingsRepository {
     return memoryCache;
   }
 
-  async save(next: ModelSettings): Promise<ModelSettings> {
-    const toWrite: ModelSettings = {
+  async save(next: ModelCatalog): Promise<ModelCatalog> {
+    const toWrite: ModelCatalog = {
       ...next,
       updatedAt: new Date().toISOString(),
     };

@@ -3,6 +3,8 @@ export type Chat = {
   userId: string;
   agentId: string;
   eveSessionId: string;
+  /** Eve session stream cursor; must match persisted event count for resume. */
+  eveStreamIndex: number;
   title: string | null;
   deletedAt: Date | null;
   createdAt: Date;

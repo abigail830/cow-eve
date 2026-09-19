@@ -22,5 +22,20 @@ export interface ChatRepository {
     chatId: string;
   }): Promise<ChatWithEvents | null>;
 
+  getChatByEveSessionForUser(input: {
+    userId: string;
+    eveSessionId: string;
+  }): Promise<Chat | null>;
+
+  getChatMetaForUser(input: {
+    userId: string;
+    chatId: string;
+  }): Promise<Chat | null>;
+
+  listChatsInactiveSince(input: {
+    cutoff: Date;
+    agentIds: string[];
+  }): Promise<Chat[]>;
+
   softDeleteChat(input: { userId: string; chatId: string }): Promise<boolean>;
 }

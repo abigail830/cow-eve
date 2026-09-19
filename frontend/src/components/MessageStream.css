@@ -35,6 +35,11 @@
   line-height: 1.45;
 }
 
+.msg-artifact {
+  width: 100%;
+  max-width: 80%;
+}
+
 .msg-assistant {
   max-width: 80%;
   width: 100%;

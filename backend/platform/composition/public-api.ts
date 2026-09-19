@@ -34,12 +34,22 @@ export type { AgentRegistryEntry } from "../domain/registry/agent.entity";
 export {
   MODEL_PRESETS,
   applyModelSettingsUpdate,
+  defaultModelSettings,
+  loadModelCatalog,
   loadModelSettings,
+  saveModelCatalog,
   saveModelSettings,
+  toPublicCatalog,
   toPublicSettings,
   getDecryptedApiKey,
 } from "../application/settings/model-settings.use-case";
 export type {
+  ModelCatalog,
+  ModelCatalogPublic,
+  ModelCatalogUpdate,
+  ModelEntry,
+  ModelEntryPublic,
+  ModelEntryUpdate,
   ModelPreset,
   ModelReasoning,
   ModelSettings,
@@ -49,6 +59,7 @@ export type {
 
 // Chat persistence
 export {
+  deleteChatForUser,
   getChatForUser,
   listChats,
   persistStreamEvent,
@@ -61,6 +72,14 @@ export type {
   PersistableEvent,
 } from "../application/chat/chat.use-case";
 
+// Artifacts
+export {
+  getArtifactDownloadForUser,
+  getArtifactPreviewForUser,
+  publishSandboxArtifact,
+} from "../application/artifact/artifact.use-case";
+export { contentDispositionAttachment } from "../infrastructure/artifact/local-artifact.store";
+
 // Memory
 export { getUserMemorySnapshot } from "../application/memory/memory.use-case";
 export type {
@@ -68,6 +87,13 @@ export type {
   PreferenceEntry,
   UserMemorySnapshot,
 } from "../application/memory/memory.use-case";
+
+// Sandbox cleanup
+export {
+  killSandboxesForEveSession,
+  sweepStaleSandboxes,
+} from "../application/sandbox/sandbox-cleanup.use-case";
+export type { SweepStaleSandboxesResult } from "../application/sandbox/sandbox-cleanup.use-case";
 
 // Database (health checks / diagnostics)
 export { getDatabaseUrl } from "../infrastructure/persistence/database";

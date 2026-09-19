@@ -20,7 +20,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@fde/artifact-spec": ["../packages/artifact-spec/src/index.ts"],
+      "@fde/artifact-ui": ["../packages/artifact-ui/src/index.ts"]
+    }
   },
   "include": ["src"]
 }

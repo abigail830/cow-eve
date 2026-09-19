@@ -1,0 +1,24 @@
+{
+  "name": "@fde/artifacts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "eve": {
+    "extension": {
+      "source": "./extension",
+      "dist": "./dist/extension"
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./extension/extension.ts",
+      "default": "./extension/extension.ts"
+    }
+  },
+  "dependencies": {
+    "zod": "4.5.4"
+  },
+  "peerDependencies": {
+    "eve": "*"
+  }
+}

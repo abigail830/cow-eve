@@ -1,8 +1,7 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import type { ChatRepository } from "../../../domain/chat/chat.repository";
 import type { Chat, ChatWithEvents } from "../../../domain/chat/chat.entity";
 import {
-  SKIP_PERSIST_EVENT_TYPES,
   titleFromMessage,
   type PersistableEvent,
 } from "../../../domain/chat/stream-event.types";
@@ -20,6 +19,7 @@ function toDomainChat(row: ChatRow): Chat {
     userId: row.userId,
     agentId: row.agentId,
     eveSessionId: row.eveSessionId,
+    eveStreamIndex: row.eveStreamIndex,
     title: row.title,
     deletedAt: row.deletedAt,
     createdAt: row.createdAt,
@@ -83,8 +83,6 @@ export class DrizzleChatRepository implements ChatRepository {
       }
       return;
     }
-    if (SKIP_PERSIST_EVENT_TYPES.has(input.event.type)) return;
-
     const chat = await this.ensureChat({
       userId: input.userId,
       agentId: input.agentId,
@@ -98,7 +96,7 @@ export class DrizzleChatRepository implements ChatRepository {
         ? input.event.meta.at
         : new Date(input.event.meta.at);
 
-    await db
+    const [inserted] = await db
       .insert(chatEvents)
       .values({
         id: input.event.meta.id,
@@ -111,7 +109,18 @@ export class DrizzleChatRepository implements ChatRepository {
         },
         emittedAt,
       })
-      .onConflictDoNothing({ target: chatEvents.id });
+      .onConflictDoNothing({ target: chatEvents.id })
+      .returning({ id: chatEvents.id });
+
+    if (inserted) {
+      await db
+        .update(chats)
+        .set({
+          eveStreamIndex: sql`${chats.eveStreamIndex} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(chats.id, chat.id));
+    }
 
     if (input.event.type === "message.received" && !chat.title) {
       const data = input.event.data as {
@@ -125,7 +134,7 @@ export class DrizzleChatRepository implements ChatRepository {
         .update(chats)
         .set({ title: titleFromMessage(message), updatedAt: new Date() })
         .where(and(eq(chats.id, chat.id), isNull(chats.title)));
-    } else {
+    } else if (!inserted) {
       await db
         .update(chats)
         .set({ updatedAt: new Date() })
@@ -149,6 +158,60 @@ export class DrizzleChatRepository implements ChatRepository {
         ),
       )
       .orderBy(desc(chats.updatedAt));
+    return rows.map(toDomainChat);
+  }
+
+  async getChatByEveSessionForUser(input: {
+    userId: string;
+    eveSessionId: string;
+  }): Promise<Chat | null> {
+    const db = getDb();
+    if (!db) return null;
+    const chat = await db.query.chats.findFirst({
+      where: and(
+        eq(chats.eveSessionId, input.eveSessionId),
+        eq(chats.userId, input.userId),
+        isNull(chats.deletedAt),
+      ),
+    });
+    return chat ? toDomainChat(chat) : null;
+  }
+
+  async getChatMetaForUser(input: {
+    userId: string;
+    chatId: string;
+  }): Promise<Chat | null> {
+    const db = getDb();
+    if (!db) return null;
+    const chat = await db.query.chats.findFirst({
+      where: and(
+        eq(chats.id, input.chatId),
+        eq(chats.userId, input.userId),
+        isNull(chats.deletedAt),
+      ),
+    });
+    return chat ? toDomainChat(chat) : null;
+  }
+
+  async listChatsInactiveSince(input: {
+    cutoff: Date;
+    agentIds: string[];
+  }): Promise<Chat[]> {
+    const db = getDb();
+    if (!db || input.agentIds.length === 0) return [];
+
+    const rows = await db
+      .select()
+      .from(chats)
+      .where(
+        and(
+          isNull(chats.deletedAt),
+          lt(chats.updatedAt, input.cutoff),
+          inArray(chats.agentId, input.agentIds),
+        ),
+      )
+      .orderBy(chats.updatedAt);
+
     return rows.map(toDomainChat);
   }
 

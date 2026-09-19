@@ -1,6 +1,6 @@
-import type { ModelSettings } from "./model-settings.entity";
+import type { ModelCatalog } from "./model-settings.entity";
 
 export interface ModelSettingsRepository {
-  load(): Promise<ModelSettings>;
-  save(settings: ModelSettings): Promise<ModelSettings>;
+  load(): Promise<ModelCatalog>;
+  save(catalog: ModelCatalog): Promise<ModelCatalog>;
 }

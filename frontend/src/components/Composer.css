@@ -62,15 +62,16 @@
 }
 
 .send-btn {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border: none;
-  border-radius: 10px;
+  border-radius: 50%;
   background: #f27a2a;
   color: #fff;
   cursor: pointer;
   display: grid;
   place-items: center;
+  flex-shrink: 0;
 }
 
 .send-btn:disabled {
@@ -78,11 +79,12 @@
   cursor: not-allowed;
 }
 
-.cancel-btn {
-  border: 1px solid #ddd;
-  background: #fff;
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 0.8rem;
+.send-btn.stop-btn:not(:disabled) {
+  opacity: 1;
   cursor: pointer;
+}
+
+.send-btn.stop-btn:disabled {
+  opacity: 0.75;
+  cursor: wait;
 }

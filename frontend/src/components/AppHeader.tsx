@@ -7,7 +7,6 @@ type ModuleId = "agent-team";
 type Props = {
   activeModule: ModuleId;
   agentCount?: number;
-  breadcrumb?: string;
   userName: string;
   userEmail: string;
   onOpenSettings: () => void;
@@ -29,7 +28,6 @@ const MODULES: { id: ModuleId; label: string }[] = [
 export function AppHeader({
   activeModule,
   agentCount = 0,
-  breadcrumb,
   userName,
   userEmail,
   onOpenSettings,
@@ -54,7 +52,7 @@ export function AppHeader({
       <div className="app-header-left">
         <div className="app-brand">
           <img src="/agents/bodha-brand.png" alt="" width={28} height={28} />
-          <span className="app-brand-name">FDE Desk</span>
+          <span className="app-brand-name">FDE-DESK</span>
         </div>
 
         <nav className="app-module-nav" aria-label="Modules">
@@ -73,13 +71,6 @@ export function AppHeader({
             </button>
           ))}
         </nav>
-
-        {breadcrumb ? (
-          <>
-            <span className="app-header-divider" aria-hidden />
-            <span className="app-breadcrumb">{breadcrumb}</span>
-          </>
-        ) : null}
       </div>
 
       <div className="app-header-right">

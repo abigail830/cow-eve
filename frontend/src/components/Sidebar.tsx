@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import type { AgentCategory, AgentInfo } from "../lib/api";
+import { StreamingIndicator } from "./StreamingIndicator";
 import "./Sidebar.css";
 
 type Props = {
   agents: AgentInfo[];
   selectedId: string;
+  streamingAgentId?: string | null;
   onSelect: (id: string) => void;
 };
 
@@ -17,11 +19,13 @@ const AGENT_GROUPS: { category: AgentCategory; label: string }[] = [
 function AgentButton({
   agent,
   selected,
+  streaming,
   collapsed,
   onSelect,
 }: {
   agent: AgentInfo;
   selected: boolean;
+  streaming: boolean;
   collapsed: boolean;
   onSelect: (id: string) => void;
 }) {
@@ -32,6 +36,7 @@ function AgentButton({
       title={agent.displayName}
       onClick={() => onSelect(agent.id)}
     >
+      {streaming ? <StreamingIndicator variant="dot" /> : null}
       <img src={agent.avatar} alt="" width={32} height={32} />
       {!collapsed ? (
         <span className="agent-item-text">
@@ -43,7 +48,7 @@ function AgentButton({
   );
 }
 
-export function Sidebar({ agents, selectedId, onSelect }: Props) {
+export function Sidebar({ agents, selectedId, streamingAgentId, onSelect }: Props) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -70,6 +75,7 @@ export function Sidebar({ agents, selectedId, onSelect }: Props) {
                     key={agent.id}
                     agent={agent}
                     selected={agent.id === selectedId}
+                    streaming={agent.id === streamingAgentId}
                     collapsed={collapsed}
                     onSelect={onSelect}
                   />

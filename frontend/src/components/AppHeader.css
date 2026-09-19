@@ -13,7 +13,7 @@
 .app-header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 36px;
   min-width: 0;
 }
 
@@ -33,7 +33,7 @@
   font-size: 1.05rem;
   font-weight: 700;
   color: #1a1a1a;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.04em;
 }
 
 .app-module-nav {
@@ -62,21 +62,6 @@
 .app-module-item.active {
   background: var(--paper-cover);
   color: #1a1a1a;
-}
-
-.app-header-divider {
-  width: 1px;
-  height: 18px;
-  background: #e0e0e0;
-  flex-shrink: 0;
-}
-
-.app-breadcrumb {
-  font-size: 0.82rem;
-  color: #999;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .app-header-right {

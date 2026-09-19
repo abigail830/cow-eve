@@ -175,14 +175,19 @@ start_service() {
   free_port "${port}"
   rm -f "$(pid_file "${name}")"
 
-  # Launch in workdir; keep the launcher pid, then rebind to the port listener
-  # after ready (npm/eve often leave a different long-lived node process).
-  (
-    cd "${workdir}" || exit 1
-    # shellcheck disable=SC2086
-    nohup ${cmd} >"$(log_file "${name}")" 2>&1 &
-    echo $! >"$(pid_file "${name}")"
-  )
+  # Detach from the launching shell (macOS has no setsid; nohup + disown is enough).
+  local log_path launcher_pid
+  log_path="$(log_file "${name}")"
+  cd "${workdir}" || exit 1
+  if command -v setsid >/dev/null 2>&1; then
+    setsid nohup bash -c "${cmd}" >>"${log_path}" 2>&1 &
+    launcher_pid=$!
+  else
+    nohup bash -c "${cmd}" >>"${log_path}" 2>&1 &
+    launcher_pid=$!
+    disown -h "${launcher_pid}" 2>/dev/null || true
+  fi
+  echo "${launcher_pid}" >"$(pid_file "${name}")"
 
   local pid
   pid="$(read_pid "${name}")"

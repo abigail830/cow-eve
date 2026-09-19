@@ -4,14 +4,6 @@ export type PersistableEvent = {
   data?: unknown;
 };
 
-export const SKIP_PERSIST_EVENT_TYPES = new Set([
-  "message.appended",
-  "reasoning.appended",
-  "action.partial",
-  "action.input_appended",
-  "subagent.child_event",
-]);
-
 export function titleFromMessage(text: string): string {
   const compact = text.replace(/\s+/g, " ").trim();
   if (!compact) return "New chat";

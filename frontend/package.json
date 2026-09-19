@@ -10,7 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fde/artifact-spec": "file:../packages/artifact-spec",
+    "@fde/artifact-ui": "file:../packages/artifact-ui",
     "eve": "^0.62.0",
+    "zod": "4.5.4",
     "lucide-react": "^1.47.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

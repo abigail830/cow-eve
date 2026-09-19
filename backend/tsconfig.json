@@ -12,5 +12,5 @@
       "#platform/*": ["./platform/*"]
     }
   },
-  "include": ["agents/**/*.ts", "platform/**/*.ts", "evals/**/*.ts"]
+  "include": ["agents/**/*.ts", "platform/**/*.ts", "extensions/**/*.ts", "evals/**/*.ts"]
 }

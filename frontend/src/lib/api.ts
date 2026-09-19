@@ -43,14 +43,38 @@ export type ModelSettingsPublic = {
   updatedAt: string | null;
 };
 
-export type ModelSettingsUpdate = {
-  presetId?: string;
-  displayName?: string;
-  baseURL?: string;
-  modelId?: string;
-  contextWindowTokens?: number;
-  reasoning?: ModelReasoning;
+export type ModelEntryPublic = {
+  id: string;
+  presetId: string;
+  displayName: string;
+  baseURL: string;
+  modelId: string;
+  contextWindowTokens: number;
+  reasoning: ModelReasoning;
+  hasApiKey: boolean;
+  apiKeyHint: string | null;
+};
+
+export type ModelCatalogPublic = {
+  models: ModelEntryPublic[];
+  defaultId: string;
+  updatedAt: string | null;
+};
+
+export type ModelEntryUpdate = {
+  id: string;
+  presetId: string;
+  displayName: string;
+  baseURL: string;
+  modelId: string;
+  contextWindowTokens: number;
+  reasoning: ModelReasoning;
   apiKey?: string;
+};
+
+export type ModelCatalogUpdate = {
+  defaultId: string;
+  models: ModelEntryUpdate[];
 };
 
 export type ChatSummary = {
@@ -63,6 +87,8 @@ export type ChatSummary = {
 };
 
 export type ChatDetail = ChatSummary & {
+  /** Eve session stream cursor; must equal events.length for resume catch-up. */
+  streamIndex: number;
   events: unknown[];
 };
 
@@ -135,7 +161,11 @@ export async function fetchAgents() {
 }
 
 export async function fetchModelSettings() {
-  return api<{ ok: true; settings: ModelSettingsPublic }>("/api/settings/model");
+  return api<{
+    ok: true;
+    settings: ModelSettingsPublic;
+    catalog: ModelCatalogPublic;
+  }>("/api/settings/model");
 }
 
 export async function fetchModelPresets() {
@@ -144,8 +174,12 @@ export async function fetchModelPresets() {
   );
 }
 
-export async function saveModelSettings(update: ModelSettingsUpdate) {
-  return api<{ ok: true; settings: ModelSettingsPublic }>("/api/settings/model", {
+export async function saveModelCatalog(update: ModelCatalogUpdate) {
+  return api<{
+    ok: true;
+    settings: ModelSettingsPublic;
+    catalog: ModelCatalogPublic;
+  }>("/api/settings/model", {
     method: "PUT",
     body: JSON.stringify(update),
   });

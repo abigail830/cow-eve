@@ -1,0 +1,196 @@
+.artifact-inline-card {
+  /* Match MAF agent-platform inline artifact cover tokens */
+  --line-art: oklch(0.24 0.008 70);
+  --cover-paper: oklch(0.975 0.006 75);
+  --cover-word: oklch(0.82 0.09 230);
+  --cover-slides: oklch(0.85 0.11 68);
+  --cover-web: oklch(0.81 0.1 166);
+  --cover-diagram: oklch(0.84 0.08 330);
+  --cover-pdf: oklch(0.82 0.1 25);
+  --cover-markdown: oklch(0.86 0.02 260);
+  --cover-generic: oklch(0.88 0.015 80);
+  --cover-accent: var(--cover-generic);
+
+  display: flex;
+  align-items: stretch;
+  gap: 0.875rem;
+  width: 100%;
+  max-width: 68%;
+  min-width: min(100%, 14rem);
+  margin-top: 0.125rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid color-mix(in oklab, var(--color-ink, #1a1a1a) 12%, transparent);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.artifact-cover {
+  flex-shrink: 0;
+  width: 5.75rem;
+  min-height: 86px;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--cover-paper);
+}
+
+.artifact-cover svg {
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  fill: none;
+  stroke: var(--line-art);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.artifact-cover .cover-fill {
+  fill: color-mix(in oklab, var(--cover-paper) 65%, var(--cover-accent));
+  stroke: var(--line-art);
+}
+
+.artifact-cover.artifact-word {
+  --cover-accent: var(--cover-word);
+}
+
+.artifact-cover.artifact-slides {
+  --cover-accent: var(--cover-slides);
+}
+
+.artifact-cover.artifact-web {
+  --cover-accent: var(--cover-web);
+}
+
+.artifact-cover.artifact-diagram {
+  --cover-accent: var(--cover-diagram);
+}
+
+.artifact-cover.artifact-pdf {
+  --cover-accent: var(--cover-pdf);
+}
+
+.artifact-cover.artifact-markdown {
+  --cover-accent: var(--cover-markdown);
+}
+
+.artifact-cover.artifact-generic {
+  --cover-accent: var(--cover-generic);
+}
+
+.artifact-inline-card-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.artifact-inline-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.artifact-inline-card-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #6b7280;
+}
+
+.artifact-inline-card-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.artifact-inline-action-group {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--color-ink, #1a1a1a) 12%, transparent);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.artifact-inline-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 2.125rem;
+  padding: 0 0.7rem;
+  border: 0;
+  background: transparent;
+  color: #374151;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.artifact-inline-action-btn:hover {
+  background: #f9fafb;
+}
+
+.artifact-inline-action-divider {
+  width: 1px;
+  background: color-mix(in oklab, var(--color-ink, #1a1a1a) 12%, transparent);
+}
+
+.artifact-spin {
+  animation: artifact-spin 0.8s linear infinite;
+}
+
+@keyframes artifact-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.artifact-preview-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.artifact-preview-modal {
+  width: min(960px, 100%);
+  height: min(80vh, 720px);
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.artifact-preview-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.artifact-preview-modal-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.artifact-preview-modal-body iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.artifact-preview-markdown {
+  padding: 1rem;
+  overflow: auto;
+  height: 100%;
+}

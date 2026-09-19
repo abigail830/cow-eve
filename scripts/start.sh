@@ -27,10 +27,11 @@ start_omni() {
 }
 
 start_content_studio() {
+  chmod +x "${SCRIPT_DIR}/run-content-studio.sh"
   start_service \
     "content-studio" \
-    "${ROOT_DIR}/backend" \
-    "npm run dev:content-studio" \
+    "${ROOT_DIR}" \
+    "${SCRIPT_DIR}/run-content-studio.sh" \
     "${CONTENT_STUDIO_PORT}" \
     "http://127.0.0.1:${CONTENT_STUDIO_PORT}/eve/v1/health"
 }
