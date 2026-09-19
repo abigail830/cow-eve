@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { ArtifactPreviewModal } from "@fde/artifact-ui";
 import { useEveAgent } from "eve/react";
@@ -311,6 +311,7 @@ function AgentChatSession({
   // eve fires onSessionChange for every stream event; only refresh when the
   // durable session id actually changes (new chat), plus once on turn finish.
   const knownSessionIdRef = useRef(bound.session?.sessionId);
+  const chatBodyRef = useRef<HTMLDivElement>(null);
 
   const host = agentHost(agent.id);
   const { data, status, error, events, session, send, cancel } = useEveAgent({
@@ -347,6 +348,18 @@ function AgentChatSession({
   useEffect(() => {
     if (!isBusy) setCancelling(false);
   }, [isBusy]);
+
+  // After opening/restoring a conversation, land at the latest messages.
+  useLayoutEffect(() => {
+    if (conversationLoading || data.messages.length === 0) return;
+    const el = chatBodyRef.current;
+    if (!el) return;
+    const scrollToBottom = () => {
+      el.scrollTop = el.scrollHeight;
+    };
+    scrollToBottom();
+    requestAnimationFrame(scrollToBottom);
+  }, [conversationLoading, bound.chatId, data.messages.length]);
 
   // First message on a blank composer creates a chat row; remember it for restore.
   useEffect(() => {
@@ -468,7 +481,7 @@ function AgentChatSession({
           </div>
         </header>
 
-        <div className="chat-body">
+        <div className="chat-body" ref={chatBodyRef}>
           <div className="chat-content-column">
             {conversationLoading ? (
               <div className="chat-loading" role="status" aria-live="polite">
