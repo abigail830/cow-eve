@@ -1,4 +1,4 @@
-import { dirname } from "node:path";
+import { basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { withEve } from "eve/vercel";
 
@@ -7,10 +7,11 @@ import { withEve } from "eve/vercel";
  * Custom platform channel routes (/api/*) are not on /eve/<agent>/v1 — publish
  * them explicitly onto the omni service.
  *
- * Pass `root` explicitly: on Vercel monorepos, config evaluation can start from
- * the repository root (`/vercel/path0`) while this file lives under `backend/`.
+ * Vercel compiles this file to `backend/.vercel/vercel-temp.mjs`, so
+ * `import.meta.url` is under `.vercel/` — walk up to the real workspace root.
  */
-const root = dirname(fileURLToPath(import.meta.url));
+const here = dirname(fileURLToPath(import.meta.url));
+const root = basename(here) === ".vercel" ? dirname(here) : here;
 
 export default await withEve(
   {
