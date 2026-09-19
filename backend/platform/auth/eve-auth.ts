@@ -29,7 +29,7 @@ export function platformRouteAuth(): AuthFn<Request>[] {
 export function platformCors() {
   return {
     origin: getFrontendOrigins(),
-    methods: ["GET", "POST", "PUT", "OPTIONS"] as const,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"] as const,
     allowedHeaders: ["authorization", "content-type"] as const,
   };
 }

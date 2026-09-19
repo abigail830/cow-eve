@@ -102,6 +102,49 @@ ensure_env_files() {
   fi
 }
 
+# Read DATABASE_URL from the environment or backend/.env (without sourcing secrets).
+read_database_url() {
+  if [[ -n "${DATABASE_URL:-}" ]]; then
+    echo "${DATABASE_URL}"
+    return 0
+  fi
+  local env_file="${ROOT_DIR}/backend/.env"
+  if [[ -f "${env_file}" ]]; then
+    local line
+    line="$(grep -E '^[[:space:]]*DATABASE_URL=' "${env_file}" | tail -n 1 || true)"
+    if [[ -n "${line}" ]]; then
+      line="${line#*=}"
+      line="${line%\"}"
+      line="${line#\"}"
+      line="${line%\'}"
+      line="${line#\'}"
+      echo "${line}"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+# Apply Neon / Postgres migrations before starting backend agents.
+# Skips (with a notice) when DATABASE_URL is unset so local UI-only starts still work.
+run_db_migrate() {
+  local db_url
+  if ! db_url="$(read_database_url)"; then
+    echo "  • skip db:migrate (DATABASE_URL not set in env or backend/.env)"
+    return 0
+  fi
+  if [[ -z "${db_url}" ]]; then
+    echo "  • skip db:migrate (DATABASE_URL is empty)"
+    return 0
+  fi
+  echo "  → running db:migrate…"
+  (
+    cd "${ROOT_DIR}/backend" || exit 1
+    DATABASE_URL="${db_url}" npm run db:migrate
+  )
+  echo "  ✓ db:migrate done"
+}
+
 start_service() {
   local name="$1"
   local workdir="$2"

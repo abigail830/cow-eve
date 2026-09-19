@@ -29,6 +29,8 @@ cd backend && npm install && cd ../frontend && npm install && cd ..
 ./scripts/restart.sh
 ```
 
+`start` / `restart`（含 backend）会在有 `DATABASE_URL` 时自动执行 `npm run db:migrate`。
+
 也可只操作一部分：`./scripts/start.sh backend` / `frontend` / `omni` / `content-studio`。
 
 配置模型凭证（对话必需）：登录后打开 **Settings → Model**，填写 DeepSeek / Qwen 等 OpenAI 兼容接口的 Base URL、Model ID 与 API Key。
@@ -43,8 +45,8 @@ cd backend && npm install && cd ../frontend && npm install && cd ..
 
 - 多 agent 文件配置：`backend/agents/<name>/agent/`
 - 登录 JWT → Eve `jwtHmac` 鉴权
-- 多轮对话：Eve durable session + `useEveAgent`
-- Memory：各 agent `memory.ts`（`fileMemory` + `byPrincipal`）
+- 多轮对话：Eve durable session + `useEveAgent`；会话列表投影到 Neon
+- Memory：Upstash Redis（`redisMemory` + `byPrincipal`）
 - 定时：omni `schedules/heartbeat.ts`
 - Omni → Content Studio：`defineRemoteAgent`
 

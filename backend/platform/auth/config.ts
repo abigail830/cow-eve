@@ -4,15 +4,31 @@ export const JWT_ISSUER = "cow-eve";
 export const JWT_AUDIENCE = "agent-platform";
 export const JWT_ALGORITHM = "HS256" as const;
 
+/** True while Eve is evaluating agent modules for a Vercel build output. */
+function isEveVercelBuild(): boolean {
+  return Boolean(
+    process.env.EVE_INTERNAL_BUILD_OUTPUT_DIRECTORY ||
+      process.env.EVE_INTERNAL_HOST_BUILD_OUTPUT_DIRECTORY,
+  );
+}
+
 export function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
-  if (!secret || secret.length < 16) {
-    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
-      throw new Error("JWT_SECRET must be set to a strong value in production");
-    }
-    return "cow-eve-dev-jwt-secret-change-me";
+  if (secret && secret.length >= 16) {
+    return secret;
   }
-  return secret;
+
+  // `eve build` on Vercel imports channel modules with VERCEL=1. Project secrets
+  // are often Runtime-only, so allow a build-time placeholder during graph
+  // discovery. Cold starts re-import with runtime env and must have JWT_SECRET.
+  if (isEveVercelBuild()) {
+    return "cow-eve-build-placeholder-secret";
+  }
+
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+    throw new Error("JWT_SECRET must be set to a strong value in production");
+  }
+  return "cow-eve-dev-jwt-secret-change-me";
 }
 
 const DEFAULT_FRONTEND_ORIGINS = [

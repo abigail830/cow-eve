@@ -13,15 +13,21 @@
     "dev:omni": "eve dev --agent omni --no-ui --port 2000",
     "dev:content-studio": "eve dev --agent content-studio --no-ui --port 2001",
     "dev:ui": "eve dev --agent omni",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx platform/db/migrate.ts",
     "eval": "eve eval",
     "start": "eve start",
     "typecheck": "tsc"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.53",
+    "@neondatabase/serverless": "^1.1.0",
+    "@upstash/agentkit-eve": "^0.9.0",
+    "@upstash/redis": "^1.38.4",
     "@vercel/connect": "2.2.0",
     "ai": "^7.0.105",
     "bcryptjs": "^3.0.2",
+    "drizzle-orm": "^0.45.2",
     "eve": "^0.62.0",
     "jose": "^6.0.11",
     "zod": "4.5.4"
@@ -29,7 +35,9 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "24.x",
+    "drizzle-kit": "^0.31.10",
     "microsandbox": "^0.5.10",
+    "tsx": "^4.23.13",
     "typescript": "7.0.2"
   },
   "engines": {

@@ -49,6 +49,12 @@ ensure_run_dirs
 ensure_env_files
 
 case "${TARGET}" in
+  all|backend|omni|content-studio)
+    run_db_migrate
+    ;;
+esac
+
+case "${TARGET}" in
   all)
     start_omni
     start_content_studio
