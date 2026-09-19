@@ -21,6 +21,16 @@ export function isLegacyPartialStream(
   );
 }
 
+/** Idle tail — no Eve catch-up needed when events are a complete prefix. */
+export function historyNeedsResume(
+  events: readonly MessageStreamEvent[],
+): boolean {
+  if (isLegacyPartialStream(events)) return true;
+  if (events.length === 0) return false;
+  const last = events[events.length - 1];
+  return last.type !== "session.waiting" && last.type !== "session.completed";
+}
+
 export function resolveHistorySession(input: {
   eveSessionId: string;
   streamIndex: number;
@@ -45,6 +55,6 @@ export function resolveHistorySession(input: {
   return {
     session: { sessionId: input.eveSessionId, streamIndex },
     events: input.events,
-    resume: true,
+    resume: historyNeedsResume(input.events),
   };
 }

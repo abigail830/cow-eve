@@ -12,6 +12,10 @@ export function ChatPage() {
   const navigate = useNavigate();
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [selectedId, setSelectedId] = useState<string>("omni");
+  /** Keep mounted after first visit so agent switches do not remount and re-fetch. */
+  const [visitedAgentIds, setVisitedAgentIds] = useState<string[]>(() => [
+    "omni",
+  ]);
   const [streamingAgentId, setStreamingAgentId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   /** Last opened chat per agent; survives agent switches (AgentChat unmounts). */
@@ -34,6 +38,13 @@ export function ChatPage() {
     },
     [],
   );
+
+  const selectAgent = useCallback((agentId: string) => {
+    setSelectedId(agentId);
+    setVisitedAgentIds((prev) =>
+      prev.includes(agentId) ? prev : [...prev, agentId],
+    );
+  }, []);
 
   useEffect(() => {
     if (!token) return;
@@ -64,14 +75,6 @@ export function ChatPage() {
 
   const selected = agents.find((a) => a.id === selectedId) ?? agents[0];
 
-  const handleActiveChatChange = useCallback(
-    (chatId: string | null) => {
-      if (!selected) return;
-      rememberAgentChat(selected.id, chatId);
-    },
-    [rememberAgentChat, selected?.id],
-  );
-
   return (
     <div className="app-shell">
       <AppHeader
@@ -87,21 +90,33 @@ export function ChatPage() {
           agents={agents}
           selectedId={selected?.id ?? selectedId}
           streamingAgentId={streamingAgentId}
-          onSelect={setSelectedId}
+          onSelect={selectAgent}
         />
         <main className="chat-main">
           {loadError ? (
             <div className="chat-load-error">{loadError}</div>
-          ) : selected ? (
-            <AgentChat
-              key={selected.id}
-              agent={selected}
-              restoreChatId={lastChatByAgent[selected.id] ?? null}
-              onActiveChatChange={handleActiveChatChange}
-              onStreamingChange={(streaming) => {
-                setStreamingAgentId(streaming ? selected.id : null);
-              }}
-            />
+          ) : agents.length > 0 ? (
+            agents.map((agent) =>
+              visitedAgentIds.includes(agent.id) ? (
+                <div
+                  key={agent.id}
+                  className="chat-agent-pane"
+                  hidden={agent.id !== selected?.id}
+                  aria-hidden={agent.id !== selected?.id}
+                >
+                  <AgentChat
+                    agent={agent}
+                    restoreChatId={lastChatByAgent[agent.id] ?? null}
+                    onActiveChatChange={(chatId) =>
+                      rememberAgentChat(agent.id, chatId)
+                    }
+                    onStreamingChange={(streaming) => {
+                      setStreamingAgentId(streaming ? agent.id : null);
+                    }}
+                  />
+                </div>
+              ) : null,
+            )
           ) : (
             <div className="chat-load-error">Loading agents…</div>
           )}

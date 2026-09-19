@@ -58,7 +58,9 @@ export function AgentChat({
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [loadingChatId, setLoadingChatId] = useState<string | null>(null);
+  const [loadingChatId, setLoadingChatId] = useState<string | null>(
+    () => restoreChatId ?? null,
+  );
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
   const [bound, setBound] = useState<BoundSession>(() => ({
     chatId: null,
@@ -143,37 +145,52 @@ export function AgentChat({
     let cancelled = false;
     const chatToRestore = restoreChatId;
 
-    setActiveChatId(null);
-    setBound({
-      chatId: null,
-      session: undefined,
-      events: undefined,
-      resume: false,
-      key: `new-${agent.id}-${Date.now()}`,
-    });
+    if (chatToRestore) {
+      setLoadingChatId(chatToRestore);
+      setActiveChatId(chatToRestore);
+    } else {
+      setLoadingChatId(null);
+      setActiveChatId(null);
+      setBound({
+        chatId: null,
+        session: undefined,
+        events: undefined,
+        resume: false,
+        key: `new-${agent.id}-${Date.now()}`,
+      });
+    }
 
     void (async () => {
       if (!token) return;
-      try {
-        const res = await fetchChats(agent.id);
-        if (cancelled) return;
-        setChats(res.chats);
-        setHistoryError(null);
 
-        if (
-          chatToRestore &&
-          res.chats.some((chat) => chat.id === chatToRestore)
-        ) {
+      const chatsTask = fetchChats(agent.id)
+        .then((res) => {
+          if (cancelled) return res;
+          setChats(res.chats);
+          setHistoryError(null);
+          return res;
+        })
+        .catch((err: unknown) => {
+          if (cancelled) throw err;
+          setHistoryError(
+            err instanceof Error ? err.message : "Failed to load history",
+          );
+          throw err;
+        });
+
+      if (chatToRestore) {
+        try {
           await bindChat(chatToRestore, () => cancelled);
-        } else if (chatToRestore) {
-          syncActiveChat(null);
+        } catch {
+          /* bindChat sets historyError */
         }
-      } catch (err) {
-        if (cancelled) return;
-        setHistoryError(
-          err instanceof Error ? err.message : "Failed to load history",
-        );
+        if (!cancelled) {
+          await chatsTask.catch(() => undefined);
+        }
+        return;
       }
+
+      await chatsTask.catch(() => undefined);
     })();
 
     return () => {
@@ -319,6 +336,9 @@ function AgentChatSession({
   // - cancel keeps the stream attached through turn.cancelled → session.waiting
   const isBusy = status === "submitted" || status === "streaming";
   const isResuming = status === "resuming";
+  const conversationLoading =
+    loadingChatId !== null ||
+    (isResuming && data.messages.length === 0);
   const turnFailure =
     isBusy || isResuming ? undefined : latestTurnFailure(events);
   const errorMessage =
@@ -450,7 +470,7 @@ function AgentChatSession({
 
         <div className="chat-body">
           <div className="chat-content-column">
-            {loadingChatId ? (
+            {conversationLoading ? (
               <div className="chat-loading" role="status" aria-live="polite">
                 <Loader2
                   size={28}
