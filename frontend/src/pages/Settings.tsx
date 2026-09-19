@@ -21,6 +21,7 @@ import {
   catalogFromSettings,
   DEFAULT_MODEL_PRESETS,
   DEFAULT_MODEL_SETTINGS,
+  resolveSavedCatalog,
 } from "../lib/model-defaults";
 import { IconButton } from "../components/IconButton";
 import { useAuth } from "../lib/auth";
@@ -266,7 +267,7 @@ function ModelSettingsTab() {
     setMessage(null);
     setPending(true);
     try {
-      const res = await saveModelCatalog({
+      const payload = {
         defaultId: nextDefaultId,
         models: list.map((model) => ({
           id: model.id,
@@ -278,12 +279,14 @@ function ModelSettingsTab() {
           reasoning: model.reasoning,
           ...(model.apiKey.trim() ? { apiKey: model.apiKey.trim() } : {}),
         })),
-      });
-      const next = res.catalog.models.map(toDraft);
+      };
+      const res = await saveModelCatalog(payload);
+      const savedCatalog = resolveSavedCatalog(res, payload.models.length);
+      const next = savedCatalog.models.map(toDraft);
       setModels(next);
       setDefaultId(
-        next.some((model) => model.id === res.catalog.defaultId)
-          ? res.catalog.defaultId
+        next.some((model) => model.id === savedCatalog.defaultId)
+          ? savedCatalog.defaultId
           : (next[0]?.id ?? ""),
       );
       if (!options?.keepEditor) setEditor(null);

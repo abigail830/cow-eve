@@ -83,3 +83,17 @@ export function catalogFromSettings(
     ],
   };
 }
+
+/** PUT /api/settings/model may return legacy `{ settings }` without `catalog`. */
+export function resolveSavedCatalog(
+  res: { catalog?: ModelCatalogPublic; settings: ModelSettingsPublic },
+  sentModelCount: number,
+): ModelCatalogPublic {
+  if (res.catalog?.models?.length) return res.catalog;
+  if (sentModelCount > 1) {
+    throw new Error(
+      "Backend did not accept the multi-model catalog. Redeploy cow-eve backend to the latest version, then retry.",
+    );
+  }
+  return catalogFromSettings(res.settings);
+}

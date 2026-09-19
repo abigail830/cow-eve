@@ -4,6 +4,7 @@ import {
   applyModelSettingsUpdate,
   defaultModelSettings,
   modelEntryFromSettings,
+  normalizeModelCatalog,
   type ModelCatalog,
   type ModelCatalogPublic,
   type ModelCatalogUpdate,
@@ -33,7 +34,7 @@ export type {
 } from "../../domain/settings/model-settings.entity";
 
 export async function loadModelCatalog(): Promise<ModelCatalog> {
-  return drizzleModelSettingsRepository.load();
+  return normalizeModelCatalog(await drizzleModelSettingsRepository.load());
 }
 
 /** The model new chats actually call — the catalog default. */
@@ -44,7 +45,9 @@ export async function loadModelSettings(): Promise<ModelSettings> {
 export async function saveModelCatalog(
   update: ModelCatalogUpdate,
 ): Promise<ModelCatalog> {
-  const current = await drizzleModelSettingsRepository.load();
+  const current = normalizeModelCatalog(
+    await drizzleModelSettingsRepository.load(),
+  );
   const encryptedKeys = new Map<string, string | null>();
   for (const item of update.models ?? []) {
     const id = item.id?.trim();
