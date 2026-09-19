@@ -1,5 +1,16 @@
-export const API_URL =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:2000";
+/** Strip trailing slash and accidental `/eve/<agent>` suffix from platform API base. */
+function normalizeApiUrl(raw: string | undefined): string {
+  const fallback = "http://127.0.0.1:2000";
+  if (!raw?.trim()) return fallback;
+  let url = raw.trim().replace(/\/$/, "");
+  // Production mistake: pointing API at the Eve agent mount instead of host root.
+  url = url.replace(/\/eve\/[^/]+$/i, "");
+  return url || fallback;
+}
+
+export const API_URL = normalizeApiUrl(
+  import.meta.env.VITE_API_URL as string | undefined,
+);
 
 /** Comma list: omni=http://127.0.0.1:2000,content-studio=http://127.0.0.1:2001 */
 function parseAgentUrls(): Record<string, string> {

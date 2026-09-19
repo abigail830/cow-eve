@@ -16,9 +16,22 @@ const root = basename(here) === ".vercel" ? dirname(here) : here;
 export default await withEve(
   {
     routes: [
+      // Canonical platform API
       {
         src: "^/api(?:/(.*))?$",
         destination: { type: "service", service: "eve-omni" },
+      },
+      // Compat: frontend mistakenly using VITE_API_URL=.../eve/omni
+      {
+        src: "^/eve/omni/api(?:/(.*))?$",
+        destination: { type: "service", service: "eve-omni" },
+        transforms: [
+          {
+            type: "request.path",
+            op: "set",
+            args: "/api/$1",
+          },
+        ],
       },
     ],
   },
