@@ -6,7 +6,6 @@ type ModuleId = "agent-team";
 
 type Props = {
   activeModule: ModuleId;
-  agentCount?: number;
   userName: string;
   userEmail: string;
   onOpenSettings: () => void;
@@ -27,7 +26,6 @@ const MODULES: { id: ModuleId; label: string }[] = [
 
 export function AppHeader({
   activeModule,
-  agentCount = 0,
   userName,
   userEmail,
   onOpenSettings,
@@ -74,13 +72,6 @@ export function AppHeader({
       </div>
 
       <div className="app-header-right">
-        {agentCount > 0 ? (
-          <span className="app-status-pill">
-            <span className="app-status-dot" aria-hidden />
-            {agentCount} Agent{agentCount === 1 ? "" : "s"} active
-          </span>
-        ) : null}
-
         <button
           type="button"
           className="app-header-icon-btn"

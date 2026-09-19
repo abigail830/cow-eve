@@ -79,7 +79,6 @@ export function ChatPage() {
     <div className="app-shell">
       <AppHeader
         activeModule="agent-team"
-        agentCount={agents.length}
         userName={user.displayName}
         userEmail={user.email}
         onOpenSettings={() => navigate("/settings")}

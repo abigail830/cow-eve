@@ -71,25 +71,6 @@
   flex-shrink: 0;
 }
 
-.app-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: var(--paper-cover);
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #555;
-}
-
-.app-status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #2ecc71;
-}
-
 .app-header-icon-btn {
   width: 34px;
   height: 34px;
