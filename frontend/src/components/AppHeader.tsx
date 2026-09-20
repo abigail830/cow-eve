@@ -49,7 +49,7 @@ export function AppHeader({
     <header className="app-header">
       <div className="app-header-left">
         <div className="app-brand">
-          <img src="/agents/bodha-brand.png" alt="" width={28} height={28} />
+          <img src="/cow.png" alt="" width={28} height={28} />
           <span className="app-brand-name">FDE-DESK</span>
         </div>
 
