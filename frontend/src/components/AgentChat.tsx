@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { ArtifactPreviewPanel } from "@fde/artifact-ui";
 import { useEveAgent } from "eve/react";
-import type { ClientSessionState, MessageStreamEvent } from "eve/client";
+import type { MessageStreamEvent } from "eve/client";
 import {
   Brain,
   List,
@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import {
   deleteChat,
-  fetchChat,
   fetchChats,
   fetchMemory,
   fetchModelSettings,
@@ -23,12 +22,13 @@ import {
   type UserMemorySnapshot,
 } from "../lib/api";
 import { API_URL, agentHost } from "../lib/config";
-import { resolveHistorySession } from "../lib/chat-stream";
+import { fetchBoundSession, type BoundSession } from "../lib/load-chat-session";
 import { useAuth } from "../lib/auth";
 import { Composer } from "./Composer";
 import { IconButton } from "./IconButton";
 import { MemoryPanel } from "./MemoryPanel";
 import { MessageStream } from "./MessageStream";
+import { ResizableAside } from "./ResizableAside";
 import "./AgentChat.css";
 
 type Props = {
@@ -37,14 +37,6 @@ type Props = {
   restoreChatId?: string | null;
   onActiveChatChange?: (chatId: string | null) => void;
   onStreamingChange?: (streaming: boolean) => void;
-};
-
-type BoundSession = {
-  chatId: string | null;
-  session: ClientSessionState | undefined;
-  events: readonly MessageStreamEvent[] | undefined;
-  resume: boolean;
-  key: string;
 };
 
 function AgentChatLoading({ agent }: { agent: AgentInfo }) {
@@ -89,12 +81,10 @@ export function AgentChat({
   const [chats, setChats] = useState<ChatSummary[]>([]);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [loadingChatId, setLoadingChatId] = useState<string | null>(
-    () => restoreChatId ?? null,
-  );
+  const [switchingChatId, setSwitchingChatId] = useState<string | null>(null);
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
-  /** Wait for restore/open fetch before mounting the eve session (avoids empty → remount flash). */
-  const [historyReady, setHistoryReady] = useState(() => !restoreChatId);
+  /** First restore: one DB fetch before mounting the eve session. */
+  const [initialLoadDone, setInitialLoadDone] = useState(() => !restoreChatId);
   const [bound, setBound] = useState<BoundSession>(() => ({
     chatId: null,
     session: undefined,
@@ -131,60 +121,44 @@ export function AgentChat({
     };
   }, [token]);
 
-  const syncActiveChat = useCallback(
-    (chatId: string | null) => {
-      setActiveChatId(chatId);
-      onActiveChatChange?.(chatId);
-    },
-    [onActiveChatChange],
-  );
+  const onActiveChatChangeRef = useRef(onActiveChatChange);
+  onActiveChatChangeRef.current = onActiveChatChange;
 
-  const bindChat = useCallback(
-    async (chatId: string, cancelled?: () => boolean) => {
-      setLoadingChatId(chatId);
-      setActiveChatId(chatId);
-      try {
-        const res = await fetchChat(chatId);
-        if (cancelled?.()) return;
-        const events = res.chat.events as MessageStreamEvent[];
-        const history = resolveHistorySession({
-          eveSessionId: res.chat.eveSessionId,
-          streamIndex: res.chat.streamIndex,
-          events,
-        });
-        setBound({
-          chatId,
-          session: history.session,
-          events: history.events,
-          resume: history.resume,
-          key: `chat-${chatId}`,
-        });
-        syncActiveChat(chatId);
-        setHistoryError(null);
-      } catch (err) {
-        if (cancelled?.()) return;
-        syncActiveChat(null);
-        setHistoryError(
-          err instanceof Error ? err.message : "Failed to open chat",
-        );
-      } finally {
-        if (!cancelled?.()) setLoadingChatId(null);
-      }
-    },
-    [syncActiveChat],
-  );
+  const syncActiveChat = useCallback((chatId: string | null) => {
+    setActiveChatId(chatId);
+    onActiveChatChangeRef.current?.(chatId);
+  }, []);
 
+  const bindChat = useCallback(async (chatId: string) => {
+    setSwitchingChatId(chatId);
+    setActiveChatId(chatId);
+
+    try {
+      const next = await fetchBoundSession(chatId);
+      setBound(next);
+      syncActiveChat(chatId);
+      setHistoryError(null);
+    } catch (err) {
+      syncActiveChat(null);
+      setHistoryError(
+        err instanceof Error ? err.message : "Failed to open chat",
+      );
+    } finally {
+      setSwitchingChatId(null);
+    }
+  }, [syncActiveChat]);
+
+  // Agent switch only — do NOT depend on bindChat/syncActiveChat (unstable → reload loop).
   useEffect(() => {
     let cancelled = false;
     const chatToRestore = restoreChatId;
 
     if (chatToRestore) {
-      setHistoryReady(false);
-      setLoadingChatId(chatToRestore);
+      setInitialLoadDone(false);
       setActiveChatId(chatToRestore);
     } else {
-      setHistoryReady(true);
-      setLoadingChatId(null);
+      setInitialLoadDone(true);
+      setSwitchingChatId(null);
       setActiveChatId(null);
       setBound({
         chatId: null,
@@ -215,14 +189,21 @@ export function AgentChat({
 
       if (chatToRestore) {
         try {
-          await bindChat(chatToRestore, () => cancelled);
-        } catch {
-          /* bindChat sets historyError */
+          const next = await fetchBoundSession(chatToRestore);
+          if (cancelled) return;
+          setBound(next);
+          setActiveChatId(chatToRestore);
+          onActiveChatChangeRef.current?.(chatToRestore);
+          setHistoryError(null);
+        } catch (err) {
+          if (cancelled) return;
+          setHistoryError(
+            err instanceof Error ? err.message : "Failed to open chat",
+          );
+        } finally {
+          if (!cancelled) setInitialLoadDone(true);
         }
-        if (!cancelled) {
-          setHistoryReady(true);
-          await chatsTask.catch(() => undefined);
-        }
+        await chatsTask.catch(() => undefined);
         return;
       }
 
@@ -232,10 +213,9 @@ export function AgentChat({
     return () => {
       cancelled = true;
     };
-    // restoreChatId intentionally omitted: only restore on agent switch, not when
-    // the parent map updates while this agent stays mounted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- capture restoreChatId at agent switch
-  }, [agent.id, token, bindChat, syncActiveChat]);
+    // restoreChatId captured at agent switch — intentionally not a dep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent.id, token]);
 
   const startNewChat = () => {
     syncActiveChat(null);
@@ -270,9 +250,8 @@ export function AgentChat({
   };
 
   const modelLabel = model?.displayName || model?.modelId || "Configure model";
-  const pendingHistory = loadingChatId !== null || !historyReady;
 
-  if (pendingHistory) {
+  if (!initialLoadDone) {
     return <AgentChatLoading agent={agent} />;
   }
 
@@ -286,7 +265,7 @@ export function AgentChat({
       chats={chats}
       historyError={historyError}
       activeChatId={activeChatId}
-      loadingChatId={loadingChatId}
+      switchingChatId={switchingChatId}
       deletingChatId={deletingChatId}
       bound={bound}
       onNewChat={startNewChat}
@@ -308,7 +287,7 @@ type SessionProps = {
   chats: ChatSummary[];
   historyError: string | null;
   activeChatId: string | null;
-  loadingChatId: string | null;
+  switchingChatId: string | null;
   deletingChatId: string | null;
   bound: BoundSession;
   onNewChat: () => void;
@@ -326,7 +305,7 @@ function AgentChatSession({
   chats,
   historyError,
   activeChatId,
-  loadingChatId,
+  switchingChatId,
   deletingChatId,
   bound,
   onNewChat,
@@ -337,6 +316,8 @@ function AgentChatSession({
   onStreamingChange,
 }: SessionProps) {
   const [previewArtifact, setPreviewArtifact] = useState<ArtifactSpec | null>(null);
+  const lastPreviewArtifactRef = useRef<ArtifactSpec | null>(null);
+  if (previewArtifact) lastPreviewArtifactRef.current = previewArtifact;
   const [historyOpen, setHistoryOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [memory, setMemory] = useState<UserMemorySnapshot | null>(null);
@@ -353,6 +334,8 @@ function AgentChatSession({
   // durable session id actually changes (new chat), plus once on turn finish.
   const knownSessionIdRef = useRef(bound.session?.sessionId);
   const chatBodyRef = useRef<HTMLDivElement>(null);
+  const onStreamingChangeRef = useRef(onStreamingChange);
+  onStreamingChangeRef.current = onStreamingChange;
 
   const host = agentHost(agent.id);
   const { data, status, error, events, session, send, cancel } = useEveAgent({
@@ -378,9 +361,12 @@ function AgentChatSession({
   // - cancel keeps the stream attached through turn.cancelled → session.waiting
   const isBusy = status === "submitted" || status === "streaming";
   const isResuming = status === "resuming";
+  /** Legacy partial streams only — full history renders from initialEvents without blocking UI. */
   const conversationLoading =
-    (isResuming && data.messages.length === 0) ||
-    (bound.resume && bound.events === undefined && data.messages.length === 0);
+    bound.resume &&
+    bound.events === undefined &&
+    data.messages.length === 0 &&
+    (isResuming || status === "ready");
   const turnFailure =
     isBusy || isResuming ? undefined : latestTurnFailure(events);
   const errorMessage =
@@ -410,11 +396,11 @@ function AgentChatSession({
   }, [activeChatId, chats, onActiveChatChange, session?.sessionId]);
 
   useEffect(() => {
-    onStreamingChange?.(isBusy);
+    onStreamingChangeRef.current?.(isBusy);
     return () => {
-      onStreamingChange?.(false);
+      onStreamingChangeRef.current?.(false);
     };
-  }, [isBusy, onStreamingChange]);
+  }, [isBusy]);
 
   const requestCancellation = useCallback(() => {
     if (!isBusy || cancelling) return;
@@ -533,6 +519,17 @@ function AgentChatSession({
 
         <div className="chat-body" ref={chatBodyRef}>
           <div className="chat-content-column">
+            {switchingChatId ? (
+              <div className="chat-switching-overlay" role="status" aria-live="polite">
+                <Loader2
+                  size={24}
+                  strokeWidth={2}
+                  className="chat-loading-spinner"
+                  aria-hidden
+                />
+                <span>Loading conversation…</span>
+              </div>
+            ) : null}
             {conversationLoading ? (
               <div className="chat-loading" role="status" aria-live="polite">
                 <Loader2
@@ -584,15 +581,24 @@ function AgentChatSession({
         />
       </div>
 
-      {previewArtifact ? (
-        <ArtifactPreviewPanel
-          spec={previewArtifact}
-          apiBase={API_URL}
-          token={token}
-          chatId={activeChatId ?? bound.chatId}
-          onClose={() => setPreviewArtifact(null)}
-        />
-      ) : historyOpen ? (
+      {lastPreviewArtifactRef.current ? (
+        <ResizableAside
+          defaultWidth={520}
+          hidden={!previewArtifact}
+        >
+          <ArtifactPreviewPanel
+            spec={lastPreviewArtifactRef.current}
+            apiBase={API_URL}
+            token={token}
+            chatId={activeChatId ?? bound.chatId}
+            open={Boolean(previewArtifact)}
+            onClose={() => setPreviewArtifact(null)}
+          />
+        </ResizableAside>
+      ) : null}
+
+      {historyOpen ? (
+        <ResizableAside defaultWidth={320}>
         <aside className="chat-history-panel">
           <div className="chat-history-panel-header">
             <h3>Chat History ({chats.length})</h3>
@@ -623,15 +629,15 @@ function AgentChatSession({
                         : "chat-history-item"
                     }
                     disabled={
-                      loadingChatId === chat.id || deletingChatId !== null
+                      switchingChatId === chat.id || deletingChatId !== null
                     }
                     onClick={() => {
-                      if (loadingChatId || deletingChatId) return;
+                      if (switchingChatId || deletingChatId) return;
                       void onOpenChat(chat.id);
                     }}
                   >
                     <span className="chat-history-title">
-                      {loadingChatId === chat.id ? (
+                      {switchingChatId === chat.id ? (
                         <Loader2
                           size={14}
                           strokeWidth={2}
@@ -672,6 +678,7 @@ function AgentChatSession({
             </ul>
           </div>
         </aside>
+        </ResizableAside>
       ) : null}
 
       {pendingDeleteChat ? (
@@ -689,13 +696,15 @@ function AgentChatSession({
       ) : null}
 
       {!previewArtifact && memoryOpen ? (
-        <MemoryPanel
-          agentName={agent.displayName}
-          memory={memory}
-          loading={memoryLoading}
-          error={memoryError}
-          onClose={() => setMemoryOpen(false)}
-        />
+        <ResizableAside defaultWidth={360}>
+          <MemoryPanel
+            agentName={agent.displayName}
+            memory={memory}
+            loading={memoryLoading}
+            error={memoryError}
+            onClose={() => setMemoryOpen(false)}
+          />
+        </ResizableAside>
       ) : null}
     </div>
   );

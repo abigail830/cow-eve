@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { fetchAgents, type AgentInfo } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -6,6 +6,45 @@ import { AgentChat } from "../components/AgentChat";
 import { AppHeader } from "../components/AppHeader";
 import { Sidebar } from "../components/Sidebar";
 import "./Chat.css";
+
+const AgentChatPane = memo(function AgentChatPane({
+  agent,
+  hidden,
+  restoreChatId,
+  onRememberChat,
+  onStreamingChange,
+}: {
+  agent: AgentInfo;
+  hidden: boolean;
+  restoreChatId: string | null;
+  onRememberChat: (agentId: string, chatId: string | null) => void;
+  onStreamingChange: (agentId: string | null) => void;
+}) {
+  const handleActiveChatChange = useCallback(
+    (chatId: string | null) => onRememberChat(agent.id, chatId),
+    [agent.id, onRememberChat],
+  );
+  const handleStreamingChange = useCallback(
+    (streaming: boolean) =>
+      onStreamingChange(streaming ? agent.id : null),
+    [agent.id, onStreamingChange],
+  );
+
+  return (
+    <div
+      className="chat-agent-pane"
+      hidden={hidden}
+      aria-hidden={hidden}
+    >
+      <AgentChat
+        agent={agent}
+        restoreChatId={restoreChatId}
+        onActiveChatChange={handleActiveChatChange}
+        onStreamingChange={handleStreamingChange}
+      />
+    </div>
+  );
+});
 
 export function ChatPage() {
   const { token, user, logout } = useAuth();
@@ -97,23 +136,14 @@ export function ChatPage() {
           ) : agents.length > 0 ? (
             agents.map((agent) =>
               visitedAgentIds.includes(agent.id) ? (
-                <div
+                <AgentChatPane
                   key={agent.id}
-                  className="chat-agent-pane"
+                  agent={agent}
                   hidden={agent.id !== selected?.id}
-                  aria-hidden={agent.id !== selected?.id}
-                >
-                  <AgentChat
-                    agent={agent}
-                    restoreChatId={lastChatByAgent[agent.id] ?? null}
-                    onActiveChatChange={(chatId) =>
-                      rememberAgentChat(agent.id, chatId)
-                    }
-                    onStreamingChange={(streaming) => {
-                      setStreamingAgentId(streaming ? agent.id : null);
-                    }}
-                  />
-                </div>
+                  restoreChatId={lastChatByAgent[agent.id] ?? null}
+                  onRememberChat={rememberAgentChat}
+                  onStreamingChange={setStreamingAgentId}
+                />
               ) : null,
             )
           ) : (

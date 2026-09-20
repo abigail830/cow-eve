@@ -3,7 +3,6 @@ import {
   artifactPreviewPath,
   type ArtifactSpec,
 } from "@fde/artifact-spec";
-
 export function resolveArtifactUrl(url: string | null | undefined, apiBase: string): string {
   const trimmed = url?.trim();
   if (!trimmed) return "";

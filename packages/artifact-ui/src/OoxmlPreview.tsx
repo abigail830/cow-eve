@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { createOoxmlScrollViewer } from "./ooxml-runtime";
 
 type OoxmlKind = "docx" | "pptx";
-
-/** Served from frontend/public/ooxml (copied on postinstall). */
-const OOXML_WASM: Record<OoxmlKind, string> = {
-  docx: "/ooxml/docx_parser_bg.wasm",
-  pptx: "/ooxml/pptx_parser_bg.wasm",
-};
 
 type ScrollViewer = {
   load: (source: string | ArrayBuffer) => Promise<void>;
@@ -20,52 +15,60 @@ type Props = {
   title: string;
 };
 
-async function createScrollViewer(
-  kind: OoxmlKind,
-  container: HTMLElement,
-): Promise<ScrollViewer> {
-  const deskOptions = {
-    background: "#f3f4f6",
-    gap: 16,
-    paddingTop: 16,
-  };
-
-  const wasmUrl = OOXML_WASM[kind];
-
-  if (kind === "docx") {
-    const { DocxScrollViewer } = await import("@silurus/ooxml/docx");
-    return new DocxScrollViewer(container, { ...deskOptions, wasmUrl });
-  }
-
-  const { PptxScrollViewer } = await import("@silurus/ooxml/pptx");
-  return new PptxScrollViewer(container, { ...deskOptions, wasmUrl });
+async function fetchDocument(url: string, token?: string | null): Promise<ArrayBuffer> {
+  const res = await fetch(url, {
+    credentials: "include",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.arrayBuffer();
 }
 
 export function OoxmlPreview({ kind, url, token, title }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<ScrollViewer | null>(null);
+  const loadedUrlRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (loadedUrlRef.current === url && viewerRef.current) {
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     let cancelled = false;
-    let viewer: ScrollViewer | null = null;
 
     void (async () => {
       const container = containerRef.current;
       if (!container) return;
 
-      try {
-        const res = await fetch(url, {
-          credentials: "include",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (!res.ok) throw new Error(await res.text());
-        const buffer = await res.arrayBuffer();
-        if (cancelled) return;
+      viewerRef.current?.destroy();
+      viewerRef.current = null;
+      loadedUrlRef.current = null;
+      setLoading(true);
+      setError(null);
 
-        viewer = await createScrollViewer(kind, container);
-        await viewer.load(buffer);
-        if (!cancelled) setLoading(false);
+      try {
+        const [buffer, scrollViewer] = await Promise.all([
+          fetchDocument(url, token),
+          createOoxmlScrollViewer(kind, container),
+        ]);
+        if (cancelled) {
+          scrollViewer.destroy();
+          return;
+        }
+
+        await scrollViewer.load(buffer);
+        if (cancelled) {
+          scrollViewer.destroy();
+          return;
+        }
+
+        viewerRef.current = scrollViewer;
+        loadedUrlRef.current = url;
+        setLoading(false);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Preview failed");
@@ -76,9 +79,16 @@ export function OoxmlPreview({ kind, url, token, title }: Props) {
 
     return () => {
       cancelled = true;
-      viewer?.destroy();
     };
   }, [kind, url, token]);
+
+  useEffect(() => {
+    return () => {
+      viewerRef.current?.destroy();
+      viewerRef.current = null;
+      loadedUrlRef.current = null;
+    };
+  }, []);
 
   return (
     <div className="artifact-ooxml-preview">

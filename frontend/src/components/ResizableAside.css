@@ -1,0 +1,65 @@
+.resizable-aside {
+  position: relative;
+  flex-shrink: 0;
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.resizable-aside[hidden] {
+  display: none;
+}
+
+.resizable-aside-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  margin-left: -3px;
+  cursor: col-resize;
+  z-index: 4;
+  touch-action: none;
+}
+
+.resizable-aside-handle::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #ececec;
+  pointer-events: none;
+}
+
+.resizable-aside-handle:hover::after,
+.resizable-aside-handle:active::after {
+  background: #f27a2a;
+}
+
+.resizable-aside-content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.resizable-aside-content > * {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .resizable-aside {
+    width: 100% !important;
+  }
+
+  .resizable-aside-handle {
+    display: none;
+  }
+}

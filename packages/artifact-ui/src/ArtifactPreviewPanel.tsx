@@ -7,12 +7,24 @@ type Props = {
   apiBase: string;
   token?: string | null;
   chatId?: string | null;
+  open?: boolean;
   onClose: () => void;
 };
 
-export function ArtifactPreviewPanel({ spec, apiBase, token, chatId, onClose }: Props) {
+export function ArtifactPreviewPanel({
+  spec,
+  apiBase,
+  token,
+  chatId,
+  open = true,
+  onClose,
+}: Props) {
   return (
-    <aside className="artifact-preview-panel" aria-label={`Preview: ${spec.title}`}>
+    <aside
+      className={`artifact-preview-panel${open ? "" : " artifact-preview-panel-hidden"}`}
+      aria-label={`Preview: ${spec.title}`}
+      aria-hidden={!open}
+    >
       <div className="artifact-preview-panel-header">
         <strong className="artifact-preview-panel-title">{spec.title}</strong>
         <button
