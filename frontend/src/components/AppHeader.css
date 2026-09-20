@@ -13,7 +13,6 @@
 .app-header-left {
   display: flex;
   align-items: center;
-  gap: 36px;
   min-width: 0;
 }
 
@@ -67,8 +66,17 @@
 .app-header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
+  margin-left: auto;
+}
+
+.app-header-right-divider {
+  width: 1px;
+  height: 24px;
+  background: #ececec;
+  flex-shrink: 0;
+  margin: 0 4px;
 }
 
 .app-header-icon-btn {

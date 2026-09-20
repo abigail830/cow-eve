@@ -52,7 +52,9 @@ export function AppHeader({
           <img src="/cow.png" alt="" width={28} height={28} />
           <span className="app-brand-name">FDE-DESK</span>
         </div>
+      </div>
 
+      <div className="app-header-right">
         <nav className="app-module-nav" aria-label="Modules">
           {MODULES.map((module) => (
             <button
@@ -69,9 +71,9 @@ export function AppHeader({
             </button>
           ))}
         </nav>
-      </div>
 
-      <div className="app-header-right">
+        <div className="app-header-right-divider" aria-hidden />
+
         <button
           type="button"
           className="app-header-icon-btn"

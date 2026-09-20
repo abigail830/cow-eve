@@ -18,24 +18,47 @@
 
 .chat-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 12px 24px;
+  padding: 6px 24px 2px;
   border-bottom: 1px solid #f0f0f0;
   flex-shrink: 0;
   background: #fff;
+  position: relative;
+  z-index: 2;
+  overflow: visible;
 }
 
 .chat-header-left {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-end;
+  gap: 10px;
   min-width: 0;
 }
 
-.chat-header-left img {
-  border-radius: 10px;
+.chat-header-avatar {
   flex-shrink: 0;
+  align-self: flex-start;
+  width: 48px;
+  height: 48px;
+  margin-bottom: -20px;
+  position: relative;
+  z-index: 1;
+}
+
+.chat-header-avatar img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: #fff;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.chat-header-meta {
+  min-width: 0;
+  padding-bottom: 3px;
 }
 
 .chat-header-left h2 {
@@ -44,12 +67,7 @@
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-}
-
-.chat-header-left p {
-  margin: 2px 0 0;
-  font-size: 0.78rem;
-  color: #999;
+  line-height: 1;
 }
 
 .chat-header-actions {
@@ -57,14 +75,18 @@
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+  align-self: center;
+  padding-top: 2px;
 }
 
 .chat-body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px 5% 8px;
+  padding: 24px 5% 8px;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
 
 .chat-content-column {

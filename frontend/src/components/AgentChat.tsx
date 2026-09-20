@@ -45,10 +45,11 @@ function AgentChatLoading({ agent }: { agent: AgentInfo }) {
       <div className="chat-main-column">
         <header className="chat-header">
           <div className="chat-header-left">
-            <img src={agent.avatar} alt="" width={36} height={36} />
-            <div>
+            <span className="chat-header-avatar">
+              <img src={agent.avatar} alt="" />
+            </span>
+            <div className="chat-header-meta">
               <h2>{agent.displayName}</h2>
-              <p>{agent.description}</p>
             </div>
           </div>
         </header>
@@ -473,10 +474,11 @@ function AgentChatSession({
       <div className="chat-main-column">
         <header className="chat-header">
           <div className="chat-header-left">
-            <img src={agent.avatar} alt="" width={36} height={36} />
-            <div>
+            <span className="chat-header-avatar">
+              <img src={agent.avatar} alt="" />
+            </span>
+            <div className="chat-header-meta">
               <h2>{agent.displayName}</h2>
-              <p>{agent.description}</p>
             </div>
           </div>
           <div className="chat-header-actions">
