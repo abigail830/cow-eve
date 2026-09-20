@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# Copied from @silurus/ooxml on postinstall (npm run copy:ooxml-wasm)
+public/ooxml/
 *.local
 
 # Editor directories and files
