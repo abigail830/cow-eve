@@ -9,6 +9,14 @@ function useBlobStorage(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
 }
 
+function requireArtifactStorage(): void {
+  if (process.env.VERCEL && !useBlobStorage()) {
+    throw new Error(
+      "BLOB_READ_WRITE_TOKEN is required on Vercel to persist artifacts. Link a Blob store in the Vercel project and add the read/write token to env.",
+    );
+  }
+}
+
 /** Private stores reject `access: "public"`. Override with BLOB_ACCESS=public. */
 function blobAccess(): "public" | "private" {
   return process.env.BLOB_ACCESS?.trim().toLowerCase() === "public" ? "public" : "private";
@@ -34,6 +42,7 @@ export async function putArtifactBytes(
   data: Uint8Array,
   contentType?: string,
 ): Promise<void> {
+  requireArtifactStorage();
   if (useBlobStorage()) {
     await put(blobPath(chatId, objectName), Buffer.from(data), {
       access: blobAccess(),
@@ -70,6 +79,7 @@ export async function putArtifactMeta(
   artifactId: string,
   meta: Record<string, unknown>,
 ): Promise<void> {
+  requireArtifactStorage();
   const payload = JSON.stringify(meta);
   if (useBlobStorage()) {
     await put(blobPath(chatId, `${artifactId}.meta.json`), payload, {

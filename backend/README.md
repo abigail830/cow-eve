@@ -60,6 +60,7 @@ curl -X POST http://127.0.0.1:2000/eve/v1/dev/schedules/heartbeat
 | `FRONTEND_ORIGIN` | Extra CORS origins, comma-separated (defaults always include local + `https://fde-desk.vercel.app`) |
 | `CONTENT_STUDIO_URL` | Omni → Content Studio remote base (default `http://127.0.0.1:2001`) |
 | `DATABASE_URL` | Neon Postgres connection string for chat history |
+| `BLOB_READ_WRITE_TOKEN` | **Required on Vercel** for artifact download/preview (docx/pptx/html). Create a Blob store in the Vercel project and add the token. |
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL for Eve memory |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token |
 | `AI_GATEWAY_API_KEY` | Model access when not using Vercel OIDC |
