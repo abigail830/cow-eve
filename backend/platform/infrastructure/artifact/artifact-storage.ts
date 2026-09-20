@@ -2,28 +2,32 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { get, put } from "@vercel/blob";
 import { getPlatformDataDir } from "../config/platform-data.config.js";
+import {
+  blobAccess,
+  blobCommandOptions,
+  hasBlobStorageConfigured,
+  normalizeEnvSecret,
+} from "./blob-client.js";
 
 const CHAT_ARTIFACTS_DIR = "chat-artifacts";
 
 function useBlobStorage(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
+  return hasBlobStorageConfigured();
 }
 
 function requireArtifactStorage(): void {
   if (process.env.VERCEL && !useBlobStorage()) {
     throw new Error(
-      "BLOB_READ_WRITE_TOKEN is required on Vercel to persist artifacts. Link a Blob store in the Vercel project and add the read/write token to env.",
+      "Blob storage is not configured on Vercel. Link a Blob store to this project (Storage → Blob) or set BLOB_READ_WRITE_TOKEN for Production and Preview, then redeploy.",
     );
   }
 }
 
-/** Private stores reject `access: "public"`. Override with BLOB_ACCESS=public. */
-function blobAccess(): "public" | "private" {
-  return process.env.BLOB_ACCESS?.trim().toLowerCase() === "public" ? "public" : "private";
-}
-
 async function readBlobBytes(pathname: string): Promise<Uint8Array | null> {
-  const result = await get(pathname, { access: blobAccess() });
+  const result = await get(pathname, {
+    access: blobAccess(),
+    ...blobCommandOptions(),
+  });
   if (!result?.stream) return null;
   return new Uint8Array(await new Response(result.stream).arrayBuffer());
 }
@@ -36,6 +40,14 @@ function blobPath(chatId: string, objectName: string): string {
   return `chat-artifacts/${chatId}/${objectName}`;
 }
 
+function wrapBlobError(err: unknown, action: string): Error {
+  const detail = err instanceof Error ? err.message : String(err);
+  const tokenHint = normalizeEnvSecret(process.env.BLOB_READ_WRITE_TOKEN)
+    ? "Check BLOB_READ_WRITE_TOKEN has no surrounding quotes and matches the linked Blob store, or remove the manual token and rely on the Storage integration + OIDC."
+    : "Link a Blob store in Vercel Storage so OIDC + BLOB_STORE_ID are injected, or set BLOB_READ_WRITE_TOKEN.";
+  return new Error(`Blob ${action} failed: ${detail}. ${tokenHint}`);
+}
+
 export async function putArtifactBytes(
   chatId: string,
   objectName: string,
@@ -44,11 +56,16 @@ export async function putArtifactBytes(
 ): Promise<void> {
   requireArtifactStorage();
   if (useBlobStorage()) {
-    await put(blobPath(chatId, objectName), Buffer.from(data), {
-      access: blobAccess(),
-      contentType: contentType ?? "application/octet-stream",
-      addRandomSuffix: false,
-    });
+    try {
+      await put(blobPath(chatId, objectName), Buffer.from(data), {
+        access: blobAccess(),
+        contentType: contentType ?? "application/octet-stream",
+        addRandomSuffix: false,
+        ...blobCommandOptions(),
+      });
+    } catch (err) {
+      throw wrapBlobError(err, "upload");
+    }
     return;
   }
   const filePath = localObjectPath(chatId, objectName);
@@ -63,7 +80,12 @@ export async function getArtifactBytes(
   if (useBlobStorage()) {
     try {
       return await readBlobBytes(blobPath(chatId, objectName));
-    } catch {
+    } catch (err) {
+      console.error("[artifact-storage] blob read failed", {
+        chatId,
+        objectName,
+        error: err instanceof Error ? err.message : err,
+      });
       return null;
     }
   }
@@ -82,11 +104,16 @@ export async function putArtifactMeta(
   requireArtifactStorage();
   const payload = JSON.stringify(meta);
   if (useBlobStorage()) {
-    await put(blobPath(chatId, `${artifactId}.meta.json`), payload, {
-      access: blobAccess(),
-      contentType: "application/json",
-      addRandomSuffix: false,
-    });
+    try {
+      await put(blobPath(chatId, `${artifactId}.meta.json`), payload, {
+        access: blobAccess(),
+        contentType: "application/json",
+        addRandomSuffix: false,
+        ...blobCommandOptions(),
+      });
+    } catch (err) {
+      throw wrapBlobError(err, "upload");
+    }
     return;
   }
   const filePath = localObjectPath(chatId, `${artifactId}.meta.json`);
@@ -104,7 +131,12 @@ export async function getArtifactMeta(
       if (!bytes) return null;
       const parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
       return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : null;
-    } catch {
+    } catch (err) {
+      console.error("[artifact-storage] blob meta read failed", {
+        chatId,
+        artifactId,
+        error: err instanceof Error ? err.message : err,
+      });
       return null;
     }
   }
