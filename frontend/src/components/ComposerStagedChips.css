@@ -1,0 +1,56 @@
+.composer-staged {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.composer-staged-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff7f0;
+  border: 1px solid #f5c9a8;
+  color: #555;
+  font-size: 0.78rem;
+}
+
+.composer-staged-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+.composer-staged-size {
+  color: #999;
+  flex-shrink: 0;
+}
+
+.composer-staged-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.composer-staged-remove {
+  border: none;
+  background: transparent;
+  color: #aaa;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.composer-staged-remove:hover {
+  color: #666;
+}

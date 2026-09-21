@@ -7,9 +7,28 @@ import {
   platformRouteAuth,
 } from "../../../../platform/composition/public-api";
 
+/** Allowed chat attachment types — mirrors platform attachment validation. */
+const CHAT_ATTACHMENT_MEDIA_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/json",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+] as const;
+
 const channel = eveChannel({
   auth: platformRouteAuth(),
   cors: platformCors(),
+  uploadPolicy: {
+    maxBytes: 20 * 1024 * 1024,
+    allowedMediaTypes: CHAT_ATTACHMENT_MEDIA_TYPES,
+  },
 });
 
 /** Proactive schedule dispatch — each run gets a fresh session. */

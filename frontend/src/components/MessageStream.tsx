@@ -1,7 +1,8 @@
 import type { EveMessage, EveMessagePart } from "eve/react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { resolveArtifactToolPart } from "@fde/artifact-ui";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FileText, ImageIcon } from "lucide-react";
+import { formatBytes, isImageMime } from "../lib/attachments";
 import { MarkdownContent } from "./MarkdownContent";
 import { StreamingIndicator } from "./StreamingIndicator";
 import "./MessageStream.css";
@@ -97,9 +98,32 @@ function PartView({
     return null;
   }
   if (part.type === "file") {
+    const label = part.filename ?? part.mediaType ?? "attachment";
+    const isImage = part.mediaType ? isImageMime(part.mediaType) : false;
+    const previewUrl =
+      typeof part.url === "string" &&
+      (part.url.startsWith("data:") || part.url.startsWith("http"))
+        ? part.url
+        : null;
+
     return (
-      <div className="msg-file">
-        Attachment: {part.filename ?? part.mediaType}
+      <div className="msg-file-chip">
+        {isImage && previewUrl ? (
+          <img
+            className="msg-file-thumb"
+            src={previewUrl}
+            alt={label}
+            loading="lazy"
+          />
+        ) : isImage ? (
+          <ImageIcon size={16} strokeWidth={2} aria-hidden />
+        ) : (
+          <FileText size={16} strokeWidth={2} aria-hidden />
+        )}
+        <span className="msg-file-label">{label}</span>
+        {"size" in part && typeof part.size === "number" ? (
+          <span className="msg-file-size">{formatBytes(part.size)}</span>
+        ) : null}
       </div>
     );
   }
@@ -139,6 +163,23 @@ export function MessageStream({
           <div key={msg.id} className={`msg-row ${msg.role}`}>
             {msg.role === "user" ? (
               <div className="msg-bubble user">
+                {msg.parts.some((p) => p.type === "file") ? (
+                  <div className="msg-user-attachments">
+                    {msg.parts
+                      .filter((p) => p.type === "file")
+                      .map((part, i) => (
+                        <PartView
+                          key={`file-${i}`}
+                          part={part}
+                          apiBase={apiBase}
+                          token={token}
+                          chatId={chatId}
+                          previewArtifactId={previewArtifactId}
+                          onPreviewArtifact={onPreviewArtifact}
+                        />
+                      ))}
+                  </div>
+                ) : null}
                 {msg.parts
                   .filter((p) => p.type === "text")
                   .map((p, i) =>

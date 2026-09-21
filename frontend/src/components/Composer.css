@@ -44,15 +44,41 @@
   gap: 10px;
 }
 
+.composer-file-input {
+  display: none;
+}
+
 .composer-icon-btn {
   border: none;
   background: transparent;
-  color: #aaa;
+  color: #888;
   padding: 2px;
   border-radius: 8px;
   display: grid;
   place-items: center;
+  cursor: pointer;
+}
+
+.composer-icon-btn:disabled {
+  color: #ccc;
   cursor: not-allowed;
+}
+
+.composer-icon-btn:not(:disabled):hover {
+  color: #f27a2a;
+  background: #fff5ee;
+}
+
+.composer-attachment-error {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: #c0392b;
+}
+
+.composer-attachment-status {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: #888;
 }
 
 .model-tag {

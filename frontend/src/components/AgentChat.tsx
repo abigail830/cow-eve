@@ -25,7 +25,8 @@ import {
 import { API_URL, agentHost } from "../lib/config";
 import { fetchBoundSession, type BoundSession } from "../lib/load-chat-session";
 import { useAuth } from "../lib/auth";
-import { Composer } from "./Composer";
+import { buildMessageContent } from "../lib/attachmentSend";
+import { Composer, type ComposerSendPayload } from "./Composer";
 import { IconButton } from "./IconButton";
 import { MemoryPanel } from "./MemoryPanel";
 import { MessageStream } from "./MessageStream";
@@ -434,13 +435,22 @@ function AgentChatSession({
   }, [cancel, cancelling, isBusy]);
 
   const handleSend = useCallback(
-    (text: string) => {
+    (payload: ComposerSendPayload) => {
       if (isResuming) return;
+      const trimmed = payload.text.trim();
+      if (!trimmed && payload.attachments.length === 0) return;
+
       setCancellationError(undefined);
       setSendError(undefined);
+
+      const message =
+        payload.attachments.length > 0
+          ? buildMessageContent(trimmed, payload.attachments)
+          : trimmed;
+
       // While a turn is active, steer at the next boundary instead of opening
       // a second turn (eve rejects plain send with "already processing").
-      void send(text, isBusy ? { turnPolicy: "steer" } : undefined).catch(
+      void send(message, isBusy ? { turnPolicy: "steer" } : undefined).catch(
         (err: unknown) => {
           setSendError(
             err instanceof Error ? err.message : "Failed to send message.",

@@ -129,7 +129,42 @@
   border-top: 1px dashed #e0e0e0;
 }
 
-.msg-file {
-  font-size: 0.85rem;
-  color: #666;
+.msg-user-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.msg-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(242, 122, 42, 0.18);
+  font-size: 0.78rem;
+  color: #555;
+  max-width: 100%;
+}
+
+.msg-file-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.msg-file-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.msg-file-size {
+  color: #999;
+  flex-shrink: 0;
 }
