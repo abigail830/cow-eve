@@ -7,6 +7,18 @@ import {
   releaseSchedule,
 } from "#platform/composition/public-api.js";
 
+function formatScheduledRunMessage(job: {
+  id: string;
+  name: string | null;
+  prompt: string;
+}) {
+  const name = job.name?.trim();
+  const header = name
+    ? `[Scheduled ${name} run ${job.id}]`
+    : `[Scheduled run ${job.id}]`;
+  return [header, job.prompt].join("\n\n");
+}
+
 /** Dev: POST /eve/v1/dev/schedules/dynamic */
 export default defineSchedule({
   cron: "* * * * *",
@@ -24,10 +36,7 @@ export default defineSchedule({
               const auth = mintScheduledRunAuth(job.userId, {
                 scheduleId: job.id,
               });
-              await to(eve, {}).send(
-                [`[Scheduled run ${job.id}]`, job.prompt].join("\n\n"),
-                { auth },
-              );
+              await to(eve, {}).send(formatScheduledRunMessage(job), { auth });
               await completeSchedule(job);
               console.info("[schedule-dispatch] completed", {
                 scheduleId: job.id,

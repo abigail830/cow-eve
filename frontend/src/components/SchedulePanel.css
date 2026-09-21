@@ -96,6 +96,15 @@
   color: #333;
 }
 
+.schedule-panel-form input[type="radio"],
+.schedule-panel-form input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+}
+
 .schedule-panel-form input:focus,
 .schedule-panel-form textarea:focus {
   outline: 2px solid color-mix(in srgb, #f27a2a 35%, transparent);
@@ -178,19 +187,32 @@
 }
 
 .schedule-item {
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
+  gap: 8px;
   padding: 14px 16px;
   border-radius: 12px;
   background: var(--paper-cover);
   border: 1px solid #ececec;
 }
 
-.schedule-item-main {
-  min-width: 0;
-  flex: 1;
+.schedule-item-editing {
+  border-color: color-mix(in srgb, var(--accent) 45%, #ececec);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.schedule-item-edit-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.schedule-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .schedule-item-title {
@@ -198,7 +220,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  min-width: 0;
+  flex: 1;
 }
 
 .schedule-item-title strong {
@@ -209,7 +232,7 @@
 }
 
 .schedule-item-prompt {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 0.88rem;
   line-height: 1.45;
   color: #555;
@@ -225,7 +248,7 @@
 }
 
 .schedule-item-error {
-  color: #c0392b;
+  color: #c2410c;
 }
 
 .schedule-badge {
@@ -248,8 +271,8 @@
 }
 
 .schedule-badge.status-failed {
-  background: #fef3f2;
-  color: #b42318;
+  background: #fff7ed;
+  color: #c2410c;
 }
 
 .schedule-badge.status-running {
@@ -259,7 +282,10 @@
 
 .schedule-item-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 6px;
   flex-shrink: 0;
 }
@@ -283,8 +309,8 @@
 }
 
 .schedule-item-actions button.danger {
-  color: #c0392b;
-  border-color: #fecdca;
+  color: #9a3412;
+  border-color: #fed7aa;
 }
 
 .schedule-item-actions button:disabled {
@@ -293,13 +319,12 @@
 }
 
 @media (max-width: 720px) {
-  .schedule-item {
+  .schedule-item-header {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .schedule-item-actions {
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
+    justify-content: flex-start;
   }
 }

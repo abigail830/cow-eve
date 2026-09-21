@@ -520,7 +520,7 @@ function AgentChatSession({
                 bare
                 size={22}
                 icon={Clock}
-                label="定时任务"
+                label="Scheduled tasks"
                 active={schedulesOpen}
                 onClick={() => {
                   if (schedulesOpen) {

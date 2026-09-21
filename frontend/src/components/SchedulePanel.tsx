@@ -1,4 +1,10 @@
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useState,
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+} from "react";
 import { Clock, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   createSchedule,
@@ -48,13 +54,13 @@ function formatDateTime(iso: string | null) {
 function statusLabel(status: string | null) {
   switch (status) {
     case "running":
-      return "运行中";
+      return "Running";
     case "success":
-      return "成功";
+      return "Success";
     case "failed":
-      return "失败";
+      return "Failed";
     case "pending":
-      return "待运行";
+      return "Pending";
     default:
       return status ?? "—";
   }
@@ -76,6 +82,138 @@ function localInputToIso(value: string): string {
   return new Date(value).toISOString();
 }
 
+type TaskFormProps = {
+  form: FormState;
+  setForm: Dispatch<SetStateAction<FormState>>;
+  editing: boolean;
+  pending: boolean;
+  onSubmit: (event: FormEvent) => void;
+  onCancel: () => void;
+};
+
+function ScheduleTaskForm({
+  form,
+  setForm,
+  editing,
+  pending,
+  onSubmit,
+  onCancel,
+}: TaskFormProps) {
+  return (
+    <form className="schedule-panel-form" onSubmit={onSubmit}>
+      <label>
+        Name (optional)
+        <input
+          value={form.name}
+          onChange={(e) =>
+            setForm((prev) => ({ ...prev, name: e.target.value }))
+          }
+          placeholder="e.g. Weekly health summary"
+        />
+      </label>
+      <label>
+        Prompt
+        <textarea
+          value={form.prompt}
+          onChange={(e) =>
+            setForm((prev) => ({ ...prev, prompt: e.target.value }))
+          }
+          rows={4}
+          required
+          placeholder="Instructions omni runs at the scheduled time"
+        />
+      </label>
+      <label>
+        First run
+        <input
+          type="datetime-local"
+          value={form.firstRunAt}
+          onChange={(e) =>
+            setForm((prev) => ({ ...prev, firstRunAt: e.target.value }))
+          }
+          required
+        />
+      </label>
+      <label>
+        Time zone
+        <input
+          value={form.timezone}
+          onChange={(e) =>
+            setForm((prev) => ({ ...prev, timezone: e.target.value }))
+          }
+        />
+      </label>
+      <fieldset className="schedule-panel-repeat">
+        <legend>Repeat</legend>
+        <label>
+          <input
+            type="radio"
+            name={`repeat-${editing ? "edit" : "new"}`}
+            checked={form.repeatKind === "once"}
+            onChange={() =>
+              setForm((prev) => ({ ...prev, repeatKind: "once" }))
+            }
+          />
+          One-time
+        </label>
+        <label>
+          <input
+            type="radio"
+            name={`repeat-${editing ? "edit" : "new"}`}
+            checked={form.repeatKind === "repeat"}
+            onChange={() =>
+              setForm((prev) => ({ ...prev, repeatKind: "repeat" }))
+            }
+          />
+          Repeating
+        </label>
+        {form.repeatKind === "repeat" ? (
+          <label>
+            Interval (minutes)
+            <input
+              type="number"
+              min={1}
+              max={525600}
+              value={form.everyMinutes}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  everyMinutes: Number(e.target.value),
+                }))
+              }
+            />
+          </label>
+        ) : null}
+      </fieldset>
+      {editing ? (
+        <label className="schedule-panel-enabled">
+          <input
+            type="checkbox"
+            checked={form.enabled}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, enabled: e.target.checked }))
+            }
+          />
+          Enabled
+        </label>
+      ) : null}
+      <div className="schedule-panel-form-actions">
+        <button type="submit" className="schedule-primary" disabled={pending}>
+          {pending ? "Saving…" : "Save"}
+        </button>
+        <button
+          type="button"
+          className="schedule-secondary"
+          disabled={pending}
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 type Props = {
   onOpenResultChat?: (chatId: string) => void;
 };
@@ -87,7 +225,13 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
   const [pending, setPending] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(defaultFormState);
-  const [showForm, setShowForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  function resetFormState() {
+    setEditingId(null);
+    setShowCreateForm(false);
+    setForm(defaultFormState());
+  }
 
   async function reload() {
     setLoading(true);
@@ -96,7 +240,7 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
       const res = await fetchSchedules();
       setSchedules(res.schedules);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "加载失败");
+      setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
       setLoading(false);
     }
@@ -131,12 +275,10 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
           timezone: form.timezone,
         });
       }
-      setShowForm(false);
-      setEditingId(null);
-      setForm(defaultFormState());
+      resetFormState();
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "保存失败");
+      setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setPending(false);
     }
@@ -145,29 +287,27 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
   function startCreate() {
     setEditingId(null);
     setForm(defaultFormState());
-    setShowForm(true);
+    setShowCreateForm(true);
   }
 
   function startEdit(task: ScheduledTaskPublic) {
+    setShowCreateForm(false);
     setEditingId(task.id);
     setForm(formFromSchedule(task));
-    setShowForm(true);
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("确定删除这个定时任务？")) return;
+    if (!window.confirm("Delete this scheduled task?")) return;
     setPending(true);
     setError(null);
     try {
       await deleteSchedule(id);
       if (editingId === id) {
-        setShowForm(false);
-        setEditingId(null);
-        setForm(defaultFormState());
+        resetFormState();
       }
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除失败");
+      setError(err instanceof Error ? err.message : "Failed to delete");
     } finally {
       setPending(false);
     }
@@ -180,7 +320,7 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
       await updateSchedule(task.id, { enabled: !task.enabled });
       await reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "更新失败");
+      setError(err instanceof Error ? err.message : "Failed to update");
     } finally {
       setPending(false);
     }
@@ -191,7 +331,7 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
       <div className="schedule-panel-toolbar">
         <div className="schedule-panel-title">
           <Clock size={18} strokeWidth={2} aria-hidden />
-          <h3>定时任务</h3>
+          <h3>Scheduled tasks</h3>
         </div>
         <button
           type="button"
@@ -200,210 +340,122 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
           disabled={pending}
         >
           <Plus size={15} strokeWidth={2} />
-          新建任务
+          New task
         </button>
       </div>
 
       <p className="schedule-panel-hint">
-        到点后 haoyu-omni 会自动执行提示词，结果会出现在新的对话中。
+        At the scheduled time, haoyu-omni runs your prompt automatically.
+        Results appear in a new conversation.
       </p>
 
       {error ? <p className="chat-error">{error}</p> : null}
 
-      {showForm ? (
+      {showCreateForm ? (
         <section className="schedule-panel-form-wrap">
-          <h4>{editingId ? "编辑任务" : "新建任务"}</h4>
-          <form className="schedule-panel-form" onSubmit={handleSubmit}>
-            <label>
-              名称（可选）
-              <input
-                value={form.name}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, name: e.target.value }))
-                }
-                placeholder="例如：每周健康摘要"
-              />
-            </label>
-            <label>
-              提示词
-              <textarea
-                value={form.prompt}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, prompt: e.target.value }))
-                }
-                rows={4}
-                required
-                placeholder="到点后 omni 将执行的指令"
-              />
-            </label>
-            <label>
-              首次运行时间
-              <input
-                type="datetime-local"
-                value={form.firstRunAt}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, firstRunAt: e.target.value }))
-                }
-                required
-              />
-            </label>
-            <label>
-              时区
-              <input
-                value={form.timezone}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, timezone: e.target.value }))
-                }
-              />
-            </label>
-            <fieldset className="schedule-panel-repeat">
-              <legend>重复</legend>
-              <label>
-                <input
-                  type="radio"
-                  checked={form.repeatKind === "once"}
-                  onChange={() =>
-                    setForm((prev) => ({ ...prev, repeatKind: "once" }))
-                  }
-                />
-                一次性
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  checked={form.repeatKind === "repeat"}
-                  onChange={() =>
-                    setForm((prev) => ({ ...prev, repeatKind: "repeat" }))
-                  }
-                />
-                重复
-              </label>
-              {form.repeatKind === "repeat" ? (
-                <label>
-                  间隔（分钟）
-                  <input
-                    type="number"
-                    min={1}
-                    max={525600}
-                    value={form.everyMinutes}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        everyMinutes: Number(e.target.value),
-                      }))
-                    }
-                  />
-                </label>
-              ) : null}
-            </fieldset>
-            {editingId ? (
-              <label className="schedule-panel-enabled">
-                <input
-                  type="checkbox"
-                  checked={form.enabled}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, enabled: e.target.checked }))
-                  }
-                />
-                启用
-              </label>
-            ) : null}
-            <div className="schedule-panel-form-actions">
-              <button type="submit" className="schedule-primary" disabled={pending}>
-                {pending ? "保存中…" : "保存"}
-              </button>
-              <button
-                type="button"
-                className="schedule-secondary"
-                disabled={pending}
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingId(null);
-                  setForm(defaultFormState());
-                }}
-              >
-                取消
-              </button>
-            </div>
-          </form>
+          <h4>New task</h4>
+          <ScheduleTaskForm
+            form={form}
+            setForm={setForm}
+            editing={false}
+            pending={pending}
+            onSubmit={handleSubmit}
+            onCancel={resetFormState}
+          />
         </section>
       ) : null}
 
       <section className="schedule-panel-list">
         {loading ? (
-          <p className="schedule-muted">加载中…</p>
-        ) : schedules.length === 0 ? (
-          <p className="schedule-muted">还没有定时任务。点击「新建任务」开始。</p>
+          <p className="schedule-muted">Loading…</p>
+        ) : schedules.length === 0 && !showCreateForm ? (
+          <p className="schedule-muted">
+            No scheduled tasks yet. Click &ldquo;New task&rdquo; to get started.
+          </p>
         ) : (
           <ul className="schedule-list">
-            {schedules.map((task) => (
-              <li key={task.id} className="schedule-item">
-                <div className="schedule-item-main">
-                  <div className="schedule-item-title">
-                    <strong>{task.name || "未命名任务"}</strong>
-                    <span
-                      className={
-                        task.enabled
-                          ? "schedule-badge enabled"
-                          : "schedule-badge disabled"
-                      }
-                    >
-                      {task.enabled ? "启用" : "暂停"}
-                    </span>
-                    <span
-                      className={`schedule-badge status-${task.lastStatus ?? "none"}`}
-                    >
-                      {statusLabel(task.lastStatus)}
-                    </span>
+            {schedules.map((task) =>
+              editingId === task.id ? (
+                <li key={task.id} className="schedule-item schedule-item-editing">
+                  <h4 className="schedule-item-edit-title">Edit task</h4>
+                  <ScheduleTaskForm
+                    form={form}
+                    setForm={setForm}
+                    editing
+                    pending={pending}
+                    onSubmit={handleSubmit}
+                    onCancel={resetFormState}
+                  />
+                </li>
+              ) : (
+                <li key={task.id} className="schedule-item">
+                  <div className="schedule-item-header">
+                    <div className="schedule-item-title">
+                      <strong>{task.name || "Untitled task"}</strong>
+                      <span
+                        className={
+                          task.enabled
+                            ? "schedule-badge enabled"
+                            : "schedule-badge disabled"
+                        }
+                      >
+                        {task.enabled ? "Enabled" : "Paused"}
+                      </span>
+                      <span
+                        className={`schedule-badge status-${task.lastStatus ?? "none"}`}
+                      >
+                        {statusLabel(task.lastStatus)}
+                      </span>
+                    </div>
+                    <div className="schedule-item-actions">
+                      {task.lastChatId ? (
+                        <button
+                          type="button"
+                          onClick={() => onOpenResultChat?.(task.lastChatId!)}
+                        >
+                          View result
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => toggleEnabled(task)}
+                        disabled={pending}
+                      >
+                        {task.enabled ? "Pause" : "Enable"}
+                      </button>
+                      <button type="button" onClick={() => startEdit(task)}>
+                        <Pencil size={14} strokeWidth={2} />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="danger"
+                        onClick={() => void handleDelete(task.id)}
+                        disabled={pending}
+                      >
+                        <Trash2 size={14} strokeWidth={2} />
+                        Delete
+                      </button>
+                    </div>
                   </div>
                   <p className="schedule-item-prompt">{task.prompt}</p>
                   <div className="schedule-item-meta">
-                    <span>下次运行：{formatDateTime(task.nextRunAt)}</span>
+                    <span>Next run: {formatDateTime(task.nextRunAt)}</span>
                     <span>
                       {task.everyMinutes == null
-                        ? "一次性"
-                        : `每 ${task.everyMinutes} 分钟`}
+                        ? "One-time"
+                        : `Every ${task.everyMinutes} min`}
                     </span>
                     {task.lastRunAt ? (
-                      <span>上次运行：{formatDateTime(task.lastRunAt)}</span>
+                      <span>Last run: {formatDateTime(task.lastRunAt)}</span>
                     ) : null}
                     {task.lastError ? (
                       <span className="schedule-item-error">{task.lastError}</span>
                     ) : null}
                   </div>
-                </div>
-                <div className="schedule-item-actions">
-                  {task.lastChatId ? (
-                    <button
-                      type="button"
-                      onClick={() => onOpenResultChat?.(task.lastChatId!)}
-                    >
-                      查看结果
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => toggleEnabled(task)}
-                    disabled={pending}
-                  >
-                    {task.enabled ? "暂停" : "启用"}
-                  </button>
-                  <button type="button" onClick={() => startEdit(task)}>
-                    <Pencil size={14} strokeWidth={2} />
-                    编辑
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() => void handleDelete(task.id)}
-                    disabled={pending}
-                  >
-                    <Trash2 size={14} strokeWidth={2} />
-                    删除
-                  </button>
-                </div>
-              </li>
-            ))}
+                </li>
+              ),
+            )}
           </ul>
         )}
       </section>
