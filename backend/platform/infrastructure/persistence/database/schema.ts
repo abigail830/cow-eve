@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -73,3 +74,42 @@ export type ChatRow = typeof chats.$inferSelect;
 export type ChatEventRow = typeof chatEvents.$inferSelect;
 export type PlatformUserRow = typeof platformUsers.$inferSelect;
 export type PlatformSettingsRow = typeof platformSettings.$inferSelect;
+
+export const scheduledTasks = pgTable(
+  "scheduled_tasks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id").notNull(),
+    name: text("name"),
+    prompt: text("prompt").notNull(),
+    everyMinutes: integer("every_minutes"),
+    nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull(),
+    timezone: text("timezone").notNull().default("Asia/Shanghai"),
+    enabled: boolean("enabled").notNull().default(true),
+    leaseToken: text("lease_token"),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+    lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+    lastStatus: text("last_status"),
+    lastError: text("last_error"),
+    lastChatId: uuid("last_chat_id").references(() => chats.id, {
+      onDelete: "set null",
+    }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("scheduled_tasks_due_idx")
+      .on(table.nextRunAt)
+      .where(sql`${table.deletedAt} is null and ${table.enabled} = true`),
+    index("scheduled_tasks_user_updated_idx")
+      .on(table.userId, table.updatedAt.desc())
+      .where(sql`${table.deletedAt} is null`),
+  ],
+);
+
+export type ScheduledTaskRow = typeof scheduledTasks.$inferSelect;

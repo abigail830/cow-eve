@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { fetchAgents, type AgentInfo } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { AgentChat } from "../components/AgentChat";
@@ -11,12 +11,16 @@ const AgentChatPane = memo(function AgentChatPane({
   agent,
   hidden,
   restoreChatId,
+  schedulesOpen,
+  onSchedulesOpenChange,
   onRememberChat,
   onStreamingChange,
 }: {
   agent: AgentInfo;
   hidden: boolean;
   restoreChatId: string | null;
+  schedulesOpen?: boolean;
+  onSchedulesOpenChange?: (open: boolean) => void;
   onRememberChat: (agentId: string, chatId: string | null) => void;
   onStreamingChange: (agentId: string | null) => void;
 }) {
@@ -39,6 +43,8 @@ const AgentChatPane = memo(function AgentChatPane({
       <AgentChat
         agent={agent}
         restoreChatId={restoreChatId}
+        schedulesOpen={schedulesOpen}
+        onSchedulesOpenChange={onSchedulesOpenChange}
         onActiveChatChange={handleActiveChatChange}
         onStreamingChange={handleStreamingChange}
       />
@@ -49,6 +55,7 @@ const AgentChatPane = memo(function AgentChatPane({
 export function ChatPage() {
   const { token, user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [selectedId, setSelectedId] = useState<string>("omni");
   /** Keep mounted after first visit so agent switches do not remount and re-fetch. */
@@ -61,6 +68,7 @@ export function ChatPage() {
   const [lastChatByAgent, setLastChatByAgent] = useState<
     Record<string, string>
   >({});
+  const [omniSchedulesOpen, setOmniSchedulesOpen] = useState(false);
 
   const rememberAgentChat = useCallback(
     (agentId: string, chatId: string | null) => {
@@ -80,10 +88,50 @@ export function ChatPage() {
 
   const selectAgent = useCallback((agentId: string) => {
     setSelectedId(agentId);
+    if (agentId !== "omni") {
+      setOmniSchedulesOpen(false);
+    }
     setVisitedAgentIds((prev) =>
       prev.includes(agentId) ? prev : [...prev, agentId],
     );
   }, []);
+
+  useEffect(() => {
+    const state = location.state as
+      | {
+          restoreAgentId?: string;
+          restoreChatId?: string;
+          openSchedules?: boolean;
+        }
+      | null
+      | undefined;
+    if (!state) return;
+
+    if (state.openSchedules) {
+      setSelectedId("omni");
+      setVisitedAgentIds((prev) =>
+        prev.includes("omni") ? prev : [...prev, "omni"],
+      );
+      setOmniSchedulesOpen(true);
+    }
+
+    if (state.restoreAgentId && state.restoreChatId) {
+      setSelectedId(state.restoreAgentId);
+      setVisitedAgentIds((prev) =>
+        prev.includes(state.restoreAgentId!)
+          ? prev
+          : [...prev, state.restoreAgentId!],
+      );
+      setLastChatByAgent((prev) => ({
+        ...prev,
+        [state.restoreAgentId!]: state.restoreChatId!,
+      }));
+    }
+
+    if (state.openSchedules || (state.restoreAgentId && state.restoreChatId)) {
+      navigate(".", { replace: true, state: null });
+    }
+  }, [location.state, navigate]);
 
   useEffect(() => {
     if (!token) return;
@@ -141,6 +189,12 @@ export function ChatPage() {
                   agent={agent}
                   hidden={agent.id !== selected?.id}
                   restoreChatId={lastChatByAgent[agent.id] ?? null}
+                  schedulesOpen={
+                    agent.id === "omni" ? omniSchedulesOpen : false
+                  }
+                  onSchedulesOpenChange={
+                    agent.id === "omni" ? setOmniSchedulesOpen : undefined
+                  }
                   onRememberChat={rememberAgentChat}
                   onStreamingChange={setStreamingAgentId}
                 />

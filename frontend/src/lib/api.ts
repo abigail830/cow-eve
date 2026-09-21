@@ -233,3 +233,62 @@ export async function deleteUser(email: string) {
     { method: "DELETE" },
   );
 }
+
+export type ScheduledTaskPublic = {
+  id: string;
+  name: string | null;
+  prompt: string;
+  everyMinutes: number | null;
+  nextRunAt: string;
+  timezone: string;
+  enabled: boolean;
+  lastRunAt: string | null;
+  lastStatus: string | null;
+  lastError: string | null;
+  lastChatId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function fetchSchedules() {
+  return api<{ ok: true; schedules: ScheduledTaskPublic[] }>("/api/schedules");
+}
+
+export async function createSchedule(input: {
+  name?: string;
+  prompt: string;
+  firstRunAt: string;
+  everyMinutes?: number | null;
+  timezone?: string;
+}) {
+  return api<{ ok: true; schedule: ScheduledTaskPublic }>("/api/schedules", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateSchedule(
+  id: string,
+  input: {
+    name?: string | null;
+    prompt?: string;
+    nextRunAt?: string;
+    everyMinutes?: number | null;
+    enabled?: boolean;
+    timezone?: string;
+  },
+) {
+  return api<{ ok: true; schedule: ScheduledTaskPublic }>(
+    `/api/schedules/${encodeURIComponent(id)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export async function deleteSchedule(id: string) {
+  return api<{ ok: true }>(`/api/schedules/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}

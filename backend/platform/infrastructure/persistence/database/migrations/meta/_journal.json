@@ -29,6 +29,13 @@
       "when": 1789792000000,
       "tag": "0004_platform_users",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789793000000,
+      "tag": "0005_scheduled_tasks",
+      "breakpoints": true
     }
   ]
 }

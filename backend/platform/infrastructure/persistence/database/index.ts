@@ -9,8 +9,10 @@ export {
   chatEvents,
   platformSettings,
   platformUsers,
+  scheduledTasks,
   type ChatRow,
   type ChatEventRow,
   type PlatformUserRow,
   type PlatformSettingsRow,
+  type ScheduledTaskRow,
 } from "./schema";

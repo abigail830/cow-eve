@@ -5,6 +5,7 @@ import { useEveAgent } from "eve/react";
 import type { MessageStreamEvent } from "eve/client";
 import {
   Brain,
+  Clock,
   List,
   Loader2,
   MessageCirclePlus,
@@ -29,12 +30,17 @@ import { IconButton } from "./IconButton";
 import { MemoryPanel } from "./MemoryPanel";
 import { MessageStream } from "./MessageStream";
 import { ResizableAside } from "./ResizableAside";
+import { SchedulePanel } from "./SchedulePanel";
 import "./AgentChat.css";
+import "./SchedulePanel.css";
 
 type Props = {
   agent: AgentInfo;
   /** When re-selecting this agent, reopen this chat (parent remembers per agent). */
   restoreChatId?: string | null;
+  /** Omni only: show schedules in the main chat content area. */
+  schedulesOpen?: boolean;
+  onSchedulesOpenChange?: (open: boolean) => void;
   onActiveChatChange?: (chatId: string | null) => void;
   onStreamingChange?: (streaming: boolean) => void;
 };
@@ -74,6 +80,8 @@ function AgentChatLoading({ agent }: { agent: AgentInfo }) {
 export function AgentChat({
   agent,
   restoreChatId = null,
+  schedulesOpen = false,
+  onSchedulesOpenChange,
   onActiveChatChange,
   onStreamingChange,
 }: Props) {
@@ -275,6 +283,8 @@ export function AgentChat({
       onRefreshChats={refreshChats}
       onActiveChatChange={syncActiveChat}
       onStreamingChange={onStreamingChange}
+      schedulesOpen={schedulesOpen}
+      onSchedulesOpenChange={onSchedulesOpenChange}
     />
   );
 }
@@ -296,6 +306,8 @@ type SessionProps = {
   onDeleteChat: (chatId: string) => Promise<void>;
   onRefreshChats: () => void;
   onActiveChatChange?: (chatId: string | null) => void;
+  schedulesOpen: boolean;
+  onSchedulesOpenChange?: (open: boolean) => void;
 };
 
 function AgentChatSession({
@@ -315,7 +327,10 @@ function AgentChatSession({
   onRefreshChats,
   onActiveChatChange,
   onStreamingChange,
+  schedulesOpen,
+  onSchedulesOpenChange,
 }: SessionProps) {
+  const isOmni = agent.id === "omni";
   const [previewArtifact, setPreviewArtifact] = useState<ArtifactSpec | null>(null);
   const lastPreviewArtifactRef = useRef<ArtifactSpec | null>(null);
   if (previewArtifact) lastPreviewArtifactRef.current = previewArtifact;
@@ -467,6 +482,14 @@ function AgentChatSession({
     setHistoryOpen(false);
     setMemoryOpen(false);
     setPreviewArtifact(null);
+    onSchedulesOpenChange?.(false);
+  }
+
+  function openSchedulesPanel() {
+    setPreviewArtifact(null);
+    setHistoryOpen(false);
+    setMemoryOpen(false);
+    onSchedulesOpenChange?.(true);
   }
 
   return (
@@ -492,6 +515,22 @@ function AgentChatSession({
                 onNewChat();
               }}
             />
+            {isOmni ? (
+              <IconButton
+                bare
+                size={22}
+                icon={Clock}
+                label="定时任务"
+                active={schedulesOpen}
+                onClick={() => {
+                  if (schedulesOpen) {
+                    onSchedulesOpenChange?.(false);
+                  } else {
+                    openSchedulesPanel();
+                  }
+                }}
+              />
+            ) : null}
             <IconButton
               bare
               size={22}
@@ -542,6 +581,13 @@ function AgentChatSession({
                 />
                 <span>Loading conversation…</span>
               </div>
+            ) : schedulesOpen && isOmni ? (
+              <SchedulePanel
+                onOpenResultChat={(chatId) => {
+                  onSchedulesOpenChange?.(false);
+                  void onOpenChat(chatId);
+                }}
+              />
             ) : (
               <>
                 {!model?.hasApiKey ? (
@@ -572,15 +618,17 @@ function AgentChatSession({
           </div>
         </div>
 
-        <Composer
-          disabled={!token}
-          modelLabel={modelLabel}
-          busy={isBusy}
-          resuming={isResuming}
-          cancelling={cancelling}
-          onSend={handleSend}
-          onStop={requestCancellation}
-        />
+        {schedulesOpen && isOmni ? null : (
+          <Composer
+            disabled={!token}
+            modelLabel={modelLabel}
+            busy={isBusy}
+            resuming={isResuming}
+            cancelling={cancelling}
+            onSend={handleSend}
+            onStop={requestCancellation}
+          />
+        )}
       </div>
 
       {lastPreviewArtifactRef.current ? (

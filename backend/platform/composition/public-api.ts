@@ -104,6 +104,28 @@ export {
 } from "../application/sandbox/sandbox-cleanup.use-case";
 export type { SweepStaleSandboxesResult } from "../application/sandbox/sandbox-cleanup.use-case";
 
+// Schedules
+export {
+  claimDueSchedules,
+  completeSchedule,
+  createScheduleForUser,
+  deleteScheduleForUser,
+  getScheduleForUser,
+  listSchedulesForUser,
+  linkScheduleRunChat,
+  releaseSchedule,
+  toPublicSchedule,
+  updateScheduleForUser,
+} from "../application/schedule/schedule.use-case";
+export type { ScheduledTaskPublic } from "../application/schedule/schedule.use-case";
+export type {
+  ClaimedScheduleTask,
+  CreateScheduleInput,
+  ScheduledTask,
+  UpdateScheduleInput,
+} from "../domain/schedule/schedule.entity";
+export { mintScheduledRunAuth } from "../application/auth/scheduled-token.use-case";
+
 // Database (health checks / diagnostics)
 export { getDatabaseUrl } from "../infrastructure/persistence/database";
 
