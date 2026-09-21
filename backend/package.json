@@ -11,7 +11,6 @@
     "deploy": "eve deploy",
     "dev": "eve dev --agent omni --no-ui --port 2000",
     "dev:omni": "eve dev --agent omni --no-ui --port 2000",
-    "dev:content-studio": "eve dev --agent content-studio --no-ui --port 2001",
     "dev:ui": "eve dev --agent omni",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx platform/infrastructure/persistence/database/migrate.ts",
@@ -21,6 +20,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@fde/artifacts": "file:./extensions/artifacts",
+    "@fde/knowledge": "file:./extensions/knowledge",
+    "@fde/schedules": "file:./extensions/schedules",
     "@ai-sdk/openai-compatible": "^3.0.53",
     "@e2b/eve-sandbox": "^0.1.1",
     "@neondatabase/serverless": "^1.1.0",

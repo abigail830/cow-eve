@@ -1,5 +1,5 @@
 {
-  "name": "@fde/artifacts",
+  "name": "@fde/knowledge",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -14,11 +14,6 @@
       "types": "./extension/extension.ts",
       "default": "./extension/extension.ts"
     }
-  },
-  "dependencies": {
-    "@e2b/eve-sandbox": "^0.1.1",
-    "e2b": "^2.51.0",
-    "zod": "4.5.4"
   },
   "peerDependencies": {
     "eve": "*"

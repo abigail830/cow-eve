@@ -4,7 +4,7 @@
 # Usage:
 #   ./scripts/stop.sh
 #   ./scripts/stop.sh all
-#   ./scripts/stop.sh backend|frontend|omni|content-studio
+#   ./scripts/stop.sh backend|frontend|omni
 
 set -euo pipefail
 
@@ -20,11 +20,9 @@ ensure_run_dirs
 case "${TARGET}" in
   all)
     stop_service "frontend" "${FRONTEND_PORT}"
-    stop_service "content-studio" "${CONTENT_STUDIO_PORT}"
     stop_service "omni" "${OMNI_PORT}"
     ;;
   backend)
-    stop_service "content-studio" "${CONTENT_STUDIO_PORT}"
     stop_service "omni" "${OMNI_PORT}"
     ;;
   frontend)
@@ -33,12 +31,9 @@ case "${TARGET}" in
   omni)
     stop_service "omni" "${OMNI_PORT}"
     ;;
-  content-studio)
-    stop_service "content-studio" "${CONTENT_STUDIO_PORT}"
-    ;;
   *)
     echo "Unknown target: ${TARGET}"
-    echo "Use: all | backend | frontend | omni | content-studio"
+    echo "Use: all | backend | frontend | omni"
     exit 1
     ;;
 esac

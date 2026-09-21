@@ -22,19 +22,10 @@ export const AGENT_REGISTRY: readonly AgentRegistryEntry[] = [
     id: "omni",
     category: "omni",
     displayName: "HaoYu",
-    description: "Unified entry for light tasks and specialist routing",
+    description: "Unified entry for light tasks, knowledge Q&A, and content generation",
     avatar: "/agents/haoyu.png",
     eveAgent: "omni",
     defaultDevUrl: "http://127.0.0.1:2000",
-  },
-  {
-    id: "content-studio",
-    category: "domain",
-    displayName: "Content Studio",
-    description: "Documents, decks, and structured content generation",
-    avatar: "/agents/content-studio.png",
-    eveAgent: "content-studio",
-    defaultDevUrl: "http://127.0.0.1:2001",
   },
 ];
 

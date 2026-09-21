@@ -3,7 +3,7 @@ import { drizzleChatRepository } from "../../infrastructure/persistence/chat/dri
 import { getDatabaseUrl } from "../../infrastructure/persistence/database";
 
 const DEFAULT_IDLE_MS = 24 * 60 * 60 * 1000;
-const DEFAULT_AGENT_IDS = ["content-studio"];
+const DEFAULT_AGENT_IDS = ["omni"];
 
 function parseIdleMs(): number {
   const raw = process.env.SANDBOX_CLEANUP_IDLE_MS?.trim();

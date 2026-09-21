@@ -4,7 +4,7 @@ import { z } from "zod";
 /** Replaces Eve's default Exa/Gateway web_search (unsupported on BYOK models). */
 export default defineTool({
   description:
-    "Disabled. Delegate research-heavy tasks to the Content Studio subagent.",
+    "Disabled. Use the zhipu-web-search MCP tools for web retrieval when needed.",
   inputSchema: z.object({
     query: z.string().describe("Search query"),
   }),
@@ -12,7 +12,7 @@ export default defineTool({
     return {
       status: "error",
       message:
-        "Built-in web search is disabled. Delegate to Content Studio for research and deliverables.",
+        "Built-in web search is disabled. Use zhipu-web-search_web_search_prime when web retrieval is needed.",
     };
   },
 });

@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { withEve } from "eve/vercel";
 
 /**
- * Agent-only workspace: eve contributes eve-omni + eve-content-studio.
+ * Agent-only workspace: eve contributes eve-omni.
  * Custom platform channel routes (/api/*) are not on /eve/<agent>/v1 — publish
  * them explicitly onto the omni service.
  *

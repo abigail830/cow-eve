@@ -1,5 +1,5 @@
 {
-  "name": "@fde/artifacts",
+  "name": "@fde/schedules",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -16,8 +16,6 @@
     }
   },
   "dependencies": {
-    "@e2b/eve-sandbox": "^0.1.1",
-    "e2b": "^2.51.0",
     "zod": "4.5.4"
   },
   "peerDependencies": {
