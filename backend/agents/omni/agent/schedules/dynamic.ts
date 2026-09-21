@@ -1,5 +1,5 @@
 import { defineSchedule } from "eve/schedules";
-import scheduledRun from "../channels/scheduled-run";
+import eve from "../channels/eve";
 import {
   claimDueSchedules,
   completeSchedule,
@@ -24,7 +24,7 @@ export default defineSchedule({
               const auth = mintScheduledRunAuth(job.userId, {
                 scheduleId: job.id,
               });
-              await to(scheduledRun, {}).send(
+              await to(eve, {}).send(
                 [`[Scheduled run ${job.id}]`, job.prompt].join("\n\n"),
                 { auth },
               );
