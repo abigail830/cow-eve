@@ -7,7 +7,8 @@
     "#platform/*": "./platform/*"
   },
   "scripts": {
-    "build": "npm run db:migrate && eve build",
+    "build:extensions": "npm run build --prefix extensions/knowledge && npm run build --prefix extensions/schedules",
+    "build": "npm run db:migrate && npm run build:extensions && eve build",
     "deploy": "eve deploy",
     "dev": "eve dev --agent omni --no-ui --port 2000",
     "dev:omni": "eve dev --agent omni --no-ui --port 2000",
@@ -20,7 +21,6 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@fde/artifacts": "file:./extensions/artifacts",
     "@fde/knowledge": "file:./extensions/knowledge",
     "@fde/schedules": "file:./extensions/schedules",
     "@ai-sdk/openai-compatible": "^3.0.53",

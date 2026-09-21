@@ -3,9 +3,8 @@ import { publishArtifactOutputSchema, type ArtifactSpec } from "@fde/artifact-sp
 import { ArtifactCard } from "./ArtifactCard";
 
 const PUBLISH_TOOL_NAMES = new Set([
+  "publish",
   "publish_artifact",
-  "artifacts__publish",
-  "artifacts__publish_artifact",
 ]);
 
 export function resolveArtifactToolPart(input: {

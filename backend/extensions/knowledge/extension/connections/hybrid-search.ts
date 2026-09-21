@@ -1,20 +1,17 @@
 import { defineDynamic, defineMcpClientConnection } from "eve/connections";
-import {
-  getHybridSearchApiKey,
-  getHybridSearchMcpUrl,
-} from "../../../../platform/infrastructure/config/mcp.config.js";
+
+import extension from "../extension.js";
 
 export default defineDynamic({
   events: {
     "session.started": () => {
+      const { hybridSearchUrl, hybridSearchApiKey } = extension.config;
       const connections: Record<
         string,
         ReturnType<typeof defineMcpClientConnection>
       > = {};
 
-      const hybridSearchUrl = getHybridSearchMcpUrl();
-      const hybridSearchKey = getHybridSearchApiKey();
-      if (hybridSearchUrl && hybridSearchKey) {
+      if (hybridSearchUrl && hybridSearchApiKey) {
         connections["hybrid-search"] = defineMcpClientConnection({
           url: hybridSearchUrl,
           description:
@@ -22,7 +19,7 @@ export default defineDynamic({
           instanceKey: "hybrid-search",
           auth: {
             credentialOwner: "app",
-            getToken: async () => ({ token: hybridSearchKey }),
+            getToken: async () => ({ token: hybridSearchApiKey }),
           },
         });
       }

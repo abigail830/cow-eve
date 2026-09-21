@@ -25,7 +25,7 @@ Paths below are relative to this skill directory unless noted.
 3. Read the matching theme file for colours, fonts, document patterns, and the `ASCENTIUM` / `INSPIRE` / `LRQA` constant object.
 4. Write a **Node.js script** using the `docx` package; export with `Packer.toBuffer()` / `writeFileSync`.
 5. Optionally spot-check structure with `pandoc -t markdown output.docx` (headings, order, obvious gaps).
-6. **`artifacts__publish`** on the final `.docx` — not PDF previews or validate scratch files.
+6. **`publish`** on the final `.docx` — not PDF previews or validate scratch files.
 
 `docx` is preinstalled. Do not run `npm install` unless `require('docx')` fails.
 

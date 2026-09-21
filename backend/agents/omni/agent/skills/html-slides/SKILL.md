@@ -45,7 +45,7 @@ Brand styling comes from **reference pattern libraries** (markdown with copy-pas
    - Copy **Part 1** (shell + tokens + base CSS) into one `<style>` block.
    - For each slide, copy **Part 2** pattern CSS (only patterns you use) + adapt the HTML into `<section>`.
    - Embed brand PNGs from `assets/<theme>/` as base64 data URIs (see theme reference §5).
-6. `artifacts__publish` with the sandbox path — the UI shows a download card; do not add download links in your reply.
+6. `publish` with the sandbox path — the UI shows a download card; do not add download links in your reply.
 
 **Do not** use external CSS files — copy CSS blocks from the reference into `<style>`.
 
@@ -130,7 +130,7 @@ Theme references and brand PNGs live in the sandbox (preinstalled in Content Stu
 ## Publishing
 
 1. Write final `.html` in workspace (e.g. `/workspace/content-studio/presentation.html`).
-2. `artifacts__publish` with sandbox path — UI download card handles delivery; no markdown download link in reply.
+2. `publish` with sandbox path — UI download card handles delivery; no markdown download link in reply.
 
 ## Resources
 

@@ -14,7 +14,7 @@ Source: *Brand Guidelines Full Version R1.10 (Nov 2025)*.
 
 - One `.html` file; **all CSS in `<style>`**, reveal.js from CDN only.
 - No `<link href="themes/…">` — published attachments have no sibling files.
-- **Brand PNGs** must be embedded as `data:image/png;base64,…` in `<img src>` before `artifacts__publish` (see §5).
+- **Brand PNGs** must be embedded as `data:image/png;base64,…` in `<img src>` before `publish` (see §5).
 - Fonts: Poppins + Noto Sans SC (Google Fonts CDN).
 
 ### 2. reveal.js shell (copy verbatim, then fill slides)

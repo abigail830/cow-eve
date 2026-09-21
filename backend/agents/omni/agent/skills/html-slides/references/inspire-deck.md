@@ -14,7 +14,7 @@ Copy Part 1 into every deliverable; pick slide patterns from Part 2 — do not i
 
 - One `.html` file; **all CSS in `<style>`**, reveal.js from CDN only.
 - No `<link href="themes/…">` — published attachments have no sibling files.
-- **Brand PNGs** must be embedded as `data:image/png;base64,…` in `<img src>` before `artifacts__publish` (see §5).
+- **Brand PNGs** must be embedded as `data:image/png;base64,…` in `<img src>` before `publish` (see §5).
 - Fonts: **MiSans** (CDN) + **Georgia** serif for cover/chapter titles (system stack).
 
 ### 2. reveal.js shell (copy verbatim, then fill slides)

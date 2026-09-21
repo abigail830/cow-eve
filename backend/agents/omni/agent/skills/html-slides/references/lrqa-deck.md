@@ -14,7 +14,7 @@ Copy Part 1 into every deliverable; pick slide patterns from Part 2 — do not i
 
 - One `.html` file; **all CSS in `<style>`**, reveal.js + Google Fonts from CDN only.
 - No `<link href="themes/…">` — published attachments have no sibling files.
-- **Brand PNG** (`lrqa_logo.png`) must be embedded as `data:image/png;base64,…` in `<img src>` before `artifacts__publish` (see §5).
+- **Brand PNG** (`lrqa_logo.png`) must be embedded as `data:image/png;base64,…` in `<img src>` before `publish` (see §5).
 - Fonts: **Lato** (Latin) + **Noto Sans SC** (CJK) via Google Fonts — match visual weight of PPT/Word decks (those use Arial/YaHei system fonts).
 
 ### 2. reveal.js shell (copy verbatim, then fill slides)
@@ -176,7 +176,7 @@ node -e "const fs=require('fs');const p=process.argv[1];process.stdout.write('da
   /workspace/content-studio/skills/html-slides/assets/lrqa/lrqa_logo.png
 ```
 
-Replace `__LRQA_LOGO__` placeholders with the data URI before `artifacts__publish`.
+Replace `__LRQA_LOGO__` placeholders with the data URI before `publish`.
 
 **Chrome rule:** dark cover/section use CSS diagonal + teal corner (no extra PNGs). Light content slides use `.lrqa-footer-bar` + logo.
 

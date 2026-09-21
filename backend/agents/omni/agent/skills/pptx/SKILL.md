@@ -32,7 +32,7 @@ Brand PNGs: `/workspace/content-studio/skills/pptx/assets/<theme>/`
 2. **`read` `pptxgenjs.md`** — script shell + element APIs you will need.
 3. **`read` the theme `*-deck.md`** — copy Part 1 helpers; build slides from Part 2 patterns.
 4. Write `build-deck.js` in `/workspace/content-studio/`; run `node build-deck.js` (`2>&1` on failure).
-5. **`artifacts__publish`** the final `.pptx`.
+5. **`publish`** the final `.pptx`.
 
 Do **not** invent colours, fonts, or layout names outside the active theme deck.
 

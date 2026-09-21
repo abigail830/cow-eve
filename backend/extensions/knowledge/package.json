@@ -9,11 +9,24 @@
       "dist": "./dist/extension"
     }
   },
+  "files": ["dist"],
   "exports": {
     ".": {
-      "types": "./extension/extension.ts",
-      "default": "./extension/extension.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.mjs"
+    },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "default": "./dist/tools/index.mjs"
     }
+  },
+  "scripts": {
+    "build": "eve extension build",
+    "prepare": "eve extension build",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "zod": "4.5.4"
   },
   "peerDependencies": {
     "eve": "*"

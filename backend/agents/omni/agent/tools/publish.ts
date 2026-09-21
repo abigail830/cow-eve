@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { publishSandboxArtifact } from "../../../../platform/composition/public-api.js";
+import { publishSandboxArtifact } from "#platform/composition/public-api.js";
 
 export default defineTool({
   description:
@@ -21,7 +21,10 @@ export default defineTool({
       ctx.session.auth.initiator?.principalId ??
       null;
     if (!userId) {
-      return { status: "error", message: "Authentication required to publish artifacts." };
+      return {
+        status: "error",
+        message: "Authentication required to publish artifacts.",
+      };
     }
 
     let fileBytes: Uint8Array;
@@ -35,12 +38,11 @@ export default defineTool({
     } catch (err) {
       return {
         status: "error",
-        message: err instanceof Error ? err.message : "Failed to read deliverable from sandbox.",
+        message:
+          err instanceof Error
+            ? err.message
+            : "Failed to read deliverable from sandbox.",
       };
-    }
-
-    if (!fileBytes.byteLength) {
-      return { status: "error", message: "Deliverable file is empty." };
     }
 
     const result = await publishSandboxArtifact({
@@ -52,7 +54,10 @@ export default defineTool({
     });
 
     if (!result.spec) {
-      return { status: "error", message: result.error ?? "Failed to persist artifact." };
+      return {
+        status: "error",
+        message: result.error ?? "Failed to persist artifact.",
+      };
     }
 
     return {
