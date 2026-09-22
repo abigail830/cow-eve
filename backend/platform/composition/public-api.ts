@@ -89,6 +89,23 @@ export {
 } from "../application/artifact/artifact.use-case";
 export { contentDispositionAttachment } from "../infrastructure/artifact/local-artifact.store";
 
+// Chat attachments
+export {
+  deleteChatAttachmentForUser,
+  getChatAttachmentDownloadForUser,
+  listChatAttachmentsForSession,
+  listChatAttachmentsForUser,
+  listChatAttachmentsForUserBySession,
+  readChatAttachmentForSession,
+  uploadChatAttachmentForUser,
+} from "../application/attachment/chat-attachment.use-case";
+export type { ReadChatAttachmentResult } from "../application/attachment/chat-attachment.use-case";
+export {
+  toPublicAttachment,
+  type ChatAttachment,
+  type ChatAttachmentPublic,
+} from "../domain/attachment/chat-attachment.entity";
+
 // Memory
 export { getUserMemorySnapshot } from "../application/memory/memory.use-case";
 export type {

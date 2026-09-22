@@ -25,6 +25,8 @@ import {
 import { API_URL, agentHost } from "../lib/config";
 import { fetchBoundSession, type BoundSession } from "../lib/load-chat-session";
 import { useAuth } from "../lib/auth";
+import type { PreparedAttachment } from "../lib/attachments";
+import { ensureAttachmentsUploaded } from "../lib/attachmentUpload";
 import { buildMessageContent } from "../lib/attachmentSend";
 import { Composer, type ComposerSendPayload } from "./Composer";
 import { IconButton } from "./IconButton";
@@ -434,8 +436,32 @@ function AgentChatSession({
     });
   }, [cancel, cancelling, isBusy]);
 
+  const activeChatIdRef = useRef(activeChatId);
+  activeChatIdRef.current = activeChatId;
+
+  const flushAttachmentLibrary = useCallback(
+    async (items: readonly PreparedAttachment[]) => {
+      if (!token || items.length === 0) return;
+      for (let attempt = 0; attempt < 25; attempt += 1) {
+        const eveSessionId =
+          knownSessionIdRef.current ?? session?.sessionId ?? null;
+        const chatId = activeChatIdRef.current;
+        if (eveSessionId || chatId) {
+          await ensureAttachmentsUploaded(items, {
+            chatId,
+            eveSessionId,
+            agentId: agent.id,
+          });
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 80));
+      }
+    },
+    [agent.id, session?.sessionId, token],
+  );
+
   const handleSend = useCallback(
-    (payload: ComposerSendPayload) => {
+    async (payload: ComposerSendPayload) => {
       if (isResuming) return;
       const trimmed = payload.text.trim();
       if (!trimmed && payload.attachments.length === 0) return;
@@ -443,22 +469,66 @@ function AgentChatSession({
       setCancellationError(undefined);
       setSendError(undefined);
 
+      let attachments = payload.attachments;
+      const uploadTarget = {
+        chatId: activeChatId,
+        eveSessionId: session?.sessionId ?? knownSessionIdRef.current,
+        agentId: agent.id,
+      };
+
+      try {
+        if (
+          token &&
+          attachments.length > 0 &&
+          (uploadTarget.chatId || uploadTarget.eveSessionId)
+        ) {
+          attachments = await ensureAttachmentsUploaded(
+            attachments,
+            uploadTarget,
+          );
+        }
+      } catch (err) {
+        setSendError(
+          err instanceof Error ? err.message : "Failed to upload attachments.",
+        );
+        return;
+      }
+
       const message =
-        payload.attachments.length > 0
-          ? buildMessageContent(trimmed, payload.attachments)
+        attachments.length > 0
+          ? buildMessageContent(trimmed, attachments)
           : trimmed;
+      const libraryBackup =
+        token && payload.attachments.some((item) => !item.platformId)
+          ? payload.attachments
+          : null;
 
       // While a turn is active, steer at the next boundary instead of opening
       // a second turn (eve rejects plain send with "already processing").
-      void send(message, isBusy ? { turnPolicy: "steer" } : undefined).catch(
-        (err: unknown) => {
+      void send(message, isBusy ? { turnPolicy: "steer" } : undefined)
+        .then(() => {
+          if (libraryBackup) {
+            void flushAttachmentLibrary(libraryBackup).catch((err: unknown) => {
+              console.warn("[attachments] post-send library flush failed", err);
+            });
+          }
+        })
+        .catch((err: unknown) => {
           setSendError(
             err instanceof Error ? err.message : "Failed to send message.",
           );
-        },
-      );
+        });
     },
-    [isBusy, isResuming, send],
+    [
+      activeChatId,
+      agent.id,
+      flushAttachmentLibrary,
+      isBusy,
+      isResuming,
+      send,
+      session?.sessionId,
+      token,
+    ],
   );
 
   const loadMemory = useCallback(async () => {
@@ -635,6 +705,10 @@ function AgentChatSession({
             busy={isBusy}
             resuming={isResuming}
             cancelling={cancelling}
+            chatId={activeChatId}
+            eveSessionId={session?.sessionId ?? null}
+            agentId={agent.id}
+            persistAttachments={Boolean(token)}
             onSend={handleSend}
             onStop={requestCancellation}
           />

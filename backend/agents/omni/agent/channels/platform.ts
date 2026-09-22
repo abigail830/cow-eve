@@ -9,9 +9,14 @@ import {
   findUserByEmail,
   listUsers,
   contentDispositionAttachment,
+  deleteChatAttachmentForUser,
   getArtifactDownloadForUser,
   getArtifactPreviewForUser,
+  getChatAttachmentDownloadForUser,
   getChatForUser,
+  listChatAttachmentsForUser,
+  listChatAttachmentsForUserBySession,
+  uploadChatAttachmentForUser,
   getDatabaseUrl,
   getJwtSecret,
   getUserMemorySnapshot,
@@ -104,6 +109,9 @@ export default defineChannel({
     preflight("/api/chats/:id/artifacts/:artifactId"),
     preflight("/api/chats/:id/artifacts/:artifactId/preview"),
     preflight("/api/chats/:id/artifacts/:artifactId/preview/:filePath*"),
+    preflight("/api/chat-attachments"),
+    preflight("/api/chats/:id/attachments"),
+    preflight("/api/chats/:id/attachments/:attachmentId"),
 
     POST("/api/auth/login", async (request) => {
       let body: { email?: string; password?: string };
@@ -672,6 +680,172 @@ export default defineChannel({
           request,
         );
       }
+    }),
+
+    GET("/api/chat-attachments", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+
+      const url = new URL(request.url);
+      const chatId = url.searchParams.get("chatId")?.trim() || undefined;
+      const eveSessionId =
+        url.searchParams.get("eveSessionId")?.trim() || undefined;
+      if (!chatId && !eveSessionId) {
+        return json(
+          { ok: false, error: "chatId or eveSessionId is required" },
+          400,
+          request,
+        );
+      }
+
+      const attachments = chatId
+        ? await listChatAttachmentsForUser({
+            userId: auth.principalId,
+            chatId,
+          })
+        : await listChatAttachmentsForUserBySession({
+            userId: auth.principalId,
+            eveSessionId: eveSessionId!,
+          });
+
+      return json({ ok: true, attachments }, 200, request);
+    }),
+
+    POST("/api/chat-attachments", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+
+      let form: FormData;
+      try {
+        form = await request.formData();
+      } catch {
+        return json({ ok: false, error: "Invalid multipart body" }, 400, request);
+      }
+
+      const file = form.get("file");
+      if (!(file instanceof File) || file.size === 0) {
+        return json({ ok: false, error: "file is required" }, 400, request);
+      }
+
+      const chatId = String(form.get("chatId") ?? "").trim() || undefined;
+      const eveSessionId =
+        String(form.get("eveSessionId") ?? "").trim() || undefined;
+      const agentId = String(form.get("agentId") ?? "").trim() || "omni";
+      if (!chatId && !eveSessionId) {
+        return json(
+          { ok: false, error: "chatId or eveSessionId is required" },
+          400,
+          request,
+        );
+      }
+
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const result = await uploadChatAttachmentForUser({
+        userId: auth.principalId,
+        agentId,
+        chatId,
+        eveSessionId,
+        filename: file.name || "attachment",
+        mediaType: file.type || "application/octet-stream",
+        bytes,
+      });
+
+      if (!result.attachment) {
+        return json(
+          { ok: false, error: result.error ?? "Upload failed" },
+          400,
+          request,
+        );
+      }
+
+      return json({ ok: true, attachment: result.attachment }, 201, request);
+    }),
+
+    GET("/api/chats/:id/attachments", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+
+      const attachments = await listChatAttachmentsForUser({
+        userId: auth.principalId,
+        chatId: params.id,
+      });
+      return json({ ok: true, attachments }, 200, request);
+    }),
+
+    GET("/api/chats/:id/attachments/:attachmentId", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      const payload = await getChatAttachmentDownloadForUser({
+        userId: auth.principalId,
+        chatId: params.id,
+        attachmentId: params.attachmentId,
+      });
+      if (!payload) {
+        return json({ ok: false, error: "Attachment not found" }, 404, request);
+      }
+      return new Response(Buffer.from(payload.data), {
+        status: 200,
+        headers: {
+          ...corsHeaders(request),
+          "Content-Type": payload.mediaType,
+          "Content-Disposition": contentDispositionAttachment(payload.filename),
+          "Content-Length": String(payload.data.byteLength),
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }),
+
+    DELETE("/api/chats/:id/attachments/:attachmentId", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+
+      const deleted = await deleteChatAttachmentForUser({
+        userId: auth.principalId,
+        chatId: params.id,
+        attachmentId: params.attachmentId,
+      });
+      if (!deleted) {
+        return json({ ok: false, error: "Attachment not found" }, 404, request);
+      }
+      return json({ ok: true }, 200, request);
     }),
 
     GET("/api/chats/:id/artifacts/:artifactId", async (request, { params }) => {

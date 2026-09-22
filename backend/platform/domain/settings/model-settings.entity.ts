@@ -14,7 +14,7 @@ export type ModelSettings = {
   displayName: string;
   /** OpenAI-compatible base URL, e.g. https://api.deepseek.com/v1 */
   baseURL: string;
-  /** Provider model id, e.g. deepseek-flash / qwen-plus */
+  /** Provider model id, e.g. deepseek-flash / qwen3.7-plus */
   modelId: string;
   contextWindowTokens: number;
   reasoning: ModelReasoning;
@@ -94,6 +94,16 @@ export type ModelCatalogUpdate = {
   models: ModelEntryUpdate[];
 };
 
+/** Common context sizes for Settings UI and preset defaults. */
+export const CONTEXT_WINDOW_OPTIONS = [
+  { label: "128K", value: 131_072 },
+  { label: "256K", value: 262_144 },
+  { label: "512K", value: 524_288 },
+  { label: "1M", value: 1_000_000 },
+] as const;
+
+export const DEFAULT_CONTEXT_WINDOW_TOKENS = 1_000_000;
+
 export const MODEL_PRESETS: readonly ModelPreset[] = [
   {
     id: "deepseek",
@@ -101,7 +111,7 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
     displayName: "DeepSeek Flash",
     baseURL: "https://api.deepseek.com/v1",
     modelId: "deepseek-flash",
-    contextWindowTokens: 128_000,
+    contextWindowTokens: 1_000_000,
   },
   {
     id: "deepseek-reasoner",
@@ -109,23 +119,23 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
     displayName: "DeepSeek Reasoner",
     baseURL: "https://api.deepseek.com/v1",
     modelId: "deepseek-reasoner",
-    contextWindowTokens: 128_000,
+    contextWindowTokens: 131_072,
   },
   {
-    id: "qwen-plus",
-    label: "Qwen Plus (DashScope)",
-    displayName: "Qwen Plus",
+    id: "qwen3.7-plus",
+    label: "Qwen 3.7 Plus (DashScope)",
+    displayName: "Qwen 3.7 Plus",
     baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    modelId: "qwen-plus",
-    contextWindowTokens: 128_000,
+    modelId: "qwen3.7-plus",
+    contextWindowTokens: 1_000_000,
   },
   {
-    id: "qwen-max",
-    label: "Qwen Max (DashScope)",
-    displayName: "Qwen Max",
+    id: "qwen3-max",
+    label: "Qwen 3 Max (DashScope)",
+    displayName: "Qwen 3 Max",
     baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    modelId: "qwen-max",
-    contextWindowTokens: 128_000,
+    modelId: "qwen3-max",
+    contextWindowTokens: 262_144,
   },
   {
     id: "custom",
@@ -133,7 +143,7 @@ export const MODEL_PRESETS: readonly ModelPreset[] = [
     displayName: "Custom",
     baseURL: "",
     modelId: "",
-    contextWindowTokens: 128_000,
+    contextWindowTokens: DEFAULT_CONTEXT_WINDOW_TOKENS,
   },
 ];
 
@@ -142,7 +152,7 @@ export const DEFAULT_MODEL_SETTINGS: ModelSettings = {
   displayName: "DeepSeek Flash",
   baseURL: "https://api.deepseek.com/v1",
   modelId: "deepseek-flash",
-  contextWindowTokens: 128_000,
+  contextWindowTokens: DEFAULT_CONTEXT_WINDOW_TOKENS,
   reasoning: "provider-default",
   apiKeyEncrypted: null,
   updatedAt: null,
@@ -269,11 +279,38 @@ function normalizeModelEntry(raw: unknown, index: number): ModelEntry | null {
     baseURL,
     modelId,
     contextWindowTokens:
-      Number.isFinite(context) && context >= 1024 ? Math.floor(context) : 128_000,
+      Number.isFinite(context) && context >= 1024
+        ? Math.floor(context)
+        : DEFAULT_CONTEXT_WINDOW_TOKENS,
     reasoning: isReasoning(raw.reasoning) ? raw.reasoning : "provider-default",
     apiKeyEncrypted:
       typeof raw.apiKeyEncrypted === "string" ? raw.apiKeyEncrypted : null,
   };
+}
+
+const LEGACY_PRESET_CONTEXT = 128_000;
+
+function upgradeLegacyModelEntry(entry: ModelEntry): ModelEntry {
+  if (entry.presetId === "qwen-plus" && entry.contextWindowTokens === LEGACY_PRESET_CONTEXT) {
+    return {
+      ...entry,
+      presetId: "qwen3.7-plus",
+      modelId: "qwen3.7-plus",
+      contextWindowTokens: 1_000_000,
+    };
+  }
+
+  const preset = MODEL_PRESETS.find((item) => item.id === entry.presetId);
+  if (
+    preset &&
+    preset.id !== "custom" &&
+    entry.contextWindowTokens === LEGACY_PRESET_CONTEXT &&
+    preset.contextWindowTokens !== LEGACY_PRESET_CONTEXT
+  ) {
+    return { ...entry, contextWindowTokens: preset.contextWindowTokens };
+  }
+
+  return entry;
 }
 
 function dedupeIds(models: ModelEntry[]): ModelEntry[] {
@@ -296,7 +333,8 @@ export function normalizeModelCatalog(raw: unknown): ModelCatalog {
     const models = dedupeIds(
       raw.models
         .map((item, index) => normalizeModelEntry(item, index))
-        .filter((item): item is ModelEntry => item !== null),
+        .filter((item): item is ModelEntry => item !== null)
+        .map(upgradeLegacyModelEntry),
     );
     const list =
       models.length > 0

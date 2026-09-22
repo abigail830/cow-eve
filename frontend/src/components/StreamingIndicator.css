@@ -28,7 +28,7 @@
 }
 
 .streaming-label {
-  font-size: 0.78rem;
+  font-size: var(--chat-font-size);
   font-weight: 500;
   letter-spacing: 0.02em;
   color: #888;

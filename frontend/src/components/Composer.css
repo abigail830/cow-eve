@@ -6,6 +6,7 @@
 }
 
 .composer-box {
+  position: relative;
   width: 100%;
   border: 1px solid #f5c9a8;
   border-radius: 16px;
@@ -21,8 +22,8 @@
   resize: none;
   outline: none;
   font: inherit;
-  font-size: 0.95rem;
-  line-height: 1.35;
+  font-size: 13px;
+  line-height: var(--chat-line-height);
   color: #222;
   padding: 0;
   margin: 0;
@@ -71,18 +72,18 @@
 
 .composer-attachment-error {
   margin: 0 0 8px;
-  font-size: 0.8rem;
+  font-size: var(--chat-font-size);
   color: #c0392b;
 }
 
 .composer-attachment-status {
   margin: 0 0 8px;
-  font-size: 0.8rem;
+  font-size: var(--chat-font-size);
   color: #888;
 }
 
 .model-tag {
-  font-size: 0.8rem;
+  font-size: var(--chat-font-size);
   font-weight: 600;
   color: #444;
 }

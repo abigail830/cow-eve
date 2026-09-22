@@ -36,6 +36,13 @@
       "when": 1789793000000,
       "tag": "0005_scheduled_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789794000000,
+      "tag": "0006_chat_attachments",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,7 @@ source "${SCRIPT_DIR}/lib.sh"
 TARGET="${1:-all}"
 
 start_omni() {
+  clear_omni_eve_workflow_runs
   start_service \
     "omni" \
     "${ROOT_DIR}/backend" \

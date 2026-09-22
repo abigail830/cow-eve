@@ -18,6 +18,8 @@
   --paper-cover-muted: color-mix(in srgb, var(--paper-cover) 38%, transparent);
   --paper-cover-faint: color-mix(in srgb, #fff 88%, var(--paper-cover));
   --paper-cover-border: color-mix(in srgb, var(--paper-cover) 72%, rgba(0, 0, 0, 0.06));
+  --chat-font-size: 13px;
+  --chat-line-height: 1.6;
 }
 
 *,

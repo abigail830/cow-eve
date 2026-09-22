@@ -87,6 +87,8 @@
   box-sizing: border-box;
   position: relative;
   z-index: 1;
+  font-size: var(--chat-font-size);
+  line-height: var(--chat-line-height);
 }
 
 .chat-content-column {

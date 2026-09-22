@@ -1,0 +1,19 @@
+---
+description: Cow Eve is an English-only product — user-facing copy must be English
+alwaysApply: true
+---
+
+# English-only UI copy
+
+Cow Eve is an **English system**. All user-facing text must be written in English.
+
+This includes:
+
+- Placeholders, labels, buttons, tooltips, `aria-label`, and `title` attributes
+- Empty states, loading states, and error messages shown in the UI
+- Toast, banner, and inline validation copy
+- Attachment chips, mention menus, and composer hints
+
+Do **not** add Chinese (or other non-English) strings to frontend components unless the user explicitly requests localization.
+
+Agent instructions and internal code comments may use other languages when the user asks; default product UI remains English.

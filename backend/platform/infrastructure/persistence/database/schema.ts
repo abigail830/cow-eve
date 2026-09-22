@@ -6,6 +6,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -70,8 +71,36 @@ export const platformSettings = pgTable("platform_settings", {
     .notNull(),
 });
 
+export const chatAttachments = pgTable(
+  "chat_attachments",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    filename: text("filename").notNull(),
+    mediaType: text("media_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storageKey: text("storage_key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("chat_attachments_chat_created_idx").on(
+      table.chatId,
+      table.createdAt,
+    ),
+    uniqueIndex("chat_attachments_chat_filename_idx").on(
+      table.chatId,
+      table.filename,
+    ),
+  ],
+);
+
 export type ChatRow = typeof chats.$inferSelect;
 export type ChatEventRow = typeof chatEvents.$inferSelect;
+export type ChatAttachmentRow = typeof chatAttachments.$inferSelect;
 export type PlatformUserRow = typeof platformUsers.$inferSelect;
 export type PlatformSettingsRow = typeof platformSettings.$inferSelect;
 

@@ -126,6 +126,16 @@ read_database_url() {
 
 # Apply Neon / Postgres migrations before starting backend agents.
 # Skips (with a notice) when DATABASE_URL is unset so local UI-only starts still work.
+# Eve dev quarantines in-flight workflow runs after hot reload / restart.
+# Clearing this on omni start avoids turns stuck in "Streaming" forever.
+clear_omni_eve_workflow_runs() {
+  local wf="${ROOT_DIR}/backend/agents/omni/.eve/.workflow-data"
+  if [[ -d "${wf}" ]]; then
+    rm -rf "${wf}"
+    echo "  • cleared stale Eve workflow runs"
+  fi
+}
+
 run_db_migrate() {
   local db_url
   if ! db_url="$(read_database_url)"; then

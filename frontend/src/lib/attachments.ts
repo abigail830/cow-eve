@@ -48,6 +48,12 @@ export const ATTACHMENT_ACCEPT = [
   ".xlsx",
 ].join(",");
 
+export type AttachmentUploadState =
+  | "local"
+  | "uploading"
+  | "uploaded"
+  | "error";
+
 export type PreparedAttachment = {
   id: string;
   filename: string;
@@ -57,6 +63,11 @@ export type PreparedAttachment = {
   /** True when the image was re-encoded (compress / format fix) for the model API. */
   compressed?: boolean;
   originalSizeBytes?: number;
+  /** Platform attachment library id after upload. */
+  platformId?: string;
+  platformChatId?: string;
+  uploadState?: AttachmentUploadState;
+  uploadError?: string;
 };
 
 /** Detect image format from magic bytes — Qwen validates content, not the filename. */

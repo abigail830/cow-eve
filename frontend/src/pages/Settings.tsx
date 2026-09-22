@@ -23,8 +23,10 @@ import {
 } from "../lib/api";
 import {
   catalogFromSettings,
+  CONTEXT_WINDOW_OPTIONS,
   DEFAULT_MODEL_PRESETS,
   DEFAULT_MODEL_SETTINGS,
+  formatContextWindowLabel,
   resolveSavedCatalog,
 } from "../lib/model-defaults";
 import { IconButton } from "../components/IconButton";
@@ -737,19 +739,32 @@ function ModelSettingsTab() {
             </label>
 
             <label>
-              Context window (tokens)
-              <input
-                type="number"
-                min={1024}
-                step={1024}
+              Context window
+              <select
                 value={editor.draft.contextWindowTokens}
                 onChange={(e) =>
-                  patchDraft({ contextWindowTokens: Number(e.target.value) })
+                  patchDraft(
+                    { contextWindowTokens: Number(e.target.value) },
+                    true,
+                  )
                 }
                 name="model-context-window"
                 autoComplete="off"
                 required
-              />
+              >
+                {CONTEXT_WINDOW_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+                {!CONTEXT_WINDOW_OPTIONS.some(
+                  (option) => option.value === editor.draft.contextWindowTokens,
+                ) ? (
+                  <option value={editor.draft.contextWindowTokens}>
+                    {formatContextWindowLabel(editor.draft.contextWindowTokens)} (saved)
+                  </option>
+                ) : null}
+              </select>
             </label>
 
             <label>

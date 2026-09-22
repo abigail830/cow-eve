@@ -15,7 +15,7 @@
   background: #fff7f0;
   border: 1px solid #f5c9a8;
   color: #555;
-  font-size: 0.78rem;
+  font-size: var(--chat-font-size);
 }
 
 .composer-staged-name {
@@ -36,8 +36,13 @@
   border-radius: 999px;
   background: #e8f5e9;
   color: #2e7d32;
-  font-size: 0.7rem;
+  font-size: var(--chat-font-size);
   font-weight: 600;
+}
+
+.composer-staged-badge-error {
+  background: #ffebee;
+  color: #c62828;
 }
 
 .composer-staged-remove {

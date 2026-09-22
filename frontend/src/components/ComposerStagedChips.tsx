@@ -18,7 +18,7 @@ export function ComposerStagedChips({ attachments, onRemove }: Props) {
   if (attachments.length === 0) return null;
 
   return (
-    <div className="composer-staged" aria-label="待发送附件">
+    <div className="composer-staged" aria-label="Staged attachments">
       {attachments.map((attachment) => (
         <span key={attachment.id} className="composer-staged-chip">
           <AttachmentIcon mediaType={attachment.mediaType} />
@@ -29,15 +29,31 @@ export function ComposerStagedChips({ attachments, onRemove }: Props) {
           {attachment.compressed ? (
             <span
               className="composer-staged-badge"
-              title="已转为 JPEG 并优化，确保多模态模型能正确识别"
+              title="Re-encoded as JPEG for multimodal model compatibility"
             >
-              已优化
+              Optimized
+            </span>
+          ) : null}
+          {attachment.uploadState === "uploading" ? (
+            <span className="composer-staged-badge">Uploading</span>
+          ) : null}
+          {attachment.uploadState === "uploaded" ? (
+            <span className="composer-staged-badge" title="Saved to attachment library">
+              Saved
+            </span>
+          ) : null}
+          {attachment.uploadState === "error" ? (
+            <span
+              className="composer-staged-badge composer-staged-badge-error"
+              title={attachment.uploadError ?? "Upload failed"}
+            >
+              Upload failed
             </span>
           ) : null}
           <button
             type="button"
             className="composer-staged-remove"
-            aria-label={`移除 ${attachment.filename}`}
+            aria-label={`Remove ${attachment.filename}`}
             onClick={() => onRemove(attachment.id)}
           >
             <X size={12} strokeWidth={2.5} />
