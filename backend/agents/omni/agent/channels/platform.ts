@@ -17,6 +17,7 @@ import {
   listChatAttachmentsForUser,
   listChatAttachmentsForUserBySession,
   uploadChatAttachmentForUser,
+  retryChatAttachmentParseForUser,
   getDatabaseUrl,
   getJwtSecret,
   getUserMemorySnapshot,
@@ -39,6 +40,14 @@ import {
   defaultModelSettings,
   type ModelCatalogUpdate,
 } from "../../../../platform/composition/public-api";
+import {
+  handleParseArtifactsBatch,
+  handleParseFigureGet,
+  handleParseFigurePut,
+  handleParseOriginalFile,
+  handleParseRunPayload,
+  handleParseWebhook,
+} from "../../../../platform/interfaces/http/parse-internal.handlers";
 
 function corsHeaders(request?: Request): HeadersInit {
   return {
@@ -54,6 +63,18 @@ function corsHeaders(request?: Request): HeadersInit {
 
 function json(data: unknown, status = 200, request?: Request): Response {
   return Response.json(data, { status, headers: corsHeaders(request) });
+}
+
+function withCors(response: Response, request?: Request): Response {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(corsHeaders(request))) {
+    headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }
 
 function preflight(path: string) {
@@ -112,6 +133,7 @@ export default defineChannel({
     preflight("/api/chat-attachments"),
     preflight("/api/chats/:id/attachments"),
     preflight("/api/chats/:id/attachments/:attachmentId"),
+    preflight("/internal/parse/v1/webhook"),
 
     POST("/api/auth/login", async (request) => {
       let body: { email?: string; password?: string };
@@ -897,6 +919,71 @@ export default defineChannel({
           "Cache-Control": "private, no-store",
         },
       });
+    }),
+
+    POST("/api/chats/:chatId/attachments/:attachmentId/retry-parse", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+      const result = await retryChatAttachmentParseForUser({
+        userId: auth.principalId,
+        chatId: params.chatId,
+        attachmentId: params.attachmentId,
+      });
+      if (!result.attachment) {
+        return json(
+          { ok: false, error: result.error ?? "Retry failed" },
+          400,
+          request,
+        );
+      }
+      return json({ ok: true, attachment: result.attachment }, 200, request);
+    }),
+
+    GET("/internal/parse/v1/run/:jobId", async (request, { params }) => {
+      const response = await handleParseRunPayload(params.jobId, request);
+      return withCors(response, request);
+    }),
+
+    GET("/internal/parse/v1/files/:attachmentId/original", async (request, { params }) => {
+      const response = await handleParseOriginalFile(params.attachmentId, request);
+      return withCors(response, request);
+    }),
+
+    PUT("/internal/parse/v1/files/:attachmentId/artifacts/batch", async (request, { params }) => {
+      const response = await handleParseArtifactsBatch(params.attachmentId, request);
+      return withCors(response, request);
+    }),
+
+    PUT("/internal/parse/v1/files/:attachmentId/figures/:figureId", async (request, { params }) => {
+      const response = await handleParseFigurePut(
+        params.attachmentId,
+        params.figureId,
+        request,
+      );
+      return withCors(response, request);
+    }),
+
+    GET("/internal/parse/v1/files/:attachmentId/figures/:figureId", async (request, { params }) => {
+      const response = await handleParseFigureGet(
+        params.attachmentId,
+        params.figureId,
+        request,
+      );
+      return withCors(response, request);
+    }),
+
+    POST("/internal/parse/v1/webhook", async (request) => {
+      const response = await handleParseWebhook(request);
+      return withCors(response, request);
     }),
 
     GET("/api/chats/:id/artifacts/:artifactId/preview/:filePath*", async (request, { params }) => {

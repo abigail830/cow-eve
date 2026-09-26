@@ -97,8 +97,32 @@ export {
   listChatAttachmentsForUser,
   listChatAttachmentsForUserBySession,
   readChatAttachmentForSession,
+  retryChatAttachmentParseForUser,
   uploadChatAttachmentForUser,
 } from "../application/attachment/chat-attachment.use-case";
+export {
+  buildChatLibrary,
+  findAttachments,
+  loadContentMd,
+  loadMetaForAttachment,
+  assertLibraryAccess,
+  DocRetrievalError,
+  type ChatAttachmentIndexEntry,
+} from "../application/doc-retrieval/chat-library";
+export { grepContent } from "../application/doc-retrieval/grep";
+export { readContentSlice } from "../application/doc-retrieval/read-slice";
+export { readFigurePayload } from "../application/doc-retrieval/read-figure";
+export {
+  buildHydrateTextForEntries,
+  buildTurnAttachmentBlock,
+} from "../application/doc-retrieval/manifest-hydrate";
+export { resolveChatIdForEveSession } from "../application/chat/chat-session.use-case";
+export {
+  classifyAttachment,
+  type AttachmentKind,
+} from "../domain/attachment/attachment-kinds";
+export { PARSE_READY_STATUSES } from "../domain/parse/parse-status";
+export { parsedArtifactInManifest } from "../domain/docstore/parsed-manifest";
 export type { ReadChatAttachmentResult } from "../application/attachment/chat-attachment.use-case";
 export {
   toPublicAttachment,

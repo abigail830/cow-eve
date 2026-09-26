@@ -128,6 +128,21 @@ read_database_url() {
 # Skips (with a notice) when DATABASE_URL is unset so local UI-only starts still work.
 # Eve dev quarantines in-flight workflow runs after hot reload / restart.
 # Clearing this on omni start avoids turns stuck in "Streaming" forever.
+start_parse_pipeline() {
+  local pp="${ROOT_DIR}/parse-pipeline"
+  local port="${PARSE_PIPELINE_PORT:-8091}"
+  if [[ ! -d "${pp}" ]]; then
+    echo "  • skip parse-pipeline (directory missing)"
+    return 0
+  fi
+  start_service \
+    "parse-pipeline" \
+    "${pp}" \
+    "parse-pipeline serve --host 127.0.0.1 --port ${port}" \
+    "${port}" \
+    "http://127.0.0.1:${port}/health"
+}
+
 clear_omni_eve_workflow_runs() {
   local wf="${ROOT_DIR}/backend/agents/omni/.eve/.workflow-data"
   if [[ -d "${wf}" ]]; then

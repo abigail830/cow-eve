@@ -20,6 +20,13 @@ import {
   insertMentionFilename,
   type MentionState,
 } from "../lib/attachmentMention";
+import { parseAttachmentMentionIds } from "../lib/attachmentMentions";
+import {
+  ATTACHMENT_PARSE_POLL_MS,
+  attachmentNeedsParsePoll,
+  isAttachmentReadyForSend,
+} from "../lib/attachmentParseProgress";
+import { mergeAttachmentIdsForSend } from "../lib/attachmentSend";
 import {
   deleteChatAttachment,
   fetchMentionAttachments,
@@ -34,6 +41,8 @@ import "./Composer.css";
 export type ComposerSendPayload = {
   text: string;
   attachments: readonly PreparedAttachment[];
+  /** Platform attachment ids referenced this turn (staged + @mentions). */
+  attachmentIds: readonly string[];
 };
 
 type Props = {
@@ -130,6 +139,12 @@ export function Composer({
     [mention?.query, mentionOptions],
   );
 
+  const libraryById = useMemo(() => {
+    const map = new Map<string, ChatAttachmentPublic>();
+    for (const row of libraryAttachments) map.set(row.id, row);
+    return map;
+  }, [libraryAttachments]);
+
   const syncMentionFromTextarea = useCallback(
     (value: string, cursor: number) => {
       if (isComposingRef.current) return;
@@ -188,6 +203,48 @@ export function Composer({
     persistAttachments,
     attachments.length,
   ]);
+
+  const stagedPlatformIds = useMemo(
+    () =>
+      attachments
+        .map((item) => item.platformId)
+        .filter((id): id is string => Boolean(id)),
+    [attachments],
+  );
+
+  const shouldPollParse = useMemo(() => {
+    if (!persistAttachments) return false;
+    if (stagedPlatformIds.length === 0) return false;
+    const rows = libraryAttachments.filter((row) =>
+      stagedPlatformIds.includes(row.id),
+    );
+    return attachmentNeedsParsePoll(rows);
+  }, [libraryAttachments, persistAttachments, stagedPlatformIds]);
+
+  useEffect(() => {
+    if (!shouldPollParse) return;
+    if (!effectiveChatId && !eveSessionId) return;
+
+    let cancelled = false;
+    const tick = () => {
+      void fetchMentionAttachments({
+        chatId: effectiveChatId,
+        eveSessionId,
+      })
+        .then((items) => {
+          if (!cancelled) setLibraryAttachments(items);
+        })
+        .catch(() => {
+          /* ignore poll errors */
+        });
+    };
+    tick();
+    const timer = window.setInterval(tick, ATTACHMENT_PARSE_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [effectiveChatId, eveSessionId, shouldPollParse]);
 
   const selectMention = useCallback(
     (filename: string) => {
@@ -265,6 +322,10 @@ export function Composer({
               : item,
           ),
         );
+        setLibraryAttachments((prev) => {
+          const without = prev.filter((row) => row.id !== saved.id);
+          return [saved, ...without];
+        });
       } catch (err) {
         setAttachments((prev) =>
           prev.map((item) =>
@@ -336,7 +397,34 @@ export function Composer({
       return;
     }
 
-    await onSend({ text: value, attachments });
+    const stagedIds = attachments
+      .map((item) => item.platformId)
+      .filter((id): id is string => Boolean(id));
+    const mentionIds = parseAttachmentMentionIds(value, libraryAttachments);
+    const attachmentIds = mergeAttachmentIdsForSend(stagedIds, mentionIds);
+
+    if (attachmentIds.length > ATTACHMENT_LIMITS.maxFilesPerMessage) {
+      setAttachmentError(
+        `At most ${ATTACHMENT_LIMITS.maxFilesPerMessage} attachments per message.`,
+      );
+      return;
+    }
+
+    for (const attachmentId of attachmentIds) {
+      const row = libraryAttachments.find((item) => item.id === attachmentId);
+      if (!row) {
+        setAttachmentError("Referenced attachment was not found in this chat.");
+        return;
+      }
+      if (!isAttachmentReadyForSend(row)) {
+        setAttachmentError(
+          `${row.filename} is still uploading or parsing. Wait before sending.`,
+        );
+        return;
+      }
+    }
+
+    await onSend({ text: value, attachments, attachmentIds });
     setText("");
     setAttachments([]);
     setAttachmentError(null);
@@ -495,6 +583,7 @@ export function Composer({
         />
         <ComposerStagedChips
           attachments={attachments}
+          libraryById={libraryById}
           onRemove={removeAttachment}
         />
         {attachmentError ? (

@@ -1,8 +1,17 @@
 import {
+  classifyAttachment,
+  officeRejectMessage,
+} from "../../domain/attachment/attachment-kinds.js";
+import {
   toPublicAttachment,
   type ChatAttachment,
   type ChatAttachmentPublic,
 } from "../../domain/attachment/chat-attachment.entity";
+import {
+  finalizeAttachmentParse,
+  retryAttachmentParse as retryParseJob,
+  sha256Bytes,
+} from "./parse-enqueue.use-case.js";
 import {
   deleteAttachmentBytes,
   getAttachmentBytes,
@@ -67,7 +76,27 @@ export async function uploadChatAttachmentForUser(input: {
     return { attachment: null, error: "Chat not found for this session." };
   }
 
+  let kind;
+  try {
+    kind = classifyAttachment({
+      filename: input.filename,
+      mimeType: input.mediaType,
+    });
+  } catch {
+    return { attachment: null, error: "Unsupported file type." };
+  }
+  if (kind === "office") {
+    return {
+      attachment: null,
+      error: officeRejectMessage({
+        filename: input.filename,
+        mimeType: input.mediaType,
+      }),
+    };
+  }
+
   const attachmentId = crypto.randomUUID();
+  const contentHash = sha256Bytes(input.bytes);
   const storageKey = storageKeyFor(attachmentId, input.filename);
 
   try {
@@ -83,8 +112,10 @@ export async function uploadChatAttachmentForUser(input: {
       mediaType: input.mediaType,
       sizeBytes: input.bytes.byteLength,
       storageKey,
+      contentHash,
     });
-    return { attachment: toPublicAttachment(saved) };
+    const parsed = await finalizeAttachmentParse(saved, kind);
+    return { attachment: toPublicAttachment(parsed) };
   } catch (err) {
     return {
       attachment: null,
@@ -240,4 +271,30 @@ export async function readChatAttachmentForSession(input: {
     attachment,
     bytes,
   };
+}
+
+export async function retryChatAttachmentParseForUser(input: {
+  userId: string;
+  chatId: string;
+  attachmentId: string;
+}): Promise<{ attachment: ChatAttachmentPublic | null; error?: string }> {
+  const chat = await drizzleChatRepository.getChatMetaForUser({
+    userId: input.userId,
+    chatId: input.chatId,
+  });
+  if (!chat) return { attachment: null, error: "Chat not found." };
+  const row = await drizzleChatAttachmentRepository.getById({
+    chatId: input.chatId,
+    attachmentId: input.attachmentId,
+  });
+  if (!row) return { attachment: null, error: "Attachment not found." };
+  try {
+    const updated = await retryParseJob(row);
+    return { attachment: toPublicAttachment(updated) };
+  } catch (err) {
+    return {
+      attachment: null,
+      error: err instanceof Error ? err.message : "Retry failed.",
+    };
+  }
 }

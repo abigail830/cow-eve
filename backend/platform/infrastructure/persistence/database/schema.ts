@@ -82,6 +82,17 @@ export const chatAttachments = pgTable(
     mediaType: text("media_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
     storageKey: text("storage_key").notNull(),
+    contentHash: text("content_hash"),
+    parseStatus: text("parse_status").notNull().default("ready"),
+    parsePipelineId: text("parse_pipeline_id"),
+    parseJobId: text("parse_job_id"),
+    parseErrorCode: text("parse_error_code"),
+    parseErrorMessage: text("parse_error_message"),
+    parseStageSnapshot: jsonb("parse_stage_snapshot"),
+    parsedArtifactManifest: jsonb("parsed_artifact_manifest"),
+    gist: text("gist"),
+    gistContentSha256: text("gist_content_sha256"),
+    gistGeneratedAt: timestamp("gist_generated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -98,9 +109,32 @@ export const chatAttachments = pgTable(
   ],
 );
 
+export const parseJobRuns = pgTable(
+  "parse_job_runs",
+  {
+    jobId: text("job_id").primaryKey(),
+    attachmentId: uuid("attachment_id")
+      .notNull()
+      .references(() => chatAttachments.id, { onDelete: "cascade" }),
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    runTokenHash: text("run_token_hash").notNull(),
+    webhookSecret: text("webhook_secret").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    jobPayloadJson: jsonb("job_payload_json").notNull(),
+    status: text("status").notNull().default("queued"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("parse_job_runs_attachment_idx").on(table.attachmentId)],
+);
+
 export type ChatRow = typeof chats.$inferSelect;
 export type ChatEventRow = typeof chatEvents.$inferSelect;
 export type ChatAttachmentRow = typeof chatAttachments.$inferSelect;
+export type ParseJobRunRow = typeof parseJobRuns.$inferSelect;
 export type PlatformUserRow = typeof platformUsers.$inferSelect;
 export type PlatformSettingsRow = typeof platformSettings.$inferSelect;
 

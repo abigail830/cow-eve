@@ -7,6 +7,8 @@ export type ChatAttachmentRepository = {
     mediaType: string;
     sizeBytes: number;
     storageKey: string;
+    contentHash?: string | null;
+    parseStatus?: string;
   }): Promise<ChatAttachment>;
 
   listByChatId(chatId: string): Promise<ChatAttachment[]>;

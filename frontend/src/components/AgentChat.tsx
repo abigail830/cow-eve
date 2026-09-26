@@ -498,6 +498,14 @@ function AgentChatSession({
         attachments.length > 0
           ? buildMessageContent(trimmed, attachments)
           : trimmed;
+
+      const attachmentIds = payload.attachmentIds ?? [];
+      const sendOptions = {
+        ...(isBusy ? { turnPolicy: "steer" as const } : {}),
+        ...(attachmentIds.length > 0
+          ? { clientContext: { attachmentIds } }
+          : {}),
+      };
       const libraryBackup =
         token && payload.attachments.some((item) => !item.platformId)
           ? payload.attachments
@@ -505,7 +513,10 @@ function AgentChatSession({
 
       // While a turn is active, steer at the next boundary instead of opening
       // a second turn (eve rejects plain send with "already processing").
-      void send(message, isBusy ? { turnPolicy: "steer" } : undefined)
+      void send(
+        message,
+        Object.keys(sendOptions).length > 0 ? sendOptions : undefined,
+      )
         .then(() => {
           if (libraryBackup) {
             void flushAttachmentLibrary(libraryBackup).catch((err: unknown) => {

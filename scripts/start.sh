@@ -17,6 +17,9 @@ source "${SCRIPT_DIR}/lib.sh"
 TARGET="${1:-all}"
 
 start_omni() {
+  if [[ "${START_PARSE_PIPELINE:-1}" == "1" ]]; then
+    start_parse_pipeline
+  fi
   clear_omni_eve_workflow_runs
   start_service \
     "omni" \

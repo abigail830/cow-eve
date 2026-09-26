@@ -1,0 +1,82 @@
+from __future__ import annotations
+
+from functools import lru_cache
+from typing import Annotated, Literal
+
+from pydantic import AliasChoices, Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    job_store: Literal["memory", "none", "postgres"] = Field(default="memory", alias="JOB_STORE")
+    database_url: str | None = Field(default=None, alias="DATABASE_URL")
+
+    parse_pipeline_api_keys: str = Field(
+        default="test:test_dev_key",
+        alias="PARSE_PIPELINE_API_KEYS",
+    )
+
+    document_mind_access_key_id: str | None = Field(default=None, alias="DOCUMENT_MIND_ACCESS_KEY_ID")
+    document_mind_access_key_secret: str | None = Field(default=None, alias="DOCUMENT_MIND_ACCESS_KEY_SECRET")
+    document_mind_endpoint: str = Field(
+        default="docmind-api.cn-hangzhou.aliyuncs.com",
+        alias="DOCUMENT_MIND_ENDPOINT",
+    )
+    document_mind_llm_enhancement: bool = Field(default=True, alias="DOCUMENT_MIND_LLM_ENHANCEMENT")
+    document_mind_enhancement_mode: str = Field(default="VLM", alias="DOCUMENT_MIND_ENHANCEMENT_MODE")
+    document_mind_poll_interval_sec: float = Field(default=5.0, alias="DOCUMENT_MIND_POLL_INTERVAL_SEC")
+    document_mind_layout_step_size: int = Field(default=50, alias="DOCUMENT_MIND_LAYOUT_STEP_SIZE")
+
+    office_markitdown_enabled: bool = Field(default=True, alias="OFFICE_MARKITDOWN_ENABLED")
+
+    dashscope_api_key: str | None = Field(default=None, alias="DASHSCOPE_API_KEY")
+    asr_provider: str = Field(default="qwen-audio-3.1-asr-flash-filetrans", alias="ASR_PROVIDER")
+    asr_fallback_providers: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["qwen-audio-3.0-asr-flash-filetrans", "fun-asr"],
+        validation_alias=AliasChoices("ASR_FALLBACK_PROVIDERS", "ASR_FALLBACK_PROVIDER"),
+    )
+    asr_poll_interval_sec: float = Field(default=5.0, alias="ASR_POLL_INTERVAL_SEC")
+    asr_poll_timeout_sec: float = Field(default=7200.0, alias="ASR_POLL_TIMEOUT_SEC")
+
+    @field_validator("asr_fallback_providers", mode="before")
+    @classmethod
+    def _parse_asr_fallback_providers(cls, value: object) -> list[str]:
+        if value is None or value == "":
+            return []
+        if isinstance(value, str):
+            return [part.strip() for part in value.split(",") if part.strip()]
+        if isinstance(value, list):
+            return [str(part).strip() for part in value if str(part).strip()]
+        return []
+
+    webhook_max_retries: int = Field(default=1, alias="WEBHOOK_MAX_RETRIES")
+    webhook_timeout_sec: float = Field(default=10.0, alias="WEBHOOK_TIMEOUT_SEC")
+
+    host: str = Field(default="0.0.0.0", alias="HOST")
+    port: int = Field(default=8091, alias="PORT")
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    def api_key_map(self) -> dict[str, str]:
+        result: dict[str, str] = {}
+        for part in self.parse_pipeline_api_keys.split(","):
+            part = part.strip()
+            if not part or ":" not in part:
+                continue
+            caller_id, key = part.split(":", 1)
+            result[key.strip()] = caller_id.strip()
+        return result
+
+    @property
+    def document_mind_configured(self) -> bool:
+        return bool(self.document_mind_access_key_id and self.document_mind_access_key_secret)
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

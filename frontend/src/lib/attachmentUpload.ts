@@ -8,6 +8,13 @@ export type ChatAttachmentPublic = {
   filename: string;
   mediaType: string;
   sizeBytes: number;
+  contentHash?: string | null;
+  parseStatus?: string;
+  parsePipelineId?: string | null;
+  parseJobId?: string | null;
+  parseErrorCode?: string | null;
+  parseErrorMessage?: string | null;
+  parseStageSnapshot?: Record<string, unknown> | null;
   createdAt: string;
 };
 
@@ -164,6 +171,25 @@ export function mergeMentionAttachmentOptions(
     const bTime = b.createdAt ? Date.parse(b.createdAt) : Number.MAX_SAFE_INTEGER;
     return bTime - aTime;
   });
+}
+
+export async function retryChatAttachmentParse(
+  chatId: string,
+  attachmentId: string,
+): Promise<ChatAttachmentPublic> {
+  const res = await attachmentFetch(
+    `/api/chats/${encodeURIComponent(chatId)}/attachments/${encodeURIComponent(attachmentId)}/retry-parse`,
+    { method: "POST" },
+  );
+  const data = (await res.json()) as {
+    ok?: boolean;
+    error?: string;
+    attachment?: ChatAttachmentPublic;
+  };
+  if (!res.ok || !data.attachment) {
+    throw new Error(data.error ?? `Retry failed (${res.status})`);
+  }
+  return data.attachment;
 }
 
 export async function ensureAttachmentsUploaded(
