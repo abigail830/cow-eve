@@ -7,7 +7,7 @@ ALTER TABLE "chat_attachments"
   ADD COLUMN IF NOT EXISTS "parse_error_message" text,
   ADD COLUMN IF NOT EXISTS "parse_stage_snapshot" jsonb,
   ADD COLUMN IF NOT EXISTS "parsed_artifact_manifest" jsonb;
-
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "parse_job_runs" (
   "job_id" text PRIMARY KEY,
   "attachment_id" uuid NOT NULL REFERENCES "chat_attachments"("id") ON DELETE CASCADE,
@@ -19,6 +19,6 @@ CREATE TABLE IF NOT EXISTS "parse_job_runs" (
   "status" text NOT NULL DEFAULT 'queued',
   "created_at" timestamptz NOT NULL DEFAULT now()
 );
-
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "parse_job_runs_attachment_idx"
   ON "parse_job_runs" ("attachment_id");
