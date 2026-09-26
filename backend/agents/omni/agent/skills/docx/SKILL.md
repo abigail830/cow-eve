@@ -16,13 +16,27 @@ A `.docx` is a ZIP of XML parts. Pick the path by task:
 
 Paths below are relative to this skill directory unless noted.
 
+### Sandbox paths (read with `read_file`, not guessed paths)
+
+After **`load_skill` for `docx`**, theme specs live under Eve’s skill mirror (same layout as this repo):
+
+| Theme | File |
+|-------|------|
+| inspire (default) | `$HOME/.agents/skills/docx/themes/inspire.md` |
+| ascentium | `$HOME/.agents/skills/docx/themes/ascentium.md` |
+| lrqa | `$HOME/.agents/skills/docx/themes/lrqa.md` |
+
+Fallback (symlinked in omni sandbox): `/workspace/content-studio/skills/docx/themes/<theme>.md`
+
+Do **not** assume `/home/user/.agents/...` exists before the skill is loaded and the sandbox session is active. If `ls` on themes fails, call `load_skill` for `docx` first, then `read_file` the paths above.
+
 ## Create new documents (docx-js)
 
 **Workflow**
 
 1. Clarify purpose, audience, length, and brand theme if missing.
 2. **Default theme: `inspire`** — use `themes/ascentium.md` when the user asks for Ascentium; `themes/lrqa.md` when they ask for LRQA (LRQA Assist agents should default to `lrqa`).
-3. Read the matching theme file for colours, fonts, document patterns, and the `ASCENTIUM` / `INSPIRE` / `LRQA` constant object.
+3. **`read_file`** the matching theme from the [sandbox paths](#sandbox-paths-read-with-read_file-not-guessed-paths) for colours, fonts, document patterns, and the `ASCENTIUM` / `INSPIRE` / `LRQA` constant object.
 4. Write a **Node.js script** using the `docx` package; export with `Packer.toBuffer()` / `writeFileSync`.
 5. Optionally spot-check structure with `pandoc -t markdown output.docx` (headings, order, obvious gaps).
 6. **`publish`** on the final `.docx` — not PDF previews or validate scratch files.

@@ -12,6 +12,7 @@ type Props = {
   attachments: readonly PreparedAttachment[];
   libraryById?: ReadonlyMap<string, ChatAttachmentPublic>;
   onRemove: (id: string) => void;
+  onChipClick?: (attachment: ChatAttachmentPublic) => void;
 };
 
 function AttachmentIcon({ mediaType }: { mediaType: string }) {
@@ -21,10 +22,26 @@ function AttachmentIcon({ mediaType }: { mediaType: string }) {
   return <FileText size={14} strokeWidth={2} aria-hidden />;
 }
 
+function toDrawerAttachment(
+  staged: PreparedAttachment,
+  libraryRow?: ChatAttachmentPublic,
+): ChatAttachmentPublic {
+  if (libraryRow) return libraryRow;
+  return {
+    id: staged.platformId ?? staged.id,
+    chatId: staged.platformChatId ?? "",
+    filename: staged.filename,
+    mediaType: staged.mediaType,
+    sizeBytes: staged.sizeBytes,
+    createdAt: new Date().toISOString(),
+  };
+}
+
 export function ComposerStagedChips({
   attachments,
   libraryById,
   onRemove,
+  onChipClick,
 }: Props) {
   if (attachments.length === 0) return null;
 
@@ -40,12 +57,31 @@ export function ComposerStagedChips({
             : null;
         const parseDetail = libraryRow ? parseStageMessage(libraryRow) : null;
 
+        const clickable = Boolean(onChipClick);
         return (
-        <span key={attachment.id} className="composer-staged-chip">
-          <AttachmentIcon mediaType={attachment.mediaType} />
-          <span className="composer-staged-name" title={attachment.filename}>
-            {attachment.filename}
-          </span>
+        <span
+          key={attachment.id}
+          className={[
+            "composer-staged-chip",
+            clickable ? "composer-staged-chip-clickable" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          <button
+            type="button"
+            className="composer-staged-chip-main"
+            title={attachment.filename}
+            disabled={!clickable}
+            onClick={() =>
+              onChipClick?.(
+                toDrawerAttachment(attachment, libraryRow),
+              )
+            }
+          >
+            <AttachmentIcon mediaType={attachment.mediaType} />
+            <span className="composer-staged-name">{attachment.filename}</span>
+          </button>
           <span className="composer-staged-size">{formatBytes(attachment.sizeBytes)}</span>
           {attachment.compressed ? (
             <span
@@ -76,7 +112,11 @@ export function ComposerStagedChips({
               className="composer-staged-badge composer-staged-badge-error"
               title={attachment.uploadError ?? "Upload failed"}
             >
-              Upload failed
+              {attachment.uploadError?.trim()
+                ? attachment.uploadError.length > 36
+                  ? `${attachment.uploadError.slice(0, 33)}…`
+                  : attachment.uploadError
+                : "Upload failed"}
             </span>
           ) : null}
           <button

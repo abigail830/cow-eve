@@ -3,7 +3,7 @@
 #
 # Usage:
 #   ./scripts/restart.sh
-#   ./scripts/restart.sh all|backend|frontend|omni
+#   ./scripts/restart.sh all|backend|frontend|omni|parse-pipeline
 
 set -euo pipefail
 

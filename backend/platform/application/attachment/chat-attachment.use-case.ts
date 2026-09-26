@@ -114,8 +114,19 @@ export async function uploadChatAttachmentForUser(input: {
       storageKey,
       contentHash,
     });
-    const parsed = await finalizeAttachmentParse(saved, kind);
-    return { attachment: toPublicAttachment(parsed) };
+    try {
+      const parsed = await finalizeAttachmentParse(saved, kind);
+      return { attachment: toPublicAttachment(parsed) };
+    } catch (parseErr) {
+      const refreshed =
+        (await drizzleChatAttachmentRepository.getByIdOnly(saved.id)) ?? saved;
+      const parseMessage =
+        parseErr instanceof Error ? parseErr.message : "Parse dispatch failed";
+      return {
+        attachment: toPublicAttachment(refreshed),
+        error: `Uploaded, but parse could not start: ${parseMessage}`,
+      };
+    }
   } catch (err) {
     return {
       attachment: null,

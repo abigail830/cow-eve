@@ -2,23 +2,28 @@ import type { UserContent } from "ai";
 import { createDataUrlFilePart } from "eve/client";
 import { isImageMime, type PreparedAttachment } from "./attachments";
 
-/** Build Eve message payload: only images are inlined; documents use parse-pipeline + tools. */
+/**
+ * Build Eve message payload.
+ * - Images: inline file parts (vision).
+ * - Documents: no file parts (empty bytes break provider validation); use
+ *   clientContext.attachmentIds + parse pipeline instead.
+ */
 export function buildMessageContent(
   text: string,
   attachments: readonly PreparedAttachment[],
 ): string | UserContent {
   const trimmed = text.trim();
-  const inlineAttachments = attachments.filter((item) =>
+  const inlineImages = attachments.filter((item) =>
     isImageMime(item.mediaType),
   );
 
-  if (inlineAttachments.length === 0) return trimmed;
+  if (inlineImages.length === 0) return trimmed;
 
   const parts: UserContent = [];
   if (trimmed) {
     parts.push({ type: "text", text: trimmed });
   }
-  for (const attachment of inlineAttachments) {
+  for (const attachment of inlineImages) {
     parts.push(
       createDataUrlFilePart({
         bytes: attachment.bytes,
@@ -26,6 +31,9 @@ export function buildMessageContent(
         mediaType: attachment.mediaType,
       }),
     );
+  }
+  if (parts.length === 1 && parts[0].type === "text") {
+    return trimmed;
   }
   return parts;
 }

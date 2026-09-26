@@ -4,7 +4,7 @@
 # Usage:
 #   ./scripts/stop.sh
 #   ./scripts/stop.sh all
-#   ./scripts/stop.sh backend|frontend|omni
+#   ./scripts/stop.sh backend|frontend|omni|parse-pipeline
 
 set -euo pipefail
 
@@ -14,16 +14,21 @@ source "${SCRIPT_DIR}/lib.sh"
 
 TARGET="${1:-all}"
 
+stop_backend() {
+  stop_service "omni" "${OMNI_PORT}"
+  stop_parse_pipeline
+}
+
 echo "Stopping cow-eve (${TARGET})…"
 ensure_run_dirs
 
 case "${TARGET}" in
   all)
     stop_service "frontend" "${FRONTEND_PORT}"
-    stop_service "omni" "${OMNI_PORT}"
+    stop_backend
     ;;
   backend)
-    stop_service "omni" "${OMNI_PORT}"
+    stop_backend
     ;;
   frontend)
     stop_service "frontend" "${FRONTEND_PORT}"
@@ -31,9 +36,12 @@ case "${TARGET}" in
   omni)
     stop_service "omni" "${OMNI_PORT}"
     ;;
+  parse-pipeline)
+    stop_parse_pipeline
+    ;;
   *)
     echo "Unknown target: ${TARGET}"
-    echo "Use: all | backend | frontend | omni"
+    echo "Use: all | backend | frontend | omni | parse-pipeline"
     exit 1
     ;;
 esac

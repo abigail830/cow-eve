@@ -175,3 +175,23 @@
   color: #999;
   flex-shrink: 0;
 }
+
+.msg-user-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(242, 122, 42, 0.25);
+  color: #555;
+  font-size: inherit;
+  max-width: 100%;
+}
+
+.msg-user-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}

@@ -9,6 +9,8 @@ LOG_DIR="${RUN_DIR}/logs"
 
 OMNI_PORT="${OMNI_PORT:-2000}"
 FRONTEND_PORT="${FRONTEND_PORT:-5273}"
+PARSE_PIPELINE_PORT="${PARSE_PIPELINE_PORT:-8091}"
+PARSE_PIPELINE_HOST="${PARSE_PIPELINE_HOST:-127.0.0.1}"
 
 ensure_run_dirs() {
   mkdir -p "${LOG_DIR}"
@@ -130,17 +132,24 @@ read_database_url() {
 # Clearing this on omni start avoids turns stuck in "Streaming" forever.
 start_parse_pipeline() {
   local pp="${ROOT_DIR}/parse-pipeline"
-  local port="${PARSE_PIPELINE_PORT:-8091}"
+  local port="${PARSE_PIPELINE_PORT}"
+  local host="${PARSE_PIPELINE_HOST}"
   if [[ ! -d "${pp}" ]]; then
     echo "  • skip parse-pipeline (directory missing)"
     return 0
   fi
+  local cli="${pp}/.venv/bin/parse-pipeline"
+  if [[ ! -x "${cli}" ]]; then
+    echo "  ✗ parse-pipeline venv missing (${cli})"
+    echo "    Run: ${ROOT_DIR}/backend/scripts/setup_parse_inline.sh"
+    return 1
+  fi
   start_service \
     "parse-pipeline" \
     "${pp}" \
-    "parse-pipeline serve --host 127.0.0.1 --port ${port}" \
+    "HOST=${host} PORT=${port} \"${cli}\" serve" \
     "${port}" \
-    "http://127.0.0.1:${port}/health"
+    "http://${host}:${port}/health"
 }
 
 clear_omni_eve_workflow_runs() {
@@ -229,6 +238,11 @@ start_service() {
     echo "${listening}" >"$(pid_file "${name}")"
     echo "  • ${name} listening pid=${listening}"
   fi
+}
+
+stop_parse_pipeline() {
+  stop_service "parse-pipeline" "${PARSE_PIPELINE_PORT}"
+  rm -f "${ROOT_DIR}/parse-pipeline/.run/parse-pipeline.pid"
 }
 
 stop_service() {

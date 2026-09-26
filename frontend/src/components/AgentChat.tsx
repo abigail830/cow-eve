@@ -25,9 +25,19 @@ import {
 import { API_URL, agentHost } from "../lib/config";
 import { fetchBoundSession, type BoundSession } from "../lib/load-chat-session";
 import { useAuth } from "../lib/auth";
-import type { PreparedAttachment } from "../lib/attachments";
+import { isImageMime, type PreparedAttachment } from "../lib/attachments";
 import { ensureAttachmentsUploaded } from "../lib/attachmentUpload";
-import { buildMessageContent } from "../lib/attachmentSend";
+import {
+  buildMessageContent,
+  mergeAttachmentIdsForSend,
+} from "../lib/attachmentSend";
+import {
+  hintsFromPrepared,
+  messageMatchesSendHint,
+  type PendingSendAttachmentHint,
+  type UserMessageAttachmentHint,
+} from "../lib/sentMessageAttachments";
+import { userVisibleTextFromParts } from "../lib/userMessageAttachments";
 import { Composer, type ComposerSendPayload } from "./Composer";
 import { IconButton } from "./IconButton";
 import { MemoryPanel } from "./MemoryPanel";
@@ -344,6 +354,10 @@ function AgentChatSession({
   const [memoryError, setMemoryError] = useState<string | null>(null);
   const [cancellationError, setCancellationError] = useState<string>();
   const [sendError, setSendError] = useState<string>();
+  const [userMessageAttachmentHints, setUserMessageAttachmentHints] = useState<
+    ReadonlyMap<string, readonly UserMessageAttachmentHint[]>
+  >(() => new Map());
+  const pendingSendAttachmentHintsRef = useRef<PendingSendAttachmentHint[]>([]);
   /** True after cancel() is accepted until the stream settles. */
   const [cancelling, setCancelling] = useState(false);
   const [pendingDeleteChat, setPendingDeleteChat] = useState<ChatSummary | null>(
@@ -394,6 +408,39 @@ function AgentChatSession({
   useEffect(() => {
     if (!isBusy) setCancelling(false);
   }, [isBusy]);
+
+  useEffect(() => {
+    setUserMessageAttachmentHints(new Map());
+    pendingSendAttachmentHintsRef.current = [];
+  }, [bound.chatId, bound.session?.sessionId]);
+
+  useEffect(() => {
+    const pending = pendingSendAttachmentHintsRef.current;
+    if (pending.length === 0) return;
+
+    setUserMessageAttachmentHints((prev) => {
+      let next: Map<string, readonly UserMessageAttachmentHint[]> | null = null;
+      const queue = [...pending];
+
+      for (const msg of data.messages) {
+        if (msg.role !== "user") continue;
+        if (prev.has(msg.id)) continue;
+
+        const visibleText = userVisibleTextFromParts(msg.parts);
+        const matchIndex = queue.findIndex((hint) =>
+          messageMatchesSendHint(visibleText, hint),
+        );
+        if (matchIndex < 0) continue;
+
+        const [matched] = queue.splice(matchIndex, 1);
+        if (!next) next = new Map(prev);
+        next.set(msg.id, matched.items);
+      }
+
+      pendingSendAttachmentHintsRef.current = queue;
+      return next ?? prev;
+    });
+  }, [data.messages]);
 
   // After opening/restoring a conversation, land at the latest messages.
   useLayoutEffect(() => {
@@ -494,12 +541,27 @@ function AgentChatSession({
         return;
       }
 
+      const missingPlatform = attachments.filter(
+        (item) => !isImageMime(item.mediaType) && !item.platformId,
+      );
+      if (missingPlatform.length > 0) {
+        setSendError(
+          "Could not upload attachments to this chat. Wait for the session to connect and try again.",
+        );
+        return;
+      }
+
       const message =
         attachments.length > 0
           ? buildMessageContent(trimmed, attachments)
           : trimmed;
 
-      const attachmentIds = payload.attachmentIds ?? [];
+      const attachmentIds = mergeAttachmentIdsForSend(
+        attachments
+          .map((item) => item.platformId)
+          .filter((id): id is string => Boolean(id)),
+        payload.attachmentIds ?? [],
+      );
       const sendOptions = {
         ...(isBusy ? { turnPolicy: "steer" as const } : {}),
         ...(attachmentIds.length > 0
@@ -510,6 +572,14 @@ function AgentChatSession({
         token && payload.attachments.some((item) => !item.platformId)
           ? payload.attachments
           : null;
+
+      const sendHints = hintsFromPrepared(attachments, attachmentIds);
+      if (sendHints.length > 0) {
+        pendingSendAttachmentHintsRef.current.push({
+          text: trimmed,
+          items: sendHints,
+        });
+      }
 
       // While a turn is active, steer at the next boundary instead of opening
       // a second turn (eve rejects plain send with "already processing").
@@ -693,6 +763,8 @@ function AgentChatSession({
                   apiBase={API_URL}
                   token={token}
                   chatId={activeChatId ?? bound.chatId}
+                  eveSessionId={session?.sessionId ?? null}
+                  userMessageAttachmentHints={userMessageAttachmentHints}
                   previewArtifactId={previewArtifact?.artifact_id ?? null}
                   onPreviewArtifact={handlePreviewArtifact}
                 />
@@ -716,7 +788,7 @@ function AgentChatSession({
             busy={isBusy}
             resuming={isResuming}
             cancelling={cancelling}
-            chatId={activeChatId}
+            chatId={activeChatId ?? bound.chatId}
             eveSessionId={session?.sessionId ?? null}
             agentId={agent.id}
             persistAttachments={Boolean(token)}

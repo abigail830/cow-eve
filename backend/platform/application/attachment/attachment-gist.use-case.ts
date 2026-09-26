@@ -18,10 +18,7 @@ import {
   loadContentMd,
   loadMetaForAttachment,
 } from "../doc-retrieval/chat-library.js";
-import {
-  getDecryptedApiKey,
-  loadModelSettings,
-} from "../settings/model-settings.use-case.js";
+import { completeUtilityChat } from "../llm/utility-chat-completion.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import {
   buildGistUserPrompt,
@@ -35,37 +32,12 @@ function contentSha256(content: string): string {
 }
 
 async function completeGist(prompt: string): Promise<string> {
-  const settings = await loadModelSettings();
-  const apiKey = getDecryptedApiKey(settings);
-  if (!apiKey) {
-    throw new Error("Model API key is not configured for attachment gist");
-  }
-  const base = settings.baseURL.replace(/\/+$/, "");
-  const url = `${base}/chat/completions`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: settings.modelId,
-      temperature: 0.2,
-      max_tokens: getAttachmentGistMaxOutputTokens(),
-      messages: [
-        { role: "system", content: GIST_SYSTEM_INSTRUCTIONS },
-        { role: "user", content: prompt },
-      ],
-    }),
+  return completeUtilityChat({
+    system: GIST_SYSTEM_INSTRUCTIONS,
+    user: prompt,
+    maxTokens: getAttachmentGistMaxOutputTokens(),
+    temperature: 0.2,
   });
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Gist LLM failed (${response.status}): ${text.slice(0, 500)}`);
-  }
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return String(data.choices?.[0]?.message?.content ?? "").trim();
 }
 
 export async function generateAndSaveAttachmentGist(

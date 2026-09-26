@@ -13,6 +13,7 @@ import { prepareAttachmentsFromFiles } from "../lib/attachmentCompress";
 import {
   ATTACHMENT_ACCEPT,
   ATTACHMENT_LIMITS,
+  isImageMime,
   type PreparedAttachment,
 } from "../lib/attachments";
 import {
@@ -24,6 +25,7 @@ import { parseAttachmentMentionIds } from "../lib/attachmentMentions";
 import {
   ATTACHMENT_PARSE_POLL_MS,
   attachmentNeedsParsePoll,
+  effectiveParseStatus,
   isAttachmentReadyForSend,
 } from "../lib/attachmentParseProgress";
 import { mergeAttachmentIdsForSend } from "../lib/attachmentSend";
@@ -31,9 +33,11 @@ import {
   deleteChatAttachment,
   fetchMentionAttachments,
   mergeMentionAttachmentOptions,
+  retryChatAttachmentParse,
   uploadChatAttachment,
   type ChatAttachmentPublic,
 } from "../lib/attachmentUpload";
+import { AttachmentParseDrawer } from "./AttachmentParseDrawer";
 import { ComposerAttachmentMention } from "./ComposerAttachmentMention";
 import { ComposerStagedChips } from "./ComposerStagedChips";
 import "./Composer.css";
@@ -108,6 +112,8 @@ export function Composer({
     ChatAttachmentPublic[]
   >([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
+  const [parseDrawerAttachment, setParseDrawerAttachment] =
+    useState<ChatAttachmentPublic | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isComposingRef = useRef(false);
@@ -212,14 +218,26 @@ export function Composer({
     [attachments],
   );
 
+  const parseDrawerNeedsPoll = useMemo(() => {
+    if (!parseDrawerAttachment) return false;
+    const status = effectiveParseStatus(parseDrawerAttachment);
+    return status === "pending" || status === "running";
+  }, [parseDrawerAttachment]);
+
   const shouldPollParse = useMemo(() => {
     if (!persistAttachments) return false;
+    if (parseDrawerNeedsPoll) return true;
     if (stagedPlatformIds.length === 0) return false;
     const rows = libraryAttachments.filter((row) =>
       stagedPlatformIds.includes(row.id),
     );
     return attachmentNeedsParsePoll(rows);
-  }, [libraryAttachments, persistAttachments, stagedPlatformIds]);
+  }, [
+    libraryAttachments,
+    parseDrawerNeedsPoll,
+    persistAttachments,
+    stagedPlatformIds,
+  ]);
 
   useEffect(() => {
     if (!shouldPollParse) return;
@@ -232,7 +250,14 @@ export function Composer({
         eveSessionId,
       })
         .then((items) => {
-          if (!cancelled) setLibraryAttachments(items);
+          if (!cancelled) {
+            setLibraryAttachments(items);
+            setParseDrawerAttachment((current) => {
+              if (!current?.id) return current;
+              const fresh = items.find((row) => row.id === current.id);
+              return fresh ?? current;
+            });
+          }
         })
         .catch(() => {
           /* ignore poll errors */
@@ -397,6 +422,14 @@ export function Composer({
       return;
     }
 
+    const uploadErrors = attachments.filter((item) => item.uploadState === "error");
+    if (uploadErrors.length > 0) {
+      setAttachmentError(
+        uploadErrors[0]?.uploadError ?? "One or more attachments failed to upload.",
+      );
+      return;
+    }
+
     const stagedIds = attachments
       .map((item) => item.platformId)
       .filter((id): id is string => Boolean(id));
@@ -418,10 +451,20 @@ export function Composer({
       }
       if (!isAttachmentReadyForSend(row)) {
         setAttachmentError(
-          `${row.filename} is still uploading or parsing. Wait before sending.`,
+          `${row.filename} could not be parsed. Remove it or retry parse before sending.`,
         );
         return;
       }
+    }
+
+    const docsAwaitingUpload = attachments.filter(
+      (item) => !isImageMime(item.mediaType) && !item.platformId,
+    );
+    if (docsAwaitingUpload.length > 0 && !canUpload) {
+      setAttachmentError(
+        "Start the chat session before sending document attachments.",
+      );
+      return;
     }
 
     await onSend({ text: value, attachments, attachmentIds });
@@ -462,6 +505,20 @@ export function Composer({
   function handleDragOver(e: DragEvent<HTMLFormElement>) {
     e.preventDefault();
   }
+
+  const handleRetryParse = useCallback(
+    async (attachment: ChatAttachmentPublic) => {
+      const cid = effectiveChatId ?? attachment.chatId;
+      if (!cid) return;
+      const updated = await retryChatAttachmentParse(cid, attachment.id);
+      setLibraryAttachments((prev) => {
+        const without = prev.filter((row) => row.id !== updated.id);
+        return [updated, ...without];
+      });
+      setParseDrawerAttachment(updated);
+    },
+    [effectiveChatId],
+  );
 
   function removeAttachment(id: string) {
     const target = attachmentsRef.current.find((item) => item.id === id);
@@ -585,6 +642,7 @@ export function Composer({
           attachments={attachments}
           libraryById={libraryById}
           onRemove={removeAttachment}
+          onChipClick={(row) => setParseDrawerAttachment(row)}
         />
         {attachmentError ? (
           <p className="composer-attachment-error" role="alert">
@@ -683,6 +741,11 @@ export function Composer({
           </div>
         </div>
       </div>
+      <AttachmentParseDrawer
+        attachment={parseDrawerAttachment}
+        onClose={() => setParseDrawerAttachment(null)}
+        onRetry={effectiveChatId ? handleRetryParse : undefined}
+      />
     </form>
   );
 }

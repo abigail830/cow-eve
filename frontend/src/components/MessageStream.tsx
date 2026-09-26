@@ -1,8 +1,19 @@
+import { useEffect, useMemo, useState } from "react";
 import type { EveMessage, EveMessagePart } from "eve/react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { resolveArtifactToolPart } from "@fde/artifact-ui";
 import { ChevronRight, FileText, ImageIcon } from "lucide-react";
 import { formatBytes, isImageMime } from "../lib/attachments";
+import {
+  fetchMentionAttachments,
+  type ChatAttachmentPublic,
+} from "../lib/attachmentUpload";
+import type { UserMessageAttachmentHint } from "../lib/sentMessageAttachments";
+import {
+  attachmentIdsFromMessageParts,
+  collapseUserClientContextMessages,
+  userVisibleTextFromParts,
+} from "../lib/userMessageAttachments";
 import { MarkdownContent } from "./MarkdownContent";
 import { StreamingIndicator } from "./StreamingIndicator";
 import "./MessageStream.css";
@@ -13,6 +24,11 @@ type Props = {
   apiBase: string;
   token?: string | null;
   chatId?: string | null;
+  eveSessionId?: string | null;
+  userMessageAttachmentHints?: ReadonlyMap<
+    string,
+    readonly UserMessageAttachmentHint[]
+  >;
   previewArtifactId?: string | null;
   onPreviewArtifact?: (spec: ArtifactSpec) => void;
 };
@@ -130,15 +146,68 @@ function PartView({
   return null;
 }
 
+function UserAttachmentChip({
+  filename,
+  sizeBytes,
+}: {
+  filename: string;
+  sizeBytes?: number;
+}) {
+  return (
+    <span className="msg-user-attachment-chip" title={filename}>
+      <FileText size={14} strokeWidth={2} aria-hidden />
+      <span className="msg-user-attachment-name">{filename}</span>
+      {sizeBytes != null ? (
+        <span className="msg-file-size">{formatBytes(sizeBytes)}</span>
+      ) : null}
+    </span>
+  );
+}
+
 export function MessageStream({
   messages,
   streaming = false,
   apiBase,
   token,
   chatId,
+  eveSessionId = null,
+  userMessageAttachmentHints,
   previewArtifactId,
   onPreviewArtifact,
 }: Props) {
+  const [libraryAttachments, setLibraryAttachments] = useState<
+    ChatAttachmentPublic[]
+  >([]);
+
+  useEffect(() => {
+    if (!token || (!chatId && !eveSessionId)) {
+      setLibraryAttachments([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchMentionAttachments({ chatId, eveSessionId })
+      .then((items) => {
+        if (!cancelled) setLibraryAttachments(items);
+      })
+      .catch(() => {
+        if (!cancelled) setLibraryAttachments([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chatId, eveSessionId, messages.length, token]);
+
+  const libraryById = useMemo(() => {
+    const map = new Map<string, ChatAttachmentPublic>();
+    for (const row of libraryAttachments) map.set(row.id, row);
+    return map;
+  }, [libraryAttachments]);
+
+  const displayMessages = useMemo(
+    () => collapseUserClientContextMessages(messages),
+    [messages],
+  );
+
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
   const streamingOnAssistant =
     streaming && lastMessage?.role === "assistant";
@@ -155,55 +224,94 @@ export function MessageStream({
 
   return (
     <div className="msg-stream">
-      {messages.map((msg, index) => {
+      {displayMessages.map(({ message: msg, extraAttachmentIds }, index) => {
         const isLastAssistant =
-          streamingOnAssistant && index === messages.length - 1;
+          streamingOnAssistant && index === displayMessages.length - 1;
 
-        return (
-          <div key={msg.id} className={`msg-row ${msg.role}`}>
-            {msg.role === "user" ? (
+        if (msg.role === "user") {
+          const fileParts = msg.parts.filter((p) => p.type === "file");
+          const contextIds = [
+            ...attachmentIdsFromMessageParts(msg.parts),
+            ...extraAttachmentIds,
+          ];
+          const seenFileLabels = new Set(
+            fileParts.map((p) =>
+              p.type === "file" ? (p.filename ?? "").toLowerCase() : "",
+            ),
+          );
+          const hinted = userMessageAttachmentHints?.get(msg.id) ?? [];
+          const hintedIds = new Set(hinted.map((row) => row.attachmentId));
+
+          const contextChips = contextIds
+            .map((id) => libraryById.get(id))
+            .filter((row): row is ChatAttachmentPublic => Boolean(row))
+            .filter((row) => !seenFileLabels.has(row.filename.toLowerCase()))
+            .filter((row) => !hintedIds.has(row.id));
+
+          const hintChips = hinted.filter(
+            (row) => !seenFileLabels.has(row.filename.toLowerCase()),
+          );
+
+          const visibleText = userVisibleTextFromParts(msg.parts);
+          const showAttachments =
+            fileParts.length > 0 ||
+            contextChips.length > 0 ||
+            hintChips.length > 0;
+
+          return (
+            <div key={msg.id} className="msg-row user">
               <div className="msg-bubble user">
-                {msg.parts.some((p) => p.type === "file") ? (
+                {showAttachments ? (
                   <div className="msg-user-attachments">
-                    {msg.parts
-                      .filter((p) => p.type === "file")
-                      .map((part, i) => (
-                        <PartView
-                          key={`file-${i}`}
-                          part={part}
-                          apiBase={apiBase}
-                          token={token}
-                          chatId={chatId}
-                          previewArtifactId={previewArtifactId}
-                          onPreviewArtifact={onPreviewArtifact}
-                        />
-                      ))}
+                    {fileParts.map((part, i) => (
+                      <PartView
+                        key={`file-${i}`}
+                        part={part}
+                        apiBase={apiBase}
+                        token={token}
+                        chatId={chatId}
+                        previewArtifactId={previewArtifactId}
+                        onPreviewArtifact={onPreviewArtifact}
+                      />
+                    ))}
+                    {hintChips.map((row) => (
+                      <UserAttachmentChip
+                        key={row.attachmentId}
+                        filename={row.filename}
+                        sizeBytes={row.sizeBytes}
+                      />
+                    ))}
+                    {contextChips.map((row) => (
+                      <UserAttachmentChip
+                        key={row.id}
+                        filename={row.filename}
+                        sizeBytes={row.sizeBytes}
+                      />
+                    ))}
                   </div>
                 ) : null}
-                {msg.parts
-                  .filter((p) => p.type === "text")
-                  .map((p, i) =>
-                    "text" in p ? (
-                      <MarkdownContent key={i} text={p.text} />
-                    ) : null,
-                  )}
+                {visibleText ? <MarkdownContent text={visibleText} /> : null}
               </div>
-            ) : (
-              <div className="msg-assistant">
-                {msg.parts.map((part, i) => (
-                  <PartView
-                    key={i}
-                    part={part}
-                    apiBase={apiBase}
-                    token={token}
-                    chatId={chatId}
-                    previewArtifactId={previewArtifactId}
-                    onPreviewArtifact={onPreviewArtifact}
-                  />
-                ))}
-                {isLastAssistant ? <StreamingIndicator /> : null}
-              </div>
-            )}
+            </div>
+          );
+        }
+
+        return (
+          <div key={msg.id} className="msg-row assistant">
+            <div className="msg-assistant">
+              {msg.parts.map((part, i) => (
+                <PartView
+                  key={i}
+                  part={part}
+                  apiBase={apiBase}
+                  token={token}
+                  chatId={chatId}
+                  previewArtifactId={previewArtifactId}
+                  onPreviewArtifact={onPreviewArtifact}
+                />
+              ))}
+              {isLastAssistant ? <StreamingIndicator /> : null}
+            </div>
           </div>
         );
       })}

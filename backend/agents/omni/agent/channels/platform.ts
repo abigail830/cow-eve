@@ -798,7 +798,15 @@ export default defineChannel({
         );
       }
 
-      return json({ ok: true, attachment: result.attachment }, 201, request);
+      return json(
+        {
+          ok: true,
+          attachment: result.attachment,
+          ...(result.error ? { warning: result.error } : {}),
+        },
+        201,
+        request,
+      );
     }),
 
     GET("/api/chats/:id/attachments", async (request, { params }) => {

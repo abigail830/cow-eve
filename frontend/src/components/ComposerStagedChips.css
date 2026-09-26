@@ -8,14 +8,41 @@
 .composer-staged-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   max-width: 100%;
-  padding: 4px 8px;
+  padding: 2px 4px 2px 2px;
   border-radius: 999px;
   background: #fff7f0;
   border: 1px solid #f5c9a8;
   color: #555;
   font-size: var(--chat-font-size);
+}
+
+.composer-staged-chip-clickable {
+  cursor: pointer;
+}
+
+.composer-staged-chip-clickable:hover {
+  border-color: #f27a2a;
+  background: #fff3eb;
+}
+
+.composer-staged-chip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 2px 4px;
+  cursor: inherit;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.composer-staged-chip-main:disabled {
+  cursor: default;
 }
 
 .composer-staged-name {

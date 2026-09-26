@@ -56,8 +56,22 @@ export default defineSandbox({
   async onSession({ use }) {
     const sandbox = await use();
     await sandbox.run({
-      command:
-        "mkdir -p /workspace/content-studio && ln -sfn /workspace/skills /workspace/content-studio/skills 2>/dev/null || true",
+      command: [
+        "set -e",
+        "mkdir -p /workspace/content-studio",
+        // Eve materializes packaged skills under $HOME/.agents/skills (includes docx/themes/).
+        // E2B template okf-content-studio may only bake scripts under /workspace/skills — prefer .agents.
+        'if [ -d "$HOME/.agents/skills" ]; then',
+        '  ln -sfn "$HOME/.agents/skills" /workspace/skills',
+        '  ln -sfn "$HOME/.agents/skills" /workspace/content-studio/skills',
+        "elif [ -d /workspace/skills ]; then",
+        "  ln -sfn /workspace/skills /workspace/content-studio/skills",
+        "fi",
+        // Template home layout: /home/user/content-studio/skills → same tree when present.
+        'if [ -d /home/user/content-studio/skills ] && [ ! -d "$HOME/.agents/skills" ]; then',
+        "  ln -sfn /home/user/content-studio/skills /workspace/content-studio/skills 2>/dev/null || true",
+        "fi",
+      ].join("\n"),
     });
   },
 });

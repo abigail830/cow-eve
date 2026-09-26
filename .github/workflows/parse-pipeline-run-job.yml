@@ -1,0 +1,201 @@
+name: parse-pipeline run job
+
+run-name: platform-parse-${{ inputs.platform_job_id || inputs.job_id || github.run_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      pipeline_id:
+        description: "Pipeline ID (text_standard | sheet_standard | pdf_standard | office_standard | document_mind_generic | audio_transcription_standard)"
+        required: true
+        default: text_standard
+        type: choice
+        options:
+          - text_standard
+          - sheet_standard
+          - pdf_standard
+          - office_standard
+          - document_mind_generic
+          - audio_transcription_standard
+      source_repo_path:
+        description: "Repo-relative path to source file. Ignored when source_url is set."
+        required: false
+        default: parse-pipeline/tests/fixtures/sample.md
+        type: string
+      source_url:
+        description: "Optional HTTPS presigned URL to source file (for PDF/Office not in repo). Overrides source_repo_path when set."
+        required: false
+        type: string
+      filename:
+        description: "Override filename hint for parser (default from path/URL)"
+        required: false
+        type: string
+      job_id:
+        description: "Optional job_id (auto-generated if empty)"
+        required: false
+        type: string
+      idempotency_key:
+        description: "Optional idempotency key"
+        required: false
+        type: string
+      platform_job_id:
+        description: "Platform-driven job id (from cow-eve attachment upload)"
+        required: false
+        type: string
+      platform_run_token:
+        description: "Platform run token for GET /internal/parse/v1/run/{job_id}"
+        required: false
+        type: string
+      platform_base_url:
+        description: "Platform public base URL (PARSE_PIPELINE_PUBLIC_BASE_URL)"
+        required: false
+        type: string
+
+env:
+  JOB_STORE: memory
+  DOCUMENT_MIND_ENDPOINT: docmind-api.cn-hangzhou.aliyuncs.com
+  DOCUMENT_MIND_LLM_ENHANCEMENT: "true"
+  DOCUMENT_MIND_ENHANCEMENT_MODE: VLM
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: parse-pipeline/pyproject.toml
+
+      - name: Install parse-pipeline
+        working-directory: parse-pipeline
+        run: pip install -e .
+
+      - name: Fetch job payload from platform
+        id: platform_fetch
+        if: inputs.platform_job_id != '' && inputs.platform_run_token != '' && inputs.platform_base_url != ''
+        env:
+          PLATFORM_JOB_ID: ${{ inputs.platform_job_id }}
+          PLATFORM_RUN_TOKEN: ${{ inputs.platform_run_token }}
+          PLATFORM_BASE_URL: ${{ inputs.platform_base_url }}
+          JOB_JSON: ${{ runner.temp }}/job.json
+        run: |
+          set -euo pipefail
+          url="${PLATFORM_BASE_URL%/}/internal/parse/v1/run/${PLATFORM_JOB_ID}"
+          http_code="$(curl -sS -o "$JOB_JSON" -w "%{http_code}" \
+            -H "Authorization: Bearer ${PLATFORM_RUN_TOKEN}" \
+            -H "Accept: application/json" \
+            "$url")"
+          if [ "$http_code" != "200" ]; then
+            echo "Platform fetch failed HTTP ${http_code} from ${url}" >&2
+            head -c 400 "$JOB_JSON" >&2 || true
+            echo >&2
+            exit 1
+          fi
+          test -s "$JOB_JSON"
+          python -c "import json; d=json.load(open('$JOB_JSON')); assert isinstance(d, dict) and d.get('job_id')"
+          echo "job_json=$JOB_JSON" >> "$GITHUB_OUTPUT"
+          echo "mode=platform" >> "$GITHUB_OUTPUT"
+
+      - name: Build job payload
+        id: build
+        if: inputs.platform_job_id == '' || inputs.platform_run_token == '' || inputs.platform_base_url == ''
+        env:
+          PIPELINE_ID: ${{ inputs.pipeline_id }}
+          SOURCE_REPO_PATH: ${{ inputs.source_repo_path }}
+          SOURCE_URL: ${{ inputs.source_url }}
+          FILENAME: ${{ inputs.filename }}
+          JOB_ID: ${{ inputs.job_id }}
+          IDEMPOTENCY_KEY: ${{ inputs.idempotency_key }}
+          WEBHOOK_URL: ${{ secrets.PARSE_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.PARSE_WEBHOOK_SECRET }}
+          ARTIFACTS_DIR: ${{ runner.temp }}/parse-artifacts
+          JOB_JSON: ${{ runner.temp }}/job.json
+        run: |
+          set -euo pipefail
+          DEFAULT_SOURCE="parse-pipeline/tests/fixtures/sample.md"
+          ARGS=(
+            --pipeline-id "$PIPELINE_ID"
+            --out-dir "$ARTIFACTS_DIR"
+            --output "$JOB_JSON"
+          )
+          if [ -n "${SOURCE_URL:-}" ]; then
+            ARGS+=(--source-url "$SOURCE_URL")
+          elif [ -n "${SOURCE_REPO_PATH:-}" ]; then
+            ARGS+=(--source-path "${GITHUB_WORKSPACE}/${SOURCE_REPO_PATH}")
+          elif [ -f "${GITHUB_WORKSPACE}/${DEFAULT_SOURCE}" ]; then
+            echo "Using default source: ${DEFAULT_SOURCE}"
+            ARGS+=(--source-path "${GITHUB_WORKSPACE}/${DEFAULT_SOURCE}")
+          else
+            echo "Set source_repo_path or source_url"
+            exit 1
+          fi
+          if [ -n "${FILENAME:-}" ]; then ARGS+=(--filename "$FILENAME"); fi
+          if [ -n "${JOB_ID:-}" ]; then ARGS+=(--job-id "$JOB_ID"); fi
+          if [ -n "${IDEMPOTENCY_KEY:-}" ]; then ARGS+=(--idempotency-key "$IDEMPOTENCY_KEY"); fi
+          if [ -n "${WEBHOOK_URL:-}" ] && [ -n "${WEBHOOK_SECRET:-}" ]; then
+            ARGS+=(--webhook-url "$WEBHOOK_URL" --webhook-secret "$WEBHOOK_SECRET")
+          fi
+          python -m parse_pipeline.gha.build_job "${ARGS[@]}"
+          echo "artifacts_dir=$ARTIFACTS_DIR" >> "$GITHUB_OUTPUT"
+          echo "job_json=$JOB_JSON" >> "$GITHUB_OUTPUT"
+          echo "mode=fixture" >> "$GITHUB_OUTPUT"
+
+      - name: Validate job payload
+        if: always() && (steps.platform_fetch.outcome == 'success' || steps.build.outcome == 'success')
+        env:
+          JOB_JSON: ${{ runner.temp }}/job.json
+        run: |
+          set -euo pipefail
+          test -s "$JOB_JSON"
+          python -c "import json; json.load(open('$JOB_JSON'))"
+
+      - name: Run parse job
+        if: steps.platform_fetch.outcome == 'success' || steps.build.outcome == 'success'
+        env:
+          DOCUMENT_MIND_ACCESS_KEY_ID: ${{ secrets.DOCUMENT_MIND_ACCESS_KEY_ID }}
+          DOCUMENT_MIND_ACCESS_KEY_SECRET: ${{ secrets.DOCUMENT_MIND_ACCESS_KEY_SECRET }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          JOB_JSON: ${{ runner.temp }}/job.json
+        run: parse-pipeline run-job --job-file "$JOB_JSON" --caller-id gha
+
+      - name: Upload parse artifacts
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: parse-pipeline-artifacts-${{ github.run_id }}
+          path: ${{ steps.build.outputs.artifacts_dir }}
+          if-no-files-found: warn
+
+      - name: Upload job JSON
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: parse-pipeline-job-json-${{ github.run_id }}
+          path: ${{ steps.build.outputs.job_json }}
+
+      - name: Report failure to platform
+        if: failure() && inputs.platform_job_id != '' && inputs.platform_run_token != '' && inputs.platform_base_url != ''
+        env:
+          PLATFORM_JOB_ID: ${{ inputs.platform_job_id }}
+          PLATFORM_RUN_TOKEN: ${{ inputs.platform_run_token }}
+          PLATFORM_BASE_URL: ${{ inputs.platform_base_url }}
+        run: |
+          set -euo pipefail
+          payload="{\"status\":\"failed\",\"error\":{\"code\":\"GHA_FAILED\",\"message\":\"GitHub Actions workflow failed (${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\"}}"
+          url="${PLATFORM_BASE_URL%/}/internal/parse/v1/run/${PLATFORM_JOB_ID}/status"
+          for attempt in 1 2 3; do
+            if curl -fsS -X POST \
+              -H "Authorization: Bearer ${PLATFORM_RUN_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "$payload" \
+              "$url"; then
+              exit 0
+            fi
+            sleep "$attempt"
+          done
+          echo "Failed to notify platform after 3 attempts" >&2
+          exit 0
