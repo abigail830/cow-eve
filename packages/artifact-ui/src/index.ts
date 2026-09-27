@@ -4,6 +4,10 @@ export { HtmlArtifactCard, DeckArtifactCard } from "./HtmlArtifactCard";
 export { WordArtifactCard } from "./WordArtifactCard";
 export { PptArtifactCard } from "./PptArtifactCard";
 export { MarkdownArtifactCard } from "./MarkdownArtifactCard";
+export {
+  ArtifactActionGroup,
+  InlineArtifactCardShell,
+} from "./InlineArtifactCardShell";
 export { SlideDeckArtifactCard } from "./SlideDeckArtifactCard";
 export { DiagramArtifactCard } from "./DiagramArtifactCard";
 export { ContentDocumentArtifactCard } from "./ContentDocumentArtifactCard";

@@ -12,9 +12,7 @@ import "./AudioCapture.css";
 
 type Props = {
   capture: AudioCapturePublic;
-  chatId: string;
   uploadTarget: AudioCaptureTarget;
-  busy?: boolean;
   onCaptureChange: (capture: AudioCapturePublic) => void;
   onStart: () => void | Promise<void>;
   onClose: () => void;
@@ -22,9 +20,7 @@ type Props = {
 
 export function AudioCaptureInputCard({
   capture,
-  chatId,
   uploadTarget,
-  busy = false,
   onCaptureChange,
   onStart,
   onClose,
@@ -33,8 +29,11 @@ export function AudioCaptureInputCard({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const canUpload =
+    Boolean(uploadTarget.chatId || uploadTarget.eveSessionId);
+
   async function handleFiles(list: FileList | null) {
-    if (!list?.length || busy) return;
+    if (!list?.length || !canUpload) return;
     setError(null);
     setUploading(true);
     try {
@@ -54,12 +53,7 @@ export function AudioCaptureInputCard({
           );
           break;
         }
-        current = await uploadAudioCapturePart(
-          chatId,
-          current.id,
-          file,
-          uploadTarget,
-        );
+        current = await uploadAudioCapturePart(current, file, uploadTarget);
         onCaptureChange(current);
       }
     } catch (err) {
@@ -71,15 +65,18 @@ export function AudioCaptureInputCard({
   }
 
   const canStart =
-    !busy && !uploading && capture.parts.length > 0 && capture.status === "draft";
+    !uploading &&
+    Boolean(capture.chatId) &&
+    capture.parts.length > 0 &&
+    capture.status === "draft";
 
   return (
     <div className="audio-capture-card" role="region" aria-label="Audio transcript capture">
       <div className="audio-capture-card-header">
         <div>
-          <h4 className="audio-capture-card-title">Audio transcript capture</h4>
+          <h4 className="audio-capture-card-title">Audio transcript</h4>
           <p className="audio-capture-card-sub">
-            Add one or more recordings. They will be merged into a single transcript.
+            Add recordings, then start transcription. Results appear above as a transcript card.
           </p>
         </div>
         <button
@@ -117,7 +114,7 @@ export function AudioCaptureInputCard({
       <div className="audio-capture-actions">
         <button
           type="button"
-          disabled={busy || uploading}
+          disabled={!canUpload || uploading}
           onClick={() => inputRef.current?.click()}
         >
           {uploading ? (
@@ -136,7 +133,7 @@ export function AudioCaptureInputCard({
           disabled={!canStart}
           onClick={() => void onStart()}
         >
-          Start transcription
+          Start transcript
         </button>
       </div>
       {error ? (

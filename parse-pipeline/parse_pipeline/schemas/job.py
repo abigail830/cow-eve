@@ -55,6 +55,18 @@ class JobOptions(BaseModel):
     asr: AsrOptions = Field(default_factory=AsrOptions)
 
 
+class AudioCapturePartSource(BaseModel):
+    attachment_id: str
+    filename: str = ""
+    sort_order: int = 0
+
+
+class AudioCaptureSourceBlock(BaseModel):
+    capture_id: str = ""
+    title: str = ""
+    parts: list[AudioCapturePartSource] = Field(default_factory=list)
+
+
 class JobSource(BaseModel):
     source_type: str = "unknown"
     source_id: str | None = None
@@ -63,6 +75,7 @@ class JobSource(BaseModel):
     mime_type: str | None = None
     size_bytes: int | None = None
     content_hash: str | None = None
+    capture: AudioCaptureSourceBlock | None = None
 
 
 class JobCallbacks(BaseModel):

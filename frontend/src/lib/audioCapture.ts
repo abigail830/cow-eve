@@ -30,6 +30,28 @@ export type AudioCaptureTarget = {
   agentId: string;
 };
 
+const CLIENT_CAPTURE_PREFIX = "local-";
+
+export function isClientOnlyAudioCapture(capture: AudioCapturePublic): boolean {
+  return capture.id.startsWith(CLIENT_CAPTURE_PREFIX);
+}
+
+/** Composer-only draft — no API until the user adds audio. */
+export function createLocalAudioCaptureDraft(title: string): AudioCapturePublic {
+  const now = new Date().toISOString();
+  return {
+    id: `${CLIENT_CAPTURE_PREFIX}${crypto.randomUUID()}`,
+    chatId: "",
+    title: title.trim() || "Audio transcript",
+    status: "draft",
+    outputAttachmentId: "",
+    outputAttachment: null,
+    parts: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 async function captureFetch(
   path: string,
   init?: RequestInit,
@@ -89,11 +111,18 @@ export async function createAudioCaptureDraft(
 }
 
 export async function uploadAudioCapturePart(
-  chatId: string,
-  captureId: string,
+  capture: AudioCapturePublic,
   file: File,
   target: AudioCaptureTarget,
 ): Promise<AudioCapturePublic> {
+  let serverCapture = capture;
+  if (isClientOnlyAudioCapture(capture)) {
+    serverCapture = await createAudioCaptureDraft(target, capture.title);
+  }
+
+  const chatId = serverCapture.chatId;
+  const captureId = serverCapture.id;
+
   const bytes = new Uint8Array(await file.arrayBuffer());
   const meta = fileToAttachmentMeta(file);
   const prepared: PreparedAttachment = {

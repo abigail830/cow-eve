@@ -47,6 +47,10 @@ export function isHtmlArtifact(spec: ArtifactSpec): boolean {
   return format === "html" || name.endsWith(".html");
 }
 
+export function isAudioTranscriptArtifact(spec: ArtifactSpec): boolean {
+  return spec.source === "audio_transcript";
+}
+
 export function isMarkdownPreviewable(spec: ArtifactSpec): boolean {
   if (!isContentDocumentArtifact(spec)) return false;
   const format = contentFormat(spec);

@@ -22,6 +22,9 @@ import {
   collapseUserClientContextMessages,
   userVisibleTextFromParts,
 } from "../lib/userMessageAttachments";
+import type { AudioCapturePublic } from "../lib/audioCapture";
+import { AudioCaptureUserBubble } from "./AudioCaptureUserBubble";
+import { AudioTranscriptResultCard } from "./AudioTranscriptResultCard";
 import { MarkdownContent } from "./MarkdownContent";
 import { StreamingIndicator } from "./StreamingIndicator";
 import "./MessageStream.css";
@@ -39,6 +42,9 @@ type Props = {
   >;
   previewArtifactId?: string | null;
   onPreviewArtifact?: (spec: ArtifactSpec) => void;
+  audioCaptures?: readonly AudioCapturePublic[];
+  onRetryAudioCapture?: (chatId: string, captureId: string) => void | Promise<void>;
+  onOpenAttachmentPipeline?: (attachment: ChatAttachmentPublic) => void;
 };
 
 function StepChevron() {
@@ -214,6 +220,9 @@ export function MessageStream({
   userMessageAttachmentHints,
   previewArtifactId,
   onPreviewArtifact,
+  audioCaptures = [],
+  onRetryAudioCapture,
+  onOpenAttachmentPipeline,
 }: Props) {
   const [libraryAttachments, setLibraryAttachments] = useState<
     ChatAttachmentPublic[]
@@ -278,7 +287,9 @@ export function MessageStream({
   const streamingPending =
     streaming && (!lastMessage || lastMessage.role === "user");
 
-  if (messages.length === 0 && !streaming) {
+  const hasAudioTurns = audioCaptures.length > 0;
+
+  if (messages.length === 0 && !streaming && !hasAudioTurns) {
     return (
       <div className="msg-empty">
         Send a message to start collaborating with this agent.
@@ -381,6 +392,32 @@ export function MessageStream({
           </div>
         );
       })}
+      {audioCaptures.map((capture) => (
+        <div key={capture.id} className="msg-audio-capture-turn">
+          <div className="msg-row user">
+            <div className="msg-bubble user">
+              <AudioCaptureUserBubble capture={capture} />
+            </div>
+          </div>
+          <div className="msg-row assistant">
+            <div className="msg-assistant">
+              <div className="msg-artifact">
+                <AudioTranscriptResultCard
+                  capture={capture}
+                  chatId={capture.chatId}
+                  onOpenPipeline={onOpenAttachmentPipeline}
+                  onPreviewArtifact={onPreviewArtifact}
+                  onRetry={
+                    onRetryAudioCapture
+                      ? () => onRetryAudioCapture(capture.chatId, capture.id)
+                      : undefined
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
       {streamingPending ? (
         <div className="msg-row assistant">
           <div className="msg-assistant">

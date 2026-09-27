@@ -15,7 +15,6 @@ import {
 } from "../../infrastructure/persistence/audio/drizzle-audio-capture.repository.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import { drizzleChatRepository } from "../../infrastructure/persistence/chat/drizzle-chat.repository.js";
-import { putAttachmentBytes } from "../../infrastructure/attachment/attachment-storage.js";
 import { uploadChatAttachmentForUser } from "./chat-attachment.use-case.js";
 import { enqueueAudioCaptureParseJob } from "./audio-capture-parse.use-case.js";
 
@@ -122,21 +121,14 @@ export async function createAudioCaptureDraft(input: {
   const filename = `${slug}-${Date.now().toString(36)}.md`;
   const attachmentId = crypto.randomUUID();
   const storageKey = `${attachmentId}/${filename}`;
-  const placeholder = `# ${title}\n\n_Transcription pending…_\n`;
-
   try {
-    await putAttachmentBytes(
-      chat.id,
-      storageKey,
-      new TextEncoder().encode(placeholder),
-      "text/markdown",
-    );
+    // Output bytes are written when parse completes; skip blob I/O on draft open.
     const output = await drizzleChatAttachmentRepository.createWithId({
       id: attachmentId,
       chatId: chat.id,
       filename,
       mediaType: "text/markdown",
-      sizeBytes: placeholder.length,
+      sizeBytes: 0,
       storageKey,
       contentHash: null,
     });

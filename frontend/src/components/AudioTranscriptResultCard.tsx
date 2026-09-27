@@ -1,4 +1,9 @@
 import { useState } from "react";
+import type { ArtifactSpec } from "@fde/artifact-spec";
+import {
+  ArtifactActionGroup,
+  InlineArtifactCardShell,
+} from "@fde/artifact-ui";
 import { Download, Eye, GitBranch, Loader2, RotateCcw } from "lucide-react";
 import type { ChatAttachmentPublic } from "../lib/attachmentUpload";
 import {
@@ -11,25 +16,44 @@ import {
   type AudioCapturePublic,
 } from "../lib/audioCapture";
 import { getToken } from "../lib/session";
-import { AudioTranscriptIcon } from "./AudioTranscriptIcon";
-import "./AudioCapture.css";
 
 type Props = {
   capture: AudioCapturePublic;
   chatId: string;
   onOpenPipeline?: (attachment: ChatAttachmentPublic) => void;
+  onPreviewArtifact?: (spec: ArtifactSpec) => void;
   onRetry?: () => void | Promise<void>;
 };
+
+function asyncSubtitle(
+  capture: AudioCapturePublic,
+  busy: boolean,
+  failed: boolean,
+): string {
+  if (busy) {
+    return "Transcribing in the background — you can keep chatting";
+  }
+  if (failed) {
+    const detail = capture.outputAttachment?.parseErrorMessage?.trim();
+    return detail ? `Transcription failed: ${detail}` : "Transcription failed";
+  }
+  const output = capture.outputAttachment;
+  if (output) {
+    return parseStatusLabel(output) === "Ready"
+      ? "Transcript ready"
+      : parseStatusLabel(output);
+  }
+  return capture.status;
+}
 
 export function AudioTranscriptResultCard({
   capture,
   chatId,
   onOpenPipeline,
+  onPreviewArtifact,
   onRetry,
 }: Props) {
-  const [preview, setPreview] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
 
   const output = capture.outputAttachment;
@@ -41,24 +65,33 @@ export function AudioTranscriptResultCard({
     parseStatus === "pending" ||
     parseStatus === "running";
 
+  const spec: ArtifactSpec = {
+    kind: "content_document",
+    title: capture.title,
+    format: "markdown",
+    content: "",
+    filename: output?.filename ?? `${capture.title}.md`,
+    artifact_id: capture.outputAttachmentId,
+    download_url: ready ? transcriptDownloadUrl(chatId, capture.id) : null,
+    source: "audio_transcript",
+  };
+
   async function handlePreview() {
-    if (preview) {
-      setPreview(null);
-      return;
-    }
+    if (!ready || previewLoading) return;
     setPreviewLoading(true);
-    setPreviewError(null);
     try {
       const text = await fetchTranscriptPreview(chatId, capture.id);
-      setPreview(text);
-    } catch (err) {
-      setPreviewError(err instanceof Error ? err.message : "Preview failed.");
+      onPreviewArtifact?.({
+        ...spec,
+        content: text,
+      });
     } finally {
       setPreviewLoading(false);
     }
   }
 
   async function handleDownload() {
+    if (!ready) return;
     const url = transcriptDownloadUrl(chatId, capture.id);
     const token = getToken();
     const res = await fetch(url, {
@@ -69,7 +102,7 @@ export function AudioTranscriptResultCard({
     const href = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = href;
-    a.download = output?.filename ?? `${capture.title}.md`;
+    a.download = spec.filename;
     a.click();
     URL.revokeObjectURL(href);
   }
@@ -84,64 +117,70 @@ export function AudioTranscriptResultCard({
     }
   }
 
-  const statusText = output
-    ? parseStatusLabel(output)
-    : busy
-      ? "Transcribing"
-      : capture.status;
-
   return (
-    <div className="audio-transcript-result-card" role="article">
-      <div className="audio-transcript-result-header">
-        <div className="audio-transcript-result-body" style={{ marginTop: 0 }}>
-          <AudioTranscriptIcon size={44} />
-          <div>
-            <h4 className="audio-transcript-result-title">{capture.title}</h4>
-            <p className="audio-transcript-result-sub">
-              {capture.parts.length} audio file{capture.parts.length === 1 ? "" : "s"} ·{" "}
-              {statusText}
-              {busy ? (
-                <>
-                  {" "}
-                  <Loader2
-                    size={12}
-                    className="parse-pipeline-node-spinner"
-                    aria-hidden
-                  />
-                </>
-              ) : null}
-            </p>
-          </div>
-        </div>
-        <div className="audio-transcript-result-actions">
+    <InlineArtifactCardShell
+      spec={spec}
+      coverKind="audio_transcript"
+      cardClassName="audio-transcript-artifact-card"
+      actionsAriaLabel="Audio transcript actions"
+      subtitle={asyncSubtitle(capture, busy, failed)}
+      actions={
+        <ArtifactActionGroup>
+          {busy ? (
+            <span className="audio-transcript-async-badge" role="status">
+              <Loader2 size={14} className="artifact-spin" aria-hidden />
+              Processing
+            </span>
+          ) : null}
           {output && onOpenPipeline ? (
-            <button type="button" onClick={() => onOpenPipeline(output)}>
-              <GitBranch size={14} /> Pipeline
+            <button
+              type="button"
+              className="artifact-inline-action-btn"
+              onClick={() => onOpenPipeline(output)}
+            >
+              <GitBranch size={14} />
+              <span>Pipeline</span>
             </button>
           ) : null}
           {failed && onRetry ? (
-            <button type="button" disabled={retrying} onClick={() => void handleRetry()}>
-              <RotateCcw size={14} /> {retrying ? "Retrying…" : "Retry"}
+            <button
+              type="button"
+              className="artifact-inline-action-btn"
+              disabled={retrying}
+              onClick={() => void handleRetry()}
+            >
+              <RotateCcw size={14} />
+              <span>{retrying ? "Retrying…" : "Retry"}</span>
             </button>
           ) : null}
           {ready ? (
             <>
-              <button type="button" disabled={previewLoading} onClick={() => void handlePreview()}>
-                <Eye size={14} /> {preview ? "Hide" : previewLoading ? "Loading…" : "Preview"}
+              <button
+                type="button"
+                className="artifact-inline-action-btn"
+                disabled={previewLoading}
+                onClick={() => void handlePreview()}
+              >
+                {previewLoading ? (
+                  <Loader2 size={14} className="artifact-spin" aria-hidden />
+                ) : (
+                  <Eye size={14} />
+                )}
+                <span>{previewLoading ? "Loading…" : "Preview"}</span>
               </button>
-              <button type="button" onClick={() => void handleDownload()}>
-                <Download size={14} /> Download
+              <span className="artifact-inline-action-divider" aria-hidden />
+              <button
+                type="button"
+                className="artifact-inline-action-btn"
+                onClick={() => void handleDownload()}
+              >
+                <Download size={14} />
+                <span>Download</span>
               </button>
             </>
           ) : null}
-        </div>
-      </div>
-      {previewError ? (
-        <p className="audio-capture-error" role="alert">
-          {previewError}
-        </p>
-      ) : null}
-      {preview ? <pre className="audio-transcript-preview">{preview}</pre> : null}
-    </div>
+        </ArtifactActionGroup>
+      }
+    />
   );
 }

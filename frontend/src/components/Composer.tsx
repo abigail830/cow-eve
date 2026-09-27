@@ -34,12 +34,10 @@ import {
   deleteChatAttachment,
   fetchMentionAttachments,
   mergeMentionAttachmentOptions,
-  retryChatAttachmentParse,
   uploadChatAttachment,
   type ChatAttachmentPublic,
 } from "../lib/attachmentUpload";
-import { AttachmentParseDrawer } from "./AttachmentParseDrawer";
-import { ComposerAudioSection } from "./ComposerAudioSection";
+import { useComposerAudioDraft } from "./ComposerAudioSection";
 import { ComposerAttachmentMention } from "./ComposerAttachmentMention";
 import { ComposerStagedChips } from "./ComposerStagedChips";
 import "./Composer.css";
@@ -65,6 +63,11 @@ type Props = {
   agentId: string;
   /** When false, attachments stay local-only (no platform library). */
   persistAttachments?: boolean;
+  parseDrawerAttachment?: ChatAttachmentPublic | null;
+  onParseDrawerAttachmentChange?: (
+    row: ChatAttachmentPublic | null | ((prev: ChatAttachmentPublic | null) => ChatAttachmentPublic | null),
+  ) => void;
+  onAudioCaptureActivity?: () => void;
   onSend: (payload: ComposerSendPayload) => void | Promise<void>;
   onStop: () => void;
 };
@@ -102,6 +105,9 @@ export function Composer({
   eveSessionId = null,
   agentId,
   persistAttachments = true,
+  parseDrawerAttachment: parseDrawerAttachmentProp = null,
+  onParseDrawerAttachmentChange,
+  onAudioCaptureActivity,
   onSend,
   onStop,
 }: Props) {
@@ -114,8 +120,13 @@ export function Composer({
     ChatAttachmentPublic[]
   >([]);
   const [libraryLoading, setLibraryLoading] = useState(false);
-  const [parseDrawerAttachment, setParseDrawerAttachment] =
+  const [parseDrawerAttachmentInternal, setParseDrawerAttachmentInternal] =
     useState<ChatAttachmentPublic | null>(null);
+  const parseDrawerAttachment =
+    onParseDrawerAttachmentChange !== undefined
+      ? parseDrawerAttachmentProp
+      : parseDrawerAttachmentInternal;
+  const setParseDrawerAttachment = onParseDrawerAttachmentChange ?? setParseDrawerAttachmentInternal;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isComposingRef = useRef(false);
@@ -124,6 +135,14 @@ export function Composer({
 
   const effectiveChatId =
     chatId ?? attachments.find((item) => item.platformChatId)?.platformChatId ?? null;
+
+  const audioDraft = useComposerAudioDraft({
+    chatId: effectiveChatId,
+    eveSessionId,
+    agentId,
+    disabled: disabled || resuming || preparingAttachments,
+    onCaptureActivity: onAudioCaptureActivity,
+  });
 
   const syncHeight = useCallback(() => {
     const el = textareaRef.current;
@@ -563,20 +582,6 @@ export function Composer({
     e.preventDefault();
   }
 
-  const handleRetryParse = useCallback(
-    async (attachment: ChatAttachmentPublic) => {
-      const cid = effectiveChatId ?? attachment.chatId;
-      if (!cid) return;
-      const updated = await retryChatAttachmentParse(cid, attachment.id);
-      setLibraryAttachments((prev) => {
-        const without = prev.filter((row) => row.id !== updated.id);
-        return [updated, ...without];
-      });
-      setParseDrawerAttachment(updated);
-    },
-    [effectiveChatId],
-  );
-
   function removeAttachment(id: string) {
     const target = attachmentsRef.current.find((item) => item.id === id);
     setAttachments((prev) => prev.filter((item) => item.id !== id));
@@ -687,14 +692,14 @@ export function Composer({
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
-      <ComposerAudioSection
-        chatId={effectiveChatId}
-        eveSessionId={eveSessionId}
-        agentId={agentId}
-        disabled={inputLocked}
-        onOpenPipeline={(row) => setParseDrawerAttachment(row)}
-      />
+      {audioDraft.transcriptToolbar}
       <div className="composer-box">
+        {audioDraft.draftCard}
+        {audioDraft.error ? (
+          <p className="audio-capture-error" role="alert">
+            {audioDraft.error}
+          </p>
+        ) : null}
         <ComposerAttachmentMention
           open={mention !== null}
           query={mention?.query ?? ""}
@@ -814,11 +819,6 @@ export function Composer({
           </div>
         </div>
       </div>
-      <AttachmentParseDrawer
-        attachment={parseDrawerAttachment}
-        onClose={() => setParseDrawerAttachment(null)}
-        onRetry={effectiveChatId ? handleRetryParse : undefined}
-      />
     </form>
   );
 }

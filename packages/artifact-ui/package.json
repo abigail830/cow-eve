@@ -13,7 +13,9 @@
   "dependencies": {
     "@fde/artifact-spec": "file:../artifact-spec",
     "@silurus/ooxml": "^0.87.0",
-    "lucide-react": "^1.47.0"
+    "lucide-react": "^1.47.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "peerDependencies": {
     "react": "^19.0.0",

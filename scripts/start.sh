@@ -27,7 +27,7 @@ start_omni() {
   start_service \
     "omni" \
     "${ROOT_DIR}/backend" \
-    "npm run dev:omni" \
+    "set -a && [ -f .env ] && . ./.env; set +a; npm run dev:omni" \
     "${OMNI_PORT}" \
     "http://127.0.0.1:${OMNI_PORT}/eve/v1/health"
 }

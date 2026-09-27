@@ -12,6 +12,8 @@ type Props = {
   cardClassName: string;
   actionsAriaLabel: string;
   actions: ReactNode;
+  /** When set, replaces the default format-based subtitle. */
+  subtitle?: string;
 };
 
 export function InlineArtifactCardShell({
@@ -20,6 +22,7 @@ export function InlineArtifactCardShell({
   cardClassName,
   actionsAriaLabel,
   actions,
+  subtitle,
 }: Props) {
   return (
     <div className={`artifact-inline-card ${cardClassName}`} aria-label={spec.title}>
@@ -28,7 +31,9 @@ export function InlineArtifactCardShell({
         <h4 className="artifact-inline-card-title" title={spec.title}>
           {spec.title}
         </h4>
-        <p className="artifact-inline-card-subtitle">{artifactCardSubtitle(spec)}</p>
+        <p className="artifact-inline-card-subtitle">
+          {subtitle ?? artifactCardSubtitle(spec)}
+        </p>
       </div>
       {actions ? (
         <div className={`artifact-inline-card-actions ${cardClassName}-actions`} role="toolbar" aria-label={actionsAriaLabel}>

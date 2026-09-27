@@ -32,7 +32,10 @@ async def create_job(
     store = get_job_store()
     if body.idempotency_key:
         existing = await store.get_by_idempotency(caller_id, body.idempotency_key)
-        if existing is not None:
+        if existing is not None and existing.status not in {
+            JobStatus.FAILED,
+            JobStatus.CANCELLED,
+        }:
             return SubmitJobResponse(job_id=existing.job_id, status=existing.status)
 
     job_id = (body.job_id or "").strip() or f"job_{uuid.uuid4().hex[:26]}"

@@ -5,6 +5,7 @@ import {
   isWordArtifact,
 } from "./artifactKinds";
 import { resolveArtifactUrls } from "./api";
+import { ArtifactMarkdownPreview } from "./ArtifactMarkdownPreview";
 import { HtmlPreviewFrame } from "./HtmlPreviewFrame";
 import { OoxmlPreview } from "./OoxmlPreview";
 
@@ -31,7 +32,12 @@ export function ArtifactPreviewContent({ spec, apiBase, token, chatId }: Props) 
   }
 
   if (isMarkdownPreviewable(spec) && spec.content) {
-    return <pre className="artifact-preview-markdown">{spec.content}</pre>;
+    return (
+      <ArtifactMarkdownPreview
+        markdown={spec.content}
+        className="artifact-preview-markdown"
+      />
+    );
   }
 
   if (spec.kind === "diagram_svg" && spec.content) {

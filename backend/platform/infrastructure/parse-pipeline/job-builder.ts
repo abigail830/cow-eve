@@ -36,7 +36,9 @@ export function buildJobPayload(
 ): { payload: Record<string, unknown>; runToken: string } {
   const publicBase = getParsePipelinePublicBaseUrl();
   if (!publicBase) {
-    throw new Error("PARSE_PIPELINE_PUBLIC_BASE_URL is required for parse dispatch");
+    throw new Error(
+      "PARSE_PIPELINE_PUBLIC_BASE_URL is required for parse dispatch (Omni/backend public origin, not the frontend SPA)",
+    );
   }
   const runToken = newRunToken();
   const storage = buildInternalStorageSpec({
@@ -102,7 +104,9 @@ export function buildAudioCaptureJobPayload(
 ): { payload: Record<string, unknown>; runToken: string } {
   const publicBase = getParsePipelinePublicBaseUrl();
   if (!publicBase) {
-    throw new Error("PARSE_PIPELINE_PUBLIC_BASE_URL is required for parse dispatch");
+    throw new Error(
+      "PARSE_PIPELINE_PUBLIC_BASE_URL is required for parse dispatch (Omni/backend public origin, not the frontend SPA)",
+    );
   }
   const runToken = newRunToken();
   const storage = buildInternalStorageSpec({
@@ -119,7 +123,8 @@ export function buildAudioCaptureJobPayload(
   const payload: Record<string, unknown> = {
     schema_version: "1.0",
     job_id: input.jobId,
-    idempotency_key: `audio_capture:${input.captureId}:${outputRow.id}`,
+    // Include jobId so retries enqueue a fresh worker run (parse service dedupes by idempotency_key).
+    idempotency_key: `audio_capture:${input.captureId}:${outputRow.id}:${input.jobId}`,
     pipeline_id: "audio_transcription_standard",
     storage,
     source: {

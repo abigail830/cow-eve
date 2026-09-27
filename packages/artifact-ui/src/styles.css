@@ -8,6 +8,7 @@
   --cover-diagram: oklch(0.84 0.08 330);
   --cover-pdf: oklch(0.82 0.1 25);
   --cover-markdown: oklch(0.86 0.02 260);
+  --cover-audio-transcript: oklch(0.82 0.12 52);
   --cover-generic: oklch(0.88 0.015 80);
   --cover-accent: var(--cover-generic);
 
@@ -73,6 +74,15 @@
 
 .artifact-cover.artifact-markdown {
   --cover-accent: var(--cover-markdown);
+}
+
+.artifact-cover.artifact-audio_transcript {
+  --cover-accent: var(--cover-audio-transcript);
+}
+
+.artifact-cover.artifact-audio_transcript .cover-dot {
+  fill: var(--cover-accent);
+  color: var(--cover-accent);
 }
 
 .artifact-cover.artifact-generic {
@@ -229,8 +239,81 @@
   box-sizing: border-box;
   font-size: 0.82rem;
   line-height: 1.5;
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+.artifact-preview-markdown pre {
+  margin: 0 0 0.75em;
+  padding: 12px 14px;
+  background: #fafafa;
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.artifact-markdown-preview > :first-child {
+  margin-top: 0;
+}
+
+.artifact-markdown-preview > :last-child {
+  margin-bottom: 0;
+}
+
+.artifact-markdown-preview p {
+  margin: 0 0 0.75em;
+}
+
+.artifact-markdown-preview h1,
+.artifact-markdown-preview h2,
+.artifact-markdown-preview h3,
+.artifact-markdown-preview h4 {
+  font-weight: 600;
+  margin: 1em 0 0.5em;
+  line-height: 1.35;
+}
+
+.artifact-markdown-preview h1 {
+  font-size: 1.15rem;
+}
+
+.artifact-markdown-preview h2 {
+  font-size: 1.05rem;
+}
+
+.artifact-markdown-preview h3,
+.artifact-markdown-preview h4 {
+  font-size: 0.95rem;
+}
+
+.artifact-markdown-preview ul,
+.artifact-markdown-preview ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.4em;
+}
+
+.artifact-markdown-preview li {
+  margin: 0.25em 0;
+}
+
+.artifact-markdown-preview strong {
+  font-weight: 600;
+}
+
+.artifact-markdown-preview code {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+  background: #f5f5f5;
+  border: 1px solid #ececec;
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+.artifact-markdown-preview blockquote {
+  margin: 0 0 0.75em;
+  padding-left: 0.75em;
+  border-left: 3px solid #e5e5e5;
+  color: #444;
 }
 
 .artifact-preview-diagram {

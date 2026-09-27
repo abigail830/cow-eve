@@ -1,5 +1,13 @@
+import { loadLocalBackendEnvOnce } from "./load-local-env.js";
+
+loadLocalBackendEnvOnce();
+
 function trimEnv(name: string): string {
   return (process.env[name] ?? "").trim();
+}
+
+function stripTrailingSlash(url: string): string {
+  return url.replace(/\/+$/, "");
 }
 
 export function getParsePipelineDispatchMode(): "auto" | "service" | "gha" | "inline" {
@@ -10,7 +18,15 @@ export function getParsePipelineDispatchMode(): "auto" | "service" | "gha" | "in
 }
 
 export function getParsePipelinePublicBaseUrl(): string {
-  return trimEnv("PARSE_PIPELINE_PUBLIC_BASE_URL");
+  const explicit = trimEnv("PARSE_PIPELINE_PUBLIC_BASE_URL");
+  if (explicit) return stripTrailingSlash(explicit);
+
+  const mode = getParsePipelineDispatchMode();
+  if (mode === "service" || mode === "inline") {
+    const port = trimEnv("OMNI_PORT") || trimEnv("PORT") || "2000";
+    return `http://127.0.0.1:${port}`;
+  }
+  return "";
 }
 
 export function getParsePipelineServiceUrl(): string {

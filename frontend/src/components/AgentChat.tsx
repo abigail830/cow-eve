@@ -33,7 +33,13 @@ import { API_URL, agentHost } from "../lib/config";
 import { fetchBoundSession, type BoundSession } from "../lib/load-chat-session";
 import { useAuth } from "../lib/auth";
 import { isImageMime, type PreparedAttachment } from "../lib/attachments";
-import { ensureAttachmentsUploaded } from "../lib/attachmentUpload";
+import {
+  ensureAttachmentsUploaded,
+  retryChatAttachmentParse,
+  type ChatAttachmentPublic,
+} from "../lib/attachmentUpload";
+import { useChatAudioCaptures } from "../hooks/useChatAudioCaptures";
+import { retryAudioCaptureTranscription } from "../lib/audioCapture";
 import {
   buildMessageContent,
   mergeAttachmentIdsForSend,
@@ -45,6 +51,7 @@ import {
   type UserMessageAttachmentHint,
 } from "../lib/sentMessageAttachments";
 import { userVisibleTextFromParts } from "../lib/userMessageAttachments";
+import { AttachmentParseDrawer } from "./AttachmentParseDrawer";
 import { Composer, type ComposerSendPayload } from "./Composer";
 import { IconButton } from "./IconButton";
 import { MemoryPanel } from "./MemoryPanel";
@@ -352,6 +359,9 @@ function AgentChatSession({
 }: SessionProps) {
   const isOmni = agent.id === "omni";
   const [previewArtifact, setPreviewArtifact] = useState<ArtifactSpec | null>(null);
+  const [parseDrawerAttachment, setParseDrawerAttachment] =
+    useState<ChatAttachmentPublic | null>(null);
+  const [audioCaptureRefreshKey, setAudioCaptureRefreshKey] = useState(0);
   const lastPreviewArtifactRef = useRef<ArtifactSpec | null>(null);
   if (previewArtifact) lastPreviewArtifactRef.current = previewArtifact;
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -438,6 +448,48 @@ function AgentChatSession({
   const uploadEveSessionId = useMemo(
     () => resolveUploadEveSessionId(session, events, knownEveSessionId),
     [events, knownEveSessionId, session],
+  );
+
+  const audioCaptureTarget = useMemo(
+    () => ({
+      chatId: activeChatId ?? bound.chatId,
+      eveSessionId: uploadEveSessionId,
+      agentId: agent.id,
+    }),
+    [activeChatId, agent.id, bound.chatId, uploadEveSessionId],
+  );
+
+  const { submittedCaptures, retryCapture } = useChatAudioCaptures({
+    target: audioCaptureTarget,
+    enabled: Boolean(token),
+    refreshKey: audioCaptureRefreshKey,
+  });
+
+  const handleRetryParseDrawer = useCallback(
+    async (attachment: ChatAttachmentPublic) => {
+      const cid = activeChatId ?? bound.chatId ?? attachment.chatId;
+      if (!cid) return;
+      if (attachment.parsePipelineId === "audio_transcription_standard") {
+        const capture = submittedCaptures.find(
+          (c) => c.outputAttachmentId === attachment.id,
+        );
+        if (capture) {
+          const updatedCapture = await retryAudioCaptureTranscription(
+            cid,
+            capture.id,
+          );
+          if (updatedCapture.outputAttachment) {
+            setParseDrawerAttachment(updatedCapture.outputAttachment);
+          }
+          setAudioCaptureRefreshKey((k) => k + 1);
+          return;
+        }
+      }
+      const updated = await retryChatAttachmentParse(cid, attachment.id);
+      setParseDrawerAttachment(updated);
+      setAudioCaptureRefreshKey((k) => k + 1);
+    },
+    [activeChatId, bound.chatId, submittedCaptures],
   );
 
   useEffect(() => {
@@ -806,6 +858,11 @@ function AgentChatSession({
                   userMessageAttachmentHints={userMessageAttachmentHints}
                   previewArtifactId={previewArtifact?.artifact_id ?? null}
                   onPreviewArtifact={handlePreviewArtifact}
+                  audioCaptures={submittedCaptures}
+                  onRetryAudioCapture={(cid, captureId) =>
+                    retryCapture(cid, captureId)
+                  }
+                  onOpenAttachmentPipeline={setParseDrawerAttachment}
                 />
                 {cancelling && isBusy ? (
                   <p className="chat-status" role="status">
@@ -831,11 +888,24 @@ function AgentChatSession({
             eveSessionId={uploadEveSessionId}
             agentId={agent.id}
             persistAttachments={Boolean(token)}
+            parseDrawerAttachment={parseDrawerAttachment}
+            onParseDrawerAttachmentChange={setParseDrawerAttachment}
+            onAudioCaptureActivity={() =>
+              setAudioCaptureRefreshKey((k) => k + 1)
+            }
             onSend={handleSend}
             onStop={requestCancellation}
           />
         )}
       </div>
+
+      <AttachmentParseDrawer
+        attachment={parseDrawerAttachment}
+        onClose={() => setParseDrawerAttachment(null)}
+        onRetry={
+          activeChatId ?? bound.chatId ? handleRetryParseDrawer : undefined
+        }
+      />
 
       {lastPreviewArtifactRef.current ? (
         <ResizableAside

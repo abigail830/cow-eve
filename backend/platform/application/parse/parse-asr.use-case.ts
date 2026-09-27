@@ -1,5 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getAttachmentBytes } from "../../infrastructure/attachment/attachment-storage.js";
+import {
+  getAttachmentExternallyFetchableUrl,
+  isLoopbackParsePublicBase,
+} from "../../infrastructure/attachment/attachment-blob-fetch-url.js";
+import { hasBlobStorageConfigured } from "../../infrastructure/artifact/blob-client.js";
 import { getParsePipelinePublicBaseUrl } from "../../infrastructure/config/parse-pipeline.config.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import {
@@ -37,6 +42,7 @@ function signAsrUrl(input: {
     .digest("hex");
 }
 
+/** Platform proxy URL (HTTPS deployment only — not reachable by cloud ASR when base is localhost). */
 export function buildAsrFileDownloadUrl(input: {
   jobId: string;
   attachmentId: string;
@@ -57,6 +63,47 @@ export function buildAsrFileDownloadUrl(input: {
   return `${base}/internal/parse/v1/asr-files/${input.attachmentId}?job_id=${encodeURIComponent(input.jobId)}&exp=${exp}&sig=${sig}`;
 }
 
+async function resolveAsrMintUrl(input: {
+  jobId: string;
+  chatId: string;
+  attachmentId: string;
+  webhookSecret: string;
+}): Promise<string> {
+  const attachment = await drizzleChatAttachmentRepository.getById({
+    chatId: input.chatId,
+    attachmentId: input.attachmentId,
+  });
+  if (!attachment) {
+    throw new Error(`Attachment ${input.attachmentId} not found for ASR mint.`);
+  }
+
+  const blobUrl = await getAttachmentExternallyFetchableUrl({
+    chatId: input.chatId,
+    storageKey: attachment.storageKey,
+  });
+  if (blobUrl) {
+    return blobUrl;
+  }
+
+  const publicBase = getParsePipelinePublicBaseUrl();
+  if (hasBlobStorageConfigured()) {
+    throw new Error(
+      "Audio file is not available in Vercel Blob yet. Retry after upload completes.",
+    );
+  }
+  if (!publicBase || isLoopbackParsePublicBase(publicBase)) {
+    throw new Error(
+      "Audio transcription requires Vercel Blob (BLOB_READ_WRITE_TOKEN) in local dev so ASR can fetch files over HTTPS. Same storage path as production/GHA.",
+    );
+  }
+
+  return buildAsrFileDownloadUrl({
+    jobId: input.jobId,
+    attachmentId: input.attachmentId,
+    webhookSecret: input.webhookSecret,
+  });
+}
+
 export async function mintAsrFileUrls(input: {
   jobId: string;
   bearerToken: string;
@@ -71,8 +118,9 @@ export async function mintAsrFileUrls(input: {
     if (!allowed.has(attachmentId)) continue;
     urls.push({
       attachment_id: attachmentId,
-      url: buildAsrFileDownloadUrl({
+      url: await resolveAsrMintUrl({
         jobId: input.jobId,
+        chatId: run.chatId,
         attachmentId,
         webhookSecret: run.webhookSecret,
       }),

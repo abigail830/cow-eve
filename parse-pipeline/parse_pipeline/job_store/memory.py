@@ -25,7 +25,12 @@ class MemoryJobStore:
                 key = (record.caller_id, record.idempotency_key)
                 existing_id = self._idempotency.get(key)
                 if existing_id and existing_id in self._jobs:
-                    return self._jobs[existing_id]
+                    existing = self._jobs[existing_id]
+                    if existing.status not in {
+                        JobStatus.FAILED,
+                        JobStatus.CANCELLED,
+                    }:
+                        return existing
                 self._idempotency[key] = record.job_id
             self._jobs[record.job_id] = record
             return record
