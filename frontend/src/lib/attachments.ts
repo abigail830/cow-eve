@@ -32,9 +32,11 @@ const ALLOWED_MIME = new Set([
   "application/json",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 ]);
-
-const OFFICE_EXT = /\.(doc|docx|ppt|pptx)$/i;
 
 export const ATTACHMENT_ACCEPT = [
   "image/png",
@@ -48,6 +50,10 @@ export const ATTACHMENT_ACCEPT = [
   ".json",
   ".xls",
   ".xlsx",
+  ".doc",
+  ".docx",
+  ".ppt",
+  ".pptx",
 ].join(",");
 
 export type AttachmentUploadState =
@@ -127,21 +133,18 @@ export function formatBytes(bytes: number): string {
 
 export function validateAttachmentFile(file: File): string | null {
   const name = file.name || "file";
-  if (OFFICE_EXT.test(name)) {
-    return "Word/PPT 不支持，请另存为 PDF 后上传。";
-  }
 
   const mediaType = normalizeMime(file.type, name);
   if (!ALLOWED_MIME.has(mediaType)) {
-    return `不支持的文件类型：${mediaType || "unknown"}。`;
+    return `Unsupported file type: ${mediaType || "unknown"}.`;
   }
 
   if (isImageMime(mediaType)) {
     if (file.size > ATTACHMENT_LIMITS.imageUploadMaxBytes) {
-      return `图片过大（${formatBytes(file.size)}），上限 ${formatBytes(ATTACHMENT_LIMITS.imageUploadMaxBytes)}。`;
+      return `Image is too large (${formatBytes(file.size)}). Max ${formatBytes(ATTACHMENT_LIMITS.imageUploadMaxBytes)}.`;
     }
   } else if (file.size > ATTACHMENT_LIMITS.maxBytesPerFile) {
-    return `文件过大（${formatBytes(file.size)}），单文件上限 ${formatBytes(ATTACHMENT_LIMITS.maxBytesPerFile)}。`;
+    return `File is too large (${formatBytes(file.size)}). Max ${formatBytes(ATTACHMENT_LIMITS.maxBytesPerFile)} per file.`;
   }
 
   return null;
@@ -153,11 +156,11 @@ export function validateAttachmentBatch(
 ): string | null {
   const total = [...existing, ...incoming];
   if (total.length > ATTACHMENT_LIMITS.maxFilesPerMessage) {
-    return `每条消息最多 ${ATTACHMENT_LIMITS.maxFilesPerMessage} 个附件。`;
+    return `At most ${ATTACHMENT_LIMITS.maxFilesPerMessage} attachments per message.`;
   }
   const sum = total.reduce((n, a) => n + a.sizeBytes, 0);
   if (sum > ATTACHMENT_LIMITS.maxTotalBytesPerMessage) {
-    return `附件总大小超过 ${formatBytes(ATTACHMENT_LIMITS.maxTotalBytesPerMessage)}。`;
+    return `Total attachment size exceeds ${formatBytes(ATTACHMENT_LIMITS.maxTotalBytesPerMessage)}.`;
   }
   return null;
 }
@@ -174,6 +177,14 @@ function normalizeMime(type: string, filename: string): string {
     return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   }
   if (lower.endsWith(".xls")) return "application/vnd.ms-excel";
+  if (lower.endsWith(".doc")) return "application/msword";
+  if (lower.endsWith(".docx")) {
+    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  }
+  if (lower.endsWith(".ppt")) return "application/vnd.ms-powerpoint";
+  if (lower.endsWith(".pptx")) {
+    return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+  }
   if (lower.endsWith(".png")) return "image/png";
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
   if (lower.endsWith(".gif")) return "image/gif";

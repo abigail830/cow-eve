@@ -1,7 +1,4 @@
-import {
-  classifyAttachment,
-  officeRejectMessage,
-} from "../../domain/attachment/attachment-kinds.js";
+import { classifyAttachment } from "../../domain/attachment/attachment-kinds.js";
 import {
   toPublicAttachment,
   type ChatAttachment,
@@ -107,16 +104,6 @@ export async function uploadChatAttachmentForUser(input: {
   } catch {
     return { attachment: null, error: "Unsupported file type." };
   }
-  if (kind === "office") {
-    return {
-      attachment: null,
-      error: officeRejectMessage({
-        filename: input.filename,
-        mimeType: input.mediaType,
-      }),
-    };
-  }
-
   const attachmentId = crypto.randomUUID();
   const contentHash = sha256Bytes(input.bytes);
   const storageKey = storageKeyFor(attachmentId, input.filename);

@@ -1,8 +1,5 @@
 import { head } from "@vercel/blob";
-import {
-  classifyAttachment,
-  officeRejectMessage,
-} from "../../domain/attachment/attachment-kinds.js";
+import { classifyAttachment } from "../../domain/attachment/attachment-kinds.js";
 import {
   toPublicAttachment,
   type ChatAttachmentPublic,
@@ -137,15 +134,6 @@ export async function prepareChatAttachmentBlobUpload(input: {
   } catch {
     return { error: "Unsupported file type." };
   }
-  if (kind === "office") {
-    return {
-      error: officeRejectMessage({
-        filename: input.filename,
-        mimeType: input.mediaType,
-      }),
-    };
-  }
-
   const attachmentId = crypto.randomUUID();
   const pathname = attachmentBlobPathname(
     chat.id,

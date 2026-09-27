@@ -1,10 +1,5 @@
 /** Classify chat attachments — ported from agent-platform attachments/kinds.py */
 
-export const OFFICE_REJECT_PPT =
-  "PowerPoint is not supported here. Save as PDF and upload again.";
-export const OFFICE_REJECT_WORD =
-  "Word is not supported here. Save as PDF and upload again.";
-
 export type AttachmentKind =
   | "image"
   | "pdf"
@@ -98,16 +93,6 @@ export function classifyAttachment(input: {
     return "audio";
   }
   throw new Error(`Unsupported file type: ${mime || input.filename}`);
-}
-
-export function officeRejectMessage(input: {
-  filename: string;
-  mimeType: string | null | undefined;
-}): string {
-  const ext = fileExtension(input.filename);
-  const mime = normalizeMime(input.mimeType);
-  if (PPT_EXTS.has(ext) || PPT_MIMES.has(mime)) return OFFICE_REJECT_PPT;
-  return OFFICE_REJECT_WORD;
 }
 
 export function isDocumentKind(kind: AttachmentKind): boolean {

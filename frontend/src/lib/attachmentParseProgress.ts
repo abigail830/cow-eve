@@ -31,6 +31,17 @@ export function likelyNeedsParse(attachment: ChatAttachmentPublic): boolean {
   if (mime === "application/pdf") return true;
   if (mime.startsWith("text/")) return true;
   if (/\.(pdf|xls|xlsx|csv|tsv|md|markdown|txt)$/.test(name)) return true;
+  if (/\.(doc|docx|ppt|pptx)$/.test(name)) return true;
+  if (
+    mime === "application/msword" ||
+    mime ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    mime === "application/vnd.ms-powerpoint" ||
+    mime ===
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  ) {
+    return true;
+  }
   return false;
 }
 
