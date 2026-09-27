@@ -43,6 +43,7 @@ import {
   retryAudioCaptureTranscription,
   type AudioCapturePublic,
 } from "../lib/audioCapture";
+import { mergeStreamEventsForTimeline } from "../lib/platformProductTurns";
 import {
   buildMessageContent,
   mergeAttachmentIdsForSend,
@@ -504,7 +505,7 @@ function AgentChatSession({
   const timelineEvents = useMemo((): readonly MessageStreamEvent[] => {
     const live = events ?? [];
     const persisted = bound.events ?? [];
-    return persisted.length >= live.length ? persisted : live;
+    return mergeStreamEventsForTimeline(live, persisted);
   }, [bound.events, events]);
 
   const handleRetryParseDrawer = useCallback(

@@ -177,6 +177,55 @@ function messageEventIndex(
   return -1;
 }
 
+/** Live socket + DB-bound events (PPT may exist only on bound until reload). */
+export function mergeStreamEventsForTimeline(
+  live: readonly MessageStreamEvent[],
+  persisted: readonly MessageStreamEvent[],
+): readonly MessageStreamEvent[] {
+  if (!persisted.length) return live;
+  if (!live.length) return persisted;
+
+  const liveIds = new Set(
+    live.map((e) => e.meta?.id).filter((id): id is string => Boolean(id)),
+  );
+  const merged: MessageStreamEvent[] = [...live];
+
+  for (const event of persisted) {
+    const id = event.meta?.id;
+    if (!id || liveIds.has(id)) continue;
+
+    const at = event.meta?.at ? Date.parse(String(event.meta.at)) : Number.NaN;
+    let insertAt = merged.length;
+    if (!Number.isNaN(at)) {
+      for (let i = 0; i < merged.length; i++) {
+        const otherAt = merged[i].meta?.at
+          ? Date.parse(String(merged[i].meta!.at))
+          : Number.NaN;
+        if (!Number.isNaN(otherAt) && at < otherAt) {
+          insertAt = i;
+          break;
+        }
+      }
+    }
+    merged.splice(insertAt, 0, event);
+    liveIds.add(id);
+  }
+
+  return merged;
+}
+
+function sortKeyForMessageSlot(
+  events: readonly MessageStreamEvent[],
+  message: EveMessage,
+  displayIndex: number,
+  visibleCount: number,
+): number {
+  const idx = messageEventIndex(events, message);
+  if (idx >= 0) return idx;
+  // Live turns not yet in events — keep chronological tail order after known stream rows.
+  return Number.MAX_SAFE_INTEGER - (visibleCount - 1 - displayIndex);
+}
+
 /** Interleave Eve messages with platform product turns using stream event order. */
 export function buildChatTimeline(input: {
   displayMessages: Array<{ message: EveMessage; extraAttachmentIds: string[] }>;
@@ -205,9 +254,14 @@ export function buildChatTimeline(input: {
     .filter((row) => row.eventIdx >= 0)
     .sort((a, b) => a.eventIdx - b.eventIdx);
 
-  const messageSlots = visible.map((row) => ({
+  const messageSlots = visible.map((row, displayIndex) => ({
     row,
-    eventIdx: messageEventIndex(events, row.message),
+    eventIdx: sortKeyForMessageSlot(
+      events,
+      row.message,
+      displayIndex,
+      visible.length,
+    ),
   }));
 
   let p = 0;
