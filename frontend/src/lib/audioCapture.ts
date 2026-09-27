@@ -2,7 +2,11 @@ import {
   fileToAttachmentMeta,
   type PreparedAttachment,
 } from "./attachments";
-import { uploadChatAttachment } from "./attachmentUpload";
+import {
+  fetchMentionAttachments,
+  listChatAttachments,
+  uploadChatAttachment,
+} from "./attachmentUpload";
 import { API_URL } from "./config";
 import { getToken } from "./session";
 
@@ -11,7 +15,7 @@ export type AudioCapturePublic = {
   chatId: string;
   title: string;
   status: string;
-  outputAttachmentId: string;
+  outputAttachmentId: string | null;
   outputAttachment: import("./attachmentUpload").ChatAttachmentPublic | null;
   parts: Array<{
     attachmentId: string;
@@ -110,6 +114,34 @@ export async function createAudioCaptureDraft(
   return data.capture;
 }
 
+async function linkAttachmentToCapture(
+  chatId: string,
+  captureId: string,
+  attachmentId: string,
+): Promise<AudioCapturePublic> {
+  const res = await captureFetch(
+    `/api/chats/${chatId}/audio-captures/${captureId}/parts`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ attachmentId }),
+    },
+  );
+  const data = (await res.json()) as {
+    ok?: boolean;
+    error?: string;
+    capture?: AudioCapturePublic;
+  };
+  if (!res.ok || !data.capture) {
+    throw new Error(data.error ?? `Link failed (${res.status})`);
+  }
+  return data.capture;
+}
+
+function isDuplicateFilenameError(message: string): boolean {
+  return message.includes("already exists in this chat");
+}
+
 export async function uploadAudioCapturePart(
   capture: AudioCapturePublic,
   file: File,
@@ -132,30 +164,34 @@ export async function uploadAudioCapturePart(
     sizeBytes: bytes.length,
     bytes,
   };
-  const uploaded = await uploadChatAttachment(prepared, {
-    chatId,
-    eveSessionId: target.eveSessionId,
-    agentId: target.agentId,
-    skipParse: true,
-  });
 
-  const res = await captureFetch(
-    `/api/chats/${chatId}/audio-captures/${captureId}/parts`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ attachmentId: uploaded.id }),
-    },
-  );
-  const data = (await res.json()) as {
-    ok?: boolean;
-    error?: string;
-    capture?: AudioCapturePublic;
-  };
-  if (!res.ok || !data.capture) {
-    throw new Error(data.error ?? `Upload failed (${res.status})`);
+  let attachmentId: string;
+  try {
+    const uploaded = await uploadChatAttachment(prepared, {
+      chatId,
+      eveSessionId: target.eveSessionId,
+      agentId: target.agentId,
+      skipParse: true,
+    });
+    attachmentId = uploaded.id;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (!isDuplicateFilenameError(message)) throw err;
+
+    const library = chatId
+      ? await listChatAttachments(chatId)
+      : await fetchMentionAttachments({
+          chatId,
+          eveSessionId: target.eveSessionId,
+        });
+    const existing = library.find(
+      (row) => row.filename.toLowerCase() === meta.filename.toLowerCase(),
+    );
+    if (!existing) throw err;
+    attachmentId = existing.id;
   }
-  return data.capture;
+
+  return linkAttachmentToCapture(chatId, captureId, attachmentId);
 }
 
 export async function startAudioCaptureTranscription(

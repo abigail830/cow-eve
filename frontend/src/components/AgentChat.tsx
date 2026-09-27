@@ -39,7 +39,10 @@ import {
   type ChatAttachmentPublic,
 } from "../lib/attachmentUpload";
 import { useChatAudioCaptures } from "../hooks/useChatAudioCaptures";
-import { retryAudioCaptureTranscription } from "../lib/audioCapture";
+import {
+  retryAudioCaptureTranscription,
+  type AudioCapturePublic,
+} from "../lib/audioCapture";
 import {
   buildMessageContent,
   mergeAttachmentIdsForSend,
@@ -313,6 +316,13 @@ export function AgentChat({
       schedulesOpen={schedulesOpen}
       onSchedulesOpenChange={onSchedulesOpenChange}
       onReloadConversation={(chatId) => void bindChat(chatId)}
+      onCaptureChatLinked={(chatId) => {
+        syncActiveChat(chatId);
+        setBound((prev) =>
+          prev.chatId === chatId ? prev : { ...prev, chatId, key: prev.key },
+        );
+        void refreshChats();
+      }}
     />
   );
 }
@@ -337,6 +347,7 @@ type SessionProps = {
   schedulesOpen: boolean;
   onSchedulesOpenChange?: (open: boolean) => void;
   onReloadConversation?: (chatId: string) => void;
+  onCaptureChatLinked?: (chatId: string) => void;
 };
 
 function AgentChatSession({
@@ -359,12 +370,16 @@ function AgentChatSession({
   schedulesOpen,
   onSchedulesOpenChange,
   onReloadConversation,
+  onCaptureChatLinked,
 }: SessionProps) {
   const isOmni = agent.id === "omni";
   const [previewArtifact, setPreviewArtifact] = useState<ArtifactSpec | null>(null);
   const [parseDrawerAttachment, setParseDrawerAttachment] =
     useState<ChatAttachmentPublic | null>(null);
   const [audioCaptureRefreshKey, setAudioCaptureRefreshKey] = useState(0);
+  const [optimisticCaptures, setOptimisticCaptures] = useState<
+    AudioCapturePublic[]
+  >([]);
   const lastPreviewArtifactRef = useRef<ArtifactSpec | null>(null);
   if (previewArtifact) lastPreviewArtifactRef.current = previewArtifact;
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -467,6 +482,30 @@ function AgentChatSession({
     enabled: Boolean(token),
     refreshKey: audioCaptureRefreshKey,
   });
+
+  useEffect(() => {
+    if (optimisticCaptures.length === 0) return;
+    const submittedIds = new Set(submittedCaptures.map((c) => c.id));
+    setOptimisticCaptures((prev) =>
+      prev.filter((c) => !submittedIds.has(c.id)),
+    );
+  }, [submittedCaptures, optimisticCaptures.length]);
+
+  const streamCaptures = useMemo(() => {
+    const byId = new Map<string, AudioCapturePublic>();
+    for (const c of submittedCaptures) byId.set(c.id, c);
+    for (const c of optimisticCaptures) byId.set(c.id, c);
+    return [...byId.values()].sort(
+      (a, b) =>
+        new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+    );
+  }, [optimisticCaptures, submittedCaptures]);
+
+  const timelineEvents = useMemo((): readonly MessageStreamEvent[] => {
+    const live = events ?? [];
+    const persisted = bound.events ?? [];
+    return persisted.length >= live.length ? persisted : live;
+  }, [bound.events, events]);
 
   const handleRetryParseDrawer = useCallback(
     async (attachment: ChatAttachmentPublic) => {
@@ -853,7 +892,7 @@ function AgentChatSession({
                 ) : null}
                 <MessageStream
                   messages={data.messages}
-                  events={events}
+                  events={timelineEvents}
                   streaming={isBusy}
                   apiBase={API_URL}
                   token={token}
@@ -862,7 +901,7 @@ function AgentChatSession({
                   userMessageAttachmentHints={userMessageAttachmentHints}
                   previewArtifactId={previewArtifact?.artifact_id ?? null}
                   onPreviewArtifact={handlePreviewArtifact}
-                  audioCaptures={submittedCaptures}
+                  audioCaptures={streamCaptures}
                   onRetryAudioCapture={(cid, captureId) =>
                     retryCapture(cid, captureId)
                   }
@@ -894,10 +933,17 @@ function AgentChatSession({
             persistAttachments={Boolean(token)}
             parseDrawerAttachment={parseDrawerAttachment}
             onParseDrawerAttachmentChange={setParseDrawerAttachment}
+            onCaptureChatLinked={onCaptureChatLinked}
+            onCaptureStarted={(capture) => {
+              setOptimisticCaptures((prev) => [
+                ...prev.filter((c) => c.id !== capture.id),
+                capture,
+              ]);
+              setAudioCaptureRefreshKey((k) => k + 1);
+              onReloadConversation?.(capture.chatId);
+            }}
             onAudioCaptureActivity={() => {
               setAudioCaptureRefreshKey((k) => k + 1);
-              const cid = activeChatId ?? bound.chatId;
-              if (cid) onReloadConversation?.(cid);
             }}
             onSend={handleSend}
             onStop={requestCancellation}

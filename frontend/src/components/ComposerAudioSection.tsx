@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { Mic } from "lucide-react";
 import {
   createLocalAudioCaptureDraft,
+  fetchAudioCaptures,
   isClientOnlyAudioCapture,
   startAudioCaptureTranscription,
   type AudioCapturePublic,
@@ -15,7 +16,12 @@ type DraftHookInput = {
   eveSessionId: string | null;
   agentId: string;
   disabled?: boolean;
+  /** Refresh capture list only — do not reload the whole chat session. */
   onCaptureActivity?: () => void;
+  /** Platform chat row appeared (first upload); keep composer draft mounted. */
+  onCaptureChatLinked?: (chatId: string) => void;
+  /** Fired as soon as Start succeeds (before stream reload). */
+  onCaptureStarted?: (capture: AudioCapturePublic) => void;
 };
 
 export function useComposerAudioDraft({
@@ -24,9 +30,12 @@ export function useComposerAudioDraft({
   agentId,
   disabled = false,
   onCaptureActivity,
+  onCaptureChatLinked,
+  onCaptureStarted,
 }: DraftHookInput) {
   const [resolvedChatId, setResolvedChatId] = useState<string | null>(chatId);
   const [draftCapture, setDraftCapture] = useState<AudioCapturePublic | null>(null);
+  const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,26 +53,48 @@ export function useComposerAudioDraft({
 
   const canUse = Boolean(target.chatId || target.eveSessionId) && !disabled;
 
-  function handleNewCapture() {
+  async function handleNewCapture() {
     if (!canUse || draftCapture) return;
     setError(null);
+    try {
+      const existing = await fetchAudioCaptures(target);
+      const openDraft = existing
+        .filter((c) => c.status === "draft")
+        .sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        )[0];
+      if (openDraft) {
+        setDraftCapture(openDraft);
+        if (openDraft.chatId) setResolvedChatId(openDraft.chatId);
+        return;
+      }
+    } catch {
+      /* fall through to local draft */
+    }
     setDraftCapture(createLocalAudioCaptureDraft("Audio transcript"));
   }
 
   const handleStart = useCallback(async () => {
     const cid = draftCapture?.chatId ?? resolvedChatId;
-    if (!cid || !draftCapture || isClientOnlyAudioCapture(draftCapture)) return;
+    if (!cid || !draftCapture || isClientOnlyAudioCapture(draftCapture) || starting) {
+      return;
+    }
     setError(null);
+    setStarting(true);
     try {
-      await startAudioCaptureTranscription(cid, draftCapture.id);
+      const capture = await startAudioCaptureTranscription(cid, draftCapture.id);
       setDraftCapture(null);
+      onCaptureStarted?.(capture);
       onCaptureActivity?.();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Transcription failed to start.",
       );
+    } finally {
+      setStarting(false);
     }
-  }, [draftCapture, onCaptureActivity, resolvedChatId]);
+  }, [draftCapture, onCaptureActivity, onCaptureStarted, resolvedChatId, starting]);
 
   const transcriptToolbar = (
     <div className="composer-audio-toolbar">
@@ -78,7 +109,7 @@ export function useComposerAudioDraft({
               ? "Transcribe one or more audio files"
               : "Connect to the agent before starting a capture"
         }
-        onClick={handleNewCapture}
+        onClick={() => void handleNewCapture()}
       >
         <Mic size={14} style={{ verticalAlign: "middle", marginRight: 4 }} />
         Audio transcript
@@ -94,10 +125,14 @@ export function useComposerAudioDraft({
         uploadTarget={target}
         onCaptureChange={(next) => {
           setDraftCapture(next);
-          if (next.chatId) setResolvedChatId(next.chatId);
+          if (next.chatId) {
+            setResolvedChatId(next.chatId);
+            onCaptureChatLinked?.(next.chatId);
+          }
           onCaptureActivity?.();
         }}
         onStart={handleStart}
+        starting={starting}
         onClose={() => setDraftCapture(null)}
       />
     );

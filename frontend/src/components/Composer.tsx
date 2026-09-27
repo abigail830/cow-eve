@@ -68,6 +68,8 @@ type Props = {
     row: ChatAttachmentPublic | null | ((prev: ChatAttachmentPublic | null) => ChatAttachmentPublic | null),
   ) => void;
   onAudioCaptureActivity?: () => void;
+  onCaptureChatLinked?: (chatId: string) => void;
+  onCaptureStarted?: (capture: import("../lib/audioCapture").AudioCapturePublic) => void;
   onSend: (payload: ComposerSendPayload) => void | Promise<void>;
   onStop: () => void;
 };
@@ -108,6 +110,8 @@ export function Composer({
   parseDrawerAttachment: parseDrawerAttachmentProp = null,
   onParseDrawerAttachmentChange,
   onAudioCaptureActivity,
+  onCaptureChatLinked,
+  onCaptureStarted,
   onSend,
   onStop,
 }: Props) {
@@ -142,6 +146,8 @@ export function Composer({
     agentId,
     disabled: disabled || resuming || preparingAttachments,
     onCaptureActivity: onAudioCaptureActivity,
+    onCaptureChatLinked,
+    onCaptureStarted,
   });
 
   const syncHeight = useCallback(() => {

@@ -295,6 +295,17 @@ export async function fetchMentionAttachments(input: {
   return data.attachments ?? [];
 }
 
+/** Empty markdown placeholders for in-progress audio captures — not user uploads. */
+export function isAudioCaptureTranscriptPlaceholder(
+  item: Pick<ChatAttachmentPublic, "filename" | "mediaType" | "sizeBytes">,
+): boolean {
+  return (
+    item.sizeBytes === 0 &&
+    item.mediaType.toLowerCase().includes("markdown") &&
+    /^audio transcript/i.test(item.filename.trim())
+  );
+}
+
 export function mergeMentionAttachmentOptions(
   library: readonly ChatAttachmentPublic[],
   staged: readonly PreparedAttachment[],
@@ -302,6 +313,7 @@ export function mergeMentionAttachmentOptions(
   const byFilename = new Map<string, MentionAttachmentOption>();
 
   for (const item of library) {
+    if (isAudioCaptureTranscriptPlaceholder(item)) continue;
     byFilename.set(item.filename.toLowerCase(), {
       id: item.id,
       filename: item.filename,

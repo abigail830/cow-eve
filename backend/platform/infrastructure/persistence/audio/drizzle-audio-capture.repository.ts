@@ -23,7 +23,7 @@ export type AudioCaptureWithParts = AudioCaptureRow & {
 export async function insertAudioCapture(input: {
   chatId: string;
   title: string;
-  outputAttachmentId: string;
+  outputAttachmentId?: string | null;
   status?: string;
 }): Promise<AudioCaptureRow> {
   const db = requireDb();
@@ -32,11 +32,25 @@ export async function insertAudioCapture(input: {
     .values({
       chatId: input.chatId,
       title: input.title,
-      outputAttachmentId: input.outputAttachmentId,
+      outputAttachmentId: input.outputAttachmentId ?? null,
       status: input.status ?? "draft",
     })
     .returning();
   return row;
+}
+
+export async function setAudioCaptureOutputAttachment(input: {
+  captureId: string;
+  outputAttachmentId: string;
+}): Promise<void> {
+  const db = requireDb();
+  await db
+    .update(audioCaptures)
+    .set({
+      outputAttachmentId: input.outputAttachmentId,
+      updatedAt: new Date(),
+    })
+    .where(eq(audioCaptures.id, input.captureId));
 }
 
 export async function addAudioCapturePart(input: {

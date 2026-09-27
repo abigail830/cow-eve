@@ -16,7 +16,25 @@ export type PlatformProductTurnBundle = {
   events: PersistableEvent[];
 };
 
+/** @deprecated Legacy PPT user leg; new turns use {@link PLATFORM_PRODUCT_STARTED_EVENT}. */
 export const PLATFORM_PRODUCT_MESSAGE_KIND = "execution.platform_product";
+
+/** Platform-authored product turn (not a user chat message). */
+export const PLATFORM_PRODUCT_STARTED_EVENT = "platform.product.started";
+
+export type PlatformProductStartedData = {
+  turnId: string;
+  sequence: number;
+  platform: PlatformProductPayload;
+  title: string;
+  parts: Array<{
+    type: "file";
+    filename: string;
+    mediaType: string;
+    size: number;
+  }>;
+  attachmentRefs: PlatformAttachmentRefsPayload;
+};
 
 /**
  * User-message text prefix for id-only attachment pointers (not `Client context:` —

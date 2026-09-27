@@ -11,7 +11,7 @@ A PPT is a **synthetic Eve turn** appended by the platform (not the LLM), persis
 | Event | Role |
 |-------|------|
 | `turn.started` | Boundaries the product turn (`turnId = turn_pt_<product>_<id>`). |
-| `message.received` | User leg — structured `parts` + `platform` payload (see below). |
+| `platform.product.started` | **User leg (protocol)** — platform payload + file metadata; **not** a user chat message. |
 | `actions.requested` | Synthetic tool call (internal deliver tool). |
 | `action.result` | Assistant leg — same JSON shape as `publish` tool success (`ArtifactSpec`). |
 | `turn.completed` | Closes the turn. |
@@ -23,36 +23,38 @@ A PPT is a **synthetic Eve turn** appended by the platform (not the LLM), persis
 
 **Live status:** the assistant `action.result` carries a snapshot `ArtifactSpec`. Parse progress / retry still keyed by `artifact_id` (= output attachment id) via the attachment library poll — do not rewrite the stream on every parse webhook.
 
-## `message.received` platform payload
+## `platform.product.started` payload
 
 ```json
 {
-  "type": "message.received",
+  "type": "platform.product.started",
   "data": {
-    "message": "Audio transcript",
-    "kind": "execution.platform_product",
-    "parts": [
-      { "type": "text", "text": "Audio transcript" },
-      {
-        "type": "text",
-        "text": "Platform attachment refs: {\"product\":\"audio_transcript\",\"instanceId\":\"…\",\"outputAttachmentId\":\"…\",\"attachmentIds\":[\"…\",\"…\"]}"
-      },
-      { "type": "file", "filename": "meeting.m4a", "mediaType": "audio/mp4", "size": 12345 }
-    ],
+    "turnId": "turn_pt_audio_<captureId>",
+    "sequence": 0,
+    "title": "Audio transcript",
     "platform": {
       "product": "audio_transcript",
       "version": 1,
       "instanceId": "<captureId>",
       "title": "Audio transcript"
     },
-    "sequence": 0,
-    "turnId": "turn_pt_audio_<captureId>"
+    "parts": [
+      { "type": "file", "filename": "meeting.m4a", "mediaType": "audio/mp4", "size": 12345 }
+    ],
+    "attachmentRefs": {
+      "product": "audio_transcript",
+      "instanceId": "<captureId>",
+      "outputAttachmentId": "<uuid>",
+      "attachmentIds": ["<output>", "<audioPart>", "…"]
+    }
   },
   "meta": { "id": "evt_…", "at": "…" }
 }
 ```
 
-Frontend treats `kind === execution.platform_product` as **product user leg** (custom card, not plain text bubble).
+Frontend renders the **user-style card** from `GET /audio-captures` + this event’s `instanceId` (UI only). Eve must **not** project this event as `role: user` in chat history.
+
+**Legacy:** older streams used `message.received` with `kind: execution.platform_product`; the web app still interleaves those for reload.
 
 ## Assistant leg — reuse artifact tools
 
@@ -73,7 +75,7 @@ Optional future: internal tool `platform__deliver_artifact` registered in omni (
 |---------|-----------------|
 | Turn order & reload | `chat_events` (Eve stream) |
 | Audio bytes, parts, parse jobs | `audio_captures`, `chat_attachments`, `parse_job_runs` |
-| Transcript body | parsed artifact `content_md` |
+| Transcript body | parsed artifact `content_md` (output row created at **Start**, not draft) |
 | Gist | attachment row after parse `ready` |
 
 Do **not** render a second list from `GET /audio-captures` when a PPT exists for that `instanceId` (legacy chats may still use the API-only path until migrated).
@@ -88,15 +90,15 @@ Do **not** render a second list from `GET /audio-captures` when a PPT exists for
 
 ## Agent context (reload / replay)
 
-Do **not** embed transcript bytes or gist in the stream. Add a second user `text` part:
+Do **not** embed transcript bytes or gist in the stream. Put the id line on the synthetic **`publish` tool output**:
 
 ```text
-Platform attachment refs: {"product":"audio_transcript","instanceId":"<captureId>","outputAttachmentId":"<uuid>","attachmentIds":["<output>","<audioPart>",…]}
+platform_attachment_refs: "Platform attachment refs: {\"product\":\"audio_transcript\",…}"
 ```
 
-- Uses **`Platform attachment refs:`**, not `Client context:` — so omni does **not** auto-hydrate full `content_md` on every later turn (that prefix is reserved for composer send hints).
-- After reload, Eve replays this line in history; the model sees **ids only** and can call `attachment_read` / `attachment_grep` / `@mention` when it needs depth.
-- `attachmentIds` lists **output first**, then source audio part ids. `artifact_id` on the publish result should match `outputAttachmentId`.
+- Same JSON shape as `attachmentRefs` on `platform.product.started`; formatted via `formatPlatformAttachmentRefs()`.
+- **Not** `Client context:` — omni does not auto-hydrate full `content_md` on every later turn.
+- Model sees ids on the **assistant tool result** in history and can call `attachment_read` / `attachment_grep` when needed.
 
 ## References
 

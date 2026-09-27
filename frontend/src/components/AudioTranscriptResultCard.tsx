@@ -71,7 +71,7 @@ export function AudioTranscriptResultCard({
     format: "markdown",
     content: "",
     filename: output?.filename ?? `${capture.title}.md`,
-    artifact_id: capture.outputAttachmentId,
+    artifact_id: capture.outputAttachmentId ?? capture.id,
     download_url: ready ? transcriptDownloadUrl(chatId, capture.id) : null,
     source: "audio_transcript",
   };

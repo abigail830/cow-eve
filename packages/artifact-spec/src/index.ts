@@ -44,6 +44,8 @@ export const publishArtifactOutputSchema = artifactSpecSchema.extend({
   status: z.enum(["queued", "deduplicated", "error"]),
   queued: z.boolean().optional(),
   message: z.string().optional(),
+  /** Platform product turns: id-only attachment line for model replay (not UI). */
+  platform_attachment_refs: z.string().optional(),
 });
 
 export type PublishArtifactOutput = z.infer<typeof publishArtifactOutputSchema>;

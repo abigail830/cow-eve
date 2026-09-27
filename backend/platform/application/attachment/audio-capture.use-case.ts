@@ -4,12 +4,14 @@ import {
   type ChatAttachmentPublic,
 } from "../../domain/attachment/chat-attachment.entity.js";
 import { ParseStatus } from "../../domain/parse/parse-status.js";
+import type { ChatAttachment } from "../../domain/attachment/chat-attachment.entity.js";
 import {
   addAudioCapturePart,
   countAudioCaptureParts,
   getAudioCaptureForChat,
   insertAudioCapture,
   listAudioCapturesForChat,
+  setAudioCaptureOutputAttachment,
   updateAudioCaptureStatus,
   type AudioCaptureWithParts,
 } from "../../infrastructure/persistence/audio/drizzle-audio-capture.repository.js";
@@ -58,7 +60,7 @@ export type AudioCapturePublic = {
   chatId: string;
   title: string;
   status: string;
-  outputAttachmentId: string;
+  outputAttachmentId: string | null;
   outputAttachment: ChatAttachmentPublic | null;
   parts: Array<{
     attachmentId: string;
@@ -96,13 +98,58 @@ function toPublicCapture(
 
 async function loadOutputPublic(
   chatId: string,
-  outputAttachmentId: string,
+  outputAttachmentId: string | null,
 ): Promise<ChatAttachmentPublic | null> {
+  if (!outputAttachmentId) return null;
   const row = await drizzleChatAttachmentRepository.getById({
     chatId,
     attachmentId: outputAttachmentId,
   });
   return row ? toPublicAttachment(row) : null;
+}
+
+/** Transcript deliverable row — created at Start, filled when parse completes. */
+async function createTranscriptOutputAttachment(input: {
+  chatId: string;
+  captureId: string;
+  title: string;
+}): Promise<ChatAttachment> {
+  const slug = input.title.replace(/[^\w.\-()+ ]+/g, "_").slice(0, 60);
+  const filename = `${slug}-${input.captureId.slice(0, 8)}.md`;
+  const attachmentId = crypto.randomUUID();
+  const storageKey = `${attachmentId}/${filename}`;
+  return drizzleChatAttachmentRepository.createWithId({
+    id: attachmentId,
+    chatId: input.chatId,
+    filename,
+    mediaType: "text/markdown",
+    sizeBytes: 0,
+    storageKey,
+    contentHash: null,
+  });
+}
+
+async function ensureTranscriptOutputAttachment(
+  capture: AudioCaptureWithParts,
+): Promise<ChatAttachment> {
+  if (capture.outputAttachmentId) {
+    const existing = await drizzleChatAttachmentRepository.getById({
+      chatId: capture.chatId,
+      attachmentId: capture.outputAttachmentId,
+    });
+    if (existing) return existing;
+  }
+  const output = await createTranscriptOutputAttachment({
+    chatId: capture.chatId,
+    captureId: capture.id,
+    title: capture.title,
+  });
+  await setAudioCaptureOutputAttachment({
+    captureId: capture.id,
+    outputAttachmentId: output.id,
+  });
+  capture.outputAttachmentId = output.id;
+  return output;
 }
 
 export async function createAudioCaptureDraft(input: {
@@ -122,30 +169,11 @@ export async function createAudioCaptureDraft(input: {
   }
 
   const title = input.title.trim() || "Audio transcript";
-  const slug = title.replace(/[^\w.\-()+ ]+/g, "_").slice(0, 60);
-  const filename = `${slug}-${Date.now().toString(36)}.md`;
-  const attachmentId = crypto.randomUUID();
-  const storageKey = `${attachmentId}/${filename}`;
   try {
-    // Output bytes are written when parse completes; skip blob I/O on draft open.
-    const output = await drizzleChatAttachmentRepository.createWithId({
-      id: attachmentId,
-      chatId: chat.id,
-      filename,
-      mediaType: "text/markdown",
-      sizeBytes: 0,
-      storageKey,
-      contentHash: null,
-    });
-    const outputRow =
-      (await drizzleChatAttachmentRepository.markParseReady(output.id, {
-        skipped: true,
-      })) ?? output;
-
     const capture = await insertAudioCapture({
       chatId: chat.id,
       title,
-      outputAttachmentId: outputRow.id,
+      outputAttachmentId: null,
       status: "draft",
     });
 
@@ -155,7 +183,7 @@ export async function createAudioCaptureDraft(input: {
     });
     if (!full) return { capture: null, error: "Failed to create capture." };
     return {
-      capture: toPublicCapture(full, toPublicAttachment(outputRow)),
+      capture: toPublicCapture(full, null),
     };
   } catch (err) {
     return {
@@ -328,16 +356,20 @@ export async function startAudioCaptureTranscription(input: {
   });
   if (!chat) return { capture: null, error: "Chat not found." };
 
-  const output = await drizzleChatAttachmentRepository.getById({
-    chatId: capture.chatId,
-    attachmentId: capture.outputAttachmentId,
-  });
-  if (!output) return { capture: null, error: "Output attachment missing." };
+  let outputRow: ChatAttachment;
+  try {
+    outputRow = await ensureTranscriptOutputAttachment(capture);
+  } catch (err) {
+    return {
+      capture: null,
+      error: err instanceof Error ? err.message : "Failed to prepare transcript output.",
+    };
+  }
 
   try {
     await enqueueAudioCaptureParseJob({
       capture,
-      outputRow: output,
+      outputRow,
     });
     await updateAudioCaptureStatus(capture.id, "transcribing");
   } catch (err) {
@@ -353,8 +385,14 @@ export async function startAudioCaptureTranscription(input: {
     captureId: capture.id,
   });
   if (!full) return { capture: null, error: "Capture not found." };
-  const outputPublic = await loadOutputPublic(full.chatId, full.outputAttachmentId);
-  const publicCapture = toPublicCapture(full, outputPublic);
+  const outputPublic = await loadOutputPublic(
+    full.chatId,
+    full.outputAttachmentId ?? outputRow.id,
+  );
+  const publicCapture = toPublicCapture(
+    { ...full, outputAttachmentId: full.outputAttachmentId ?? outputRow.id },
+    outputPublic,
+  );
 
   try {
     const spec = buildArtifactSpecForAudioCapture(publicCapture);
@@ -440,6 +478,9 @@ export async function getAudioCaptureTranscriptMarkdown(input: {
   const { loadParsedArtifact } = await import(
     "../../infrastructure/attachment/parsed-artifact-storage.js"
   );
+  if (!capture.outputAttachmentId) {
+    return { markdown: null, filename: null, error: "Transcript not ready." };
+  }
   const raw = await loadParsedArtifact(
     chat.id,
     capture.outputAttachmentId,

@@ -4,7 +4,7 @@ import type {
 } from "../../domain/chat/platform-product-turn.types.js";
 import {
   formatPlatformAttachmentRefs,
-  PLATFORM_PRODUCT_MESSAGE_KIND,
+  PLATFORM_PRODUCT_STARTED_EVENT,
   platformAudioTurnId,
 } from "../../domain/chat/platform-product-turn.types.js";
 import type { PersistableEvent } from "../../domain/chat/stream-event.types.js";
@@ -41,7 +41,7 @@ export function buildArtifactSpecForAudioCapture(
     format: "markdown",
     content: "",
     filename: output?.filename ?? `${capture.title}.md`,
-    artifact_id: capture.outputAttachmentId,
+    artifact_id: capture.outputAttachmentId ?? "",
     download_url: null,
     source: "audio_transcript",
   };
@@ -56,27 +56,27 @@ export function buildAudioTranscriptProductTurn(input: {
   const callId = `call_pt_${capture.id.replace(/-/g, "").slice(0, 24)}`;
   const at = isoNow();
 
-  const attachmentIds = [
-    capture.outputAttachmentId,
+  if (!capture.outputAttachmentId) {
+    throw new Error("Platform product turn requires transcript output attachment id.");
+  }
+  const outputAttachmentId: string = capture.outputAttachmentId;
+  const attachmentIds: string[] = [
+    outputAttachmentId,
     ...capture.parts.map((part) => part.attachmentId),
   ];
   const refsLine = formatPlatformAttachmentRefs({
     product: "audio_transcript",
     instanceId: capture.id,
-    outputAttachmentId: capture.outputAttachmentId,
+    outputAttachmentId,
     attachmentIds,
   });
 
-  const parts: Array<Record<string, unknown>> = [
-    { type: "text", text: capture.title },
-    { type: "text", text: refsLine },
-    ...capture.parts.map((part) => ({
-      type: "file",
-      filename: part.filename,
-      mediaType: part.mediaType,
-      size: part.sizeBytes,
-    })),
-  ];
+  const fileParts = capture.parts.map((part) => ({
+    type: "file" as const,
+    filename: part.filename,
+    mediaType: part.mediaType,
+    size: part.sizeBytes,
+  }));
 
   const mk = (type: string, data: Record<string, unknown>): PersistableEvent => ({
     type,
@@ -86,17 +86,22 @@ export function buildAudioTranscriptProductTurn(input: {
 
   const events: PersistableEvent[] = [
     mk("turn.started", { turnId, sequence: 0 }),
-    mk("message.received", {
+    mk(PLATFORM_PRODUCT_STARTED_EVENT, {
       turnId,
       sequence: 0,
-      message: capture.title,
-      kind: PLATFORM_PRODUCT_MESSAGE_KIND,
-      parts,
+      title: capture.title,
       platform: {
         product: "audio_transcript",
         version: 1,
         instanceId: capture.id,
         title: capture.title,
+      },
+      parts: fileParts,
+      attachmentRefs: {
+        product: "audio_transcript",
+        instanceId: capture.id,
+        outputAttachmentId,
+        attachmentIds,
       },
     }),
     mk("actions.requested", {
@@ -125,6 +130,7 @@ export function buildAudioTranscriptProductTurn(input: {
           status: "queued",
           queued: true,
           ...artifactSpec,
+          platform_attachment_refs: refsLine,
         },
       },
     }),

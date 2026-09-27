@@ -1,5 +1,9 @@
 import type { PlatformProductKind } from "../../domain/chat/platform-product-turn.types.js";
 import type { PlatformProductTurnBundle } from "../../domain/chat/platform-product-turn.types.js";
+import {
+  PLATFORM_PRODUCT_MESSAGE_KIND,
+  PLATFORM_PRODUCT_STARTED_EVENT,
+} from "../../domain/chat/platform-product-turn.types.js";
 import { drizzleChatRepository } from "../../infrastructure/persistence/chat/drizzle-chat.repository.js";
 import { persistStreamEvent } from "./chat.use-case.js";
 
@@ -10,10 +14,18 @@ function eventHasPlatformInstance(
 ): boolean {
   if (!payload || typeof payload !== "object") return false;
   const root = payload as { type?: string; data?: unknown };
-  if (root.type !== "message.received") return false;
   const data = root.data as {
+    kind?: string;
     platform?: { product?: string; instanceId?: string };
   };
+  if (root.type === PLATFORM_PRODUCT_STARTED_EVENT) {
+    return (
+      data?.platform?.product === product &&
+      data?.platform?.instanceId === instanceId
+    );
+  }
+  if (root.type !== "message.received") return false;
+  if (data.kind !== PLATFORM_PRODUCT_MESSAGE_KIND) return false;
   return (
     data?.platform?.product === product &&
     data?.platform?.instanceId === instanceId

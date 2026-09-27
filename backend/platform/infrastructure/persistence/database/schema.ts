@@ -141,9 +141,10 @@ export const audioCaptures = pgTable(
       .references(() => chats.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     status: text("status").notNull().default("draft"),
-    outputAttachmentId: uuid("output_attachment_id")
-      .notNull()
-      .references(() => chatAttachments.id, { onDelete: "cascade" }),
+    outputAttachmentId: uuid("output_attachment_id").references(
+      () => chatAttachments.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

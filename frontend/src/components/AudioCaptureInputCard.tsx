@@ -15,6 +15,7 @@ type Props = {
   uploadTarget: AudioCaptureTarget;
   onCaptureChange: (capture: AudioCapturePublic) => void;
   onStart: () => void | Promise<void>;
+  starting?: boolean;
   onClose: () => void;
 };
 
@@ -23,6 +24,7 @@ export function AudioCaptureInputCard({
   uploadTarget,
   onCaptureChange,
   onStart,
+  starting = false,
   onClose,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +68,7 @@ export function AudioCaptureInputCard({
 
   const canStart =
     !uploading &&
+    !starting &&
     Boolean(capture.chatId) &&
     capture.parts.length > 0 &&
     capture.status === "draft";
@@ -133,7 +136,13 @@ export function AudioCaptureInputCard({
           disabled={!canStart}
           onClick={() => void onStart()}
         >
-          Start transcript
+          {starting ? (
+            <>
+              <Loader2 size={14} className="parse-pipeline-node-spinner" /> Starting…
+            </>
+          ) : (
+            "Start transcript"
+          )}
         </button>
       </div>
       {error ? (

@@ -24,6 +24,6 @@ export async function fetchBoundSession(chatId: string): Promise<BoundSession> {
     session: history.session,
     events: history.events,
     resume: history.resume,
-    key: `chat-${chatId}@${history.session.streamIndex}`,
+    key: `chat-${chatId}`,
   };
 }
