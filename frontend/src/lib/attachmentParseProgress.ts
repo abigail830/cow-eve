@@ -84,9 +84,17 @@ export function isParseReady(attachment: ChatAttachmentPublic): boolean {
 export function isAttachmentReadyForSend(
   attachment: ChatAttachmentPublic,
 ): boolean {
+  if (parseNotRequired(attachment)) return true;
+  return isParseReady(attachment);
+}
+
+/** True while upload finished but document parse is still queued or running. */
+export function attachmentParseInProgress(
+  attachment: ChatAttachmentPublic,
+): boolean {
+  if (parseNotRequired(attachment)) return false;
   const status = effectiveParseStatus(attachment);
-  if (status === "failed") return false;
-  return true;
+  return status === "pending" || status === "running";
 }
 
 export function parseStageMessage(

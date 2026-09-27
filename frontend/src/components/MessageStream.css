@@ -195,3 +195,36 @@
   white-space: nowrap;
   max-width: 200px;
 }
+
+.msg-user-attachment-chip-busy {
+  border-color: rgba(255, 152, 0, 0.45);
+  background: rgba(255, 243, 224, 0.85);
+}
+
+.msg-user-attachment-parse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.msg-user-attachment-parse-badge-busy {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.msg-user-attachment-parse-spinner {
+  animation: msg-user-attachment-spin 0.9s linear infinite;
+}
+
+@keyframes msg-user-attachment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

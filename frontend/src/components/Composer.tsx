@@ -26,6 +26,7 @@ import {
   ATTACHMENT_PARSE_POLL_MS,
   attachmentNeedsParsePoll,
   effectiveParseStatus,
+  attachmentParseInProgress,
   isAttachmentReadyForSend,
 } from "../lib/attachmentParseProgress";
 import { mergeAttachmentIdsForSend } from "../lib/attachmentSend";
@@ -239,6 +240,41 @@ export function Composer({
     stagedPlatformIds,
   ]);
 
+  const sendBlockedByParse = useMemo(() => {
+    if (!persistAttachments) return false;
+
+    const mentionIds = parseAttachmentMentionIds(text, libraryAttachments);
+    for (const id of mentionIds) {
+      const row = libraryById.get(id);
+      if (!row || !isAttachmentReadyForSend(row)) return true;
+    }
+
+    if (attachments.length === 0) return false;
+
+    for (const item of attachments) {
+      if (item.uploadState === "uploading" || item.uploadState === "local") {
+        return true;
+      }
+      if (!item.platformId) {
+        if (!isImageMime(item.mediaType) && item.uploadState !== "error") {
+          return true;
+        }
+        continue;
+      }
+      const row = libraryById.get(item.platformId);
+      if (!row) return true;
+      if (!isAttachmentReadyForSend(row)) return true;
+    }
+
+    return false;
+  }, [
+    attachments,
+    libraryAttachments,
+    libraryById,
+    persistAttachments,
+    text,
+  ]);
+
   useEffect(() => {
     if (!shouldPollParse) return;
     if (!effectiveChatId && !eveSessionId) return;
@@ -450,8 +486,11 @@ export function Composer({
         return;
       }
       if (!isAttachmentReadyForSend(row)) {
+        const inProgress = attachmentParseInProgress(row);
         setAttachmentError(
-          `${row.filename} could not be parsed. Remove it or retry parse before sending.`,
+          inProgress
+            ? `${row.filename} is still parsing. Wait for parse to finish before sending.`
+            : `${row.filename} could not be parsed. Remove it or retry parse before sending.`,
         );
         return;
       }
@@ -609,7 +648,8 @@ export function Composer({
   }
 
   const hasDraft = text.trim().length > 0;
-  const hasSendable = hasDraft || attachments.length > 0;
+  const hasSendable =
+    (hasDraft || attachments.length > 0) && !sendBlockedByParse;
   const showStop = busy && !hasDraft && attachments.length === 0 && !resuming;
   const inputLocked = disabled || resuming || preparingAttachments;
   const attachDisabled =
@@ -652,6 +692,11 @@ export function Composer({
         {preparingAttachments ? (
           <p className="composer-attachment-status" role="status">
             Preparing attachments…
+          </p>
+        ) : null}
+        {sendBlockedByParse && !preparingAttachments ? (
+          <p className="composer-attachment-status" role="status">
+            Waiting for attachment parse to finish…
           </p>
         ) : null}
         <textarea

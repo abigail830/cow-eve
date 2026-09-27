@@ -1,7 +1,10 @@
-import { FileText, ImageIcon, X } from "lucide-react";
+import { FileText, ImageIcon, Loader2, X } from "lucide-react";
 import { formatBytes, isImageMime, type PreparedAttachment } from "../lib/attachments";
 import type { ChatAttachmentPublic } from "../lib/attachmentUpload";
 import {
+  attachmentParseInProgress,
+  effectiveParseStatus,
+  likelyNeedsParse,
   parseNotRequired,
   parseStageMessage,
   parseStatusLabel,
@@ -37,6 +40,80 @@ function toDrawerAttachment(
   };
 }
 
+function resolveChipParseBadge(
+  attachment: PreparedAttachment,
+  libraryRow?: ChatAttachmentPublic,
+): {
+  label: string | null;
+  detail: string | null;
+  busy: boolean;
+  failed: boolean;
+} {
+  if (attachment.uploadState === "uploading" || attachment.uploadState === "local") {
+    return {
+      label: attachment.uploadState === "local" ? "Pending upload" : "Uploading",
+      detail: null,
+      busy: true,
+      failed: false,
+    };
+  }
+  if (attachment.uploadState === "error") {
+    return { label: null, detail: null, busy: false, failed: true };
+  }
+
+  const row = libraryRow ?? toDrawerAttachment(attachment, libraryRow);
+  const needsParse =
+    libraryRow != null
+      ? !parseNotRequired(libraryRow)
+      : likelyNeedsParse(row as ChatAttachmentPublic);
+
+  if (!needsParse) {
+    return { label: null, detail: null, busy: false, failed: false };
+  }
+
+  if (!libraryRow && attachment.uploadState === "uploaded") {
+    return {
+      label: "Parsing",
+      detail: "Loading parse status…",
+      busy: true,
+      failed: false,
+    };
+  }
+
+  const status = effectiveParseStatus(row as ChatAttachmentPublic);
+  if (status === "failed") {
+    return {
+      label: "Parse failed",
+      detail:
+        libraryRow?.parseErrorMessage ??
+        "Open attachment details to retry parse.",
+      busy: false,
+      failed: true,
+    };
+  }
+
+  if (attachmentParseInProgress(row as ChatAttachmentPublic)) {
+    const detail = libraryRow ? parseStageMessage(libraryRow) : null;
+    return {
+      label: parseStatusLabel(row as ChatAttachmentPublic),
+      detail,
+      busy: true,
+      failed: false,
+    };
+  }
+
+  if (libraryRow && parseNotRequired(libraryRow)) {
+    return { label: null, detail: null, busy: false, failed: false };
+  }
+
+  return {
+    label: "Ready",
+    detail: "Parse complete",
+    busy: false,
+    failed: false,
+  };
+}
+
 export function ComposerStagedChips({
   attachments,
   libraryById,
@@ -51,83 +128,86 @@ export function ComposerStagedChips({
         const libraryRow = attachment.platformId
           ? libraryById?.get(attachment.platformId)
           : undefined;
-        const parseLabel =
-          libraryRow && !parseNotRequired(libraryRow)
-            ? parseStatusLabel(libraryRow)
-            : null;
-        const parseDetail = libraryRow ? parseStageMessage(libraryRow) : null;
-
+        const parseBadge = resolveChipParseBadge(attachment, libraryRow);
         const clickable = Boolean(onChipClick);
+
         return (
-        <span
-          key={attachment.id}
-          className={[
-            "composer-staged-chip",
-            clickable ? "composer-staged-chip-clickable" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          <button
-            type="button"
-            className="composer-staged-chip-main"
-            title={attachment.filename}
-            disabled={!clickable}
-            onClick={() =>
-              onChipClick?.(
-                toDrawerAttachment(attachment, libraryRow),
-              )
-            }
+          <span
+            key={attachment.id}
+            className={[
+              "composer-staged-chip",
+              clickable ? "composer-staged-chip-clickable" : "",
+              parseBadge.busy ? "composer-staged-chip-busy" : "",
+              parseBadge.failed ? "composer-staged-chip-failed" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
-            <AttachmentIcon mediaType={attachment.mediaType} />
-            <span className="composer-staged-name">{attachment.filename}</span>
-          </button>
-          <span className="composer-staged-size">{formatBytes(attachment.sizeBytes)}</span>
-          {attachment.compressed ? (
-            <span
-              className="composer-staged-badge"
-              title="Re-encoded as JPEG for multimodal model compatibility"
+            <button
+              type="button"
+              className="composer-staged-chip-main"
+              title={attachment.filename}
+              disabled={!clickable}
+              onClick={() =>
+                onChipClick?.(toDrawerAttachment(attachment, libraryRow))
+              }
             >
-              Optimized
+              <AttachmentIcon mediaType={attachment.mediaType} />
+              <span className="composer-staged-name">{attachment.filename}</span>
+            </button>
+            <span className="composer-staged-size">
+              {formatBytes(attachment.sizeBytes)}
             </span>
-          ) : null}
-          {attachment.uploadState === "uploading" ? (
-            <span className="composer-staged-badge">Uploading</span>
-          ) : null}
-          {attachment.uploadState === "uploaded" && !parseLabel ? (
-            <span className="composer-staged-badge" title="Saved to attachment library">
-              Saved
-            </span>
-          ) : null}
-          {parseLabel ? (
-            <span
-              className="composer-staged-badge"
-              title={parseDetail ?? parseLabel}
+            {attachment.compressed ? (
+              <span
+                className="composer-staged-badge"
+                title="Re-encoded as JPEG for multimodal model compatibility"
+              >
+                Optimized
+              </span>
+            ) : null}
+            {parseBadge.label ? (
+              <span
+                className={[
+                  "composer-staged-badge",
+                  parseBadge.busy ? "composer-staged-badge-busy" : "",
+                  parseBadge.failed ? "composer-staged-badge-error" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                title={parseBadge.detail ?? parseBadge.label}
+              >
+                {parseBadge.busy ? (
+                  <Loader2
+                    size={12}
+                    className="composer-staged-badge-spinner"
+                    aria-hidden
+                  />
+                ) : null}
+                {parseBadge.label}
+              </span>
+            ) : null}
+            {attachment.uploadState === "error" ? (
+              <span
+                className="composer-staged-badge composer-staged-badge-error"
+                title={attachment.uploadError ?? "Upload failed"}
+              >
+                {attachment.uploadError?.trim()
+                  ? attachment.uploadError.length > 36
+                    ? `${attachment.uploadError.slice(0, 33)}…`
+                    : attachment.uploadError
+                  : "Upload failed"}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              className="composer-staged-remove"
+              aria-label={`Remove ${attachment.filename}`}
+              onClick={() => onRemove(attachment.id)}
             >
-              {parseLabel}
-            </span>
-          ) : null}
-          {attachment.uploadState === "error" ? (
-            <span
-              className="composer-staged-badge composer-staged-badge-error"
-              title={attachment.uploadError ?? "Upload failed"}
-            >
-              {attachment.uploadError?.trim()
-                ? attachment.uploadError.length > 36
-                  ? `${attachment.uploadError.slice(0, 33)}…`
-                  : attachment.uploadError
-                : "Upload failed"}
-            </span>
-          ) : null}
-          <button
-            type="button"
-            className="composer-staged-remove"
-            aria-label={`Remove ${attachment.filename}`}
-            onClick={() => onRemove(attachment.id)}
-          >
-            <X size={12} strokeWidth={2.5} />
-          </button>
-        </span>
+              <X size={12} strokeWidth={2.5} />
+            </button>
+          </span>
         );
       })}
     </div>

@@ -21,6 +21,11 @@ export default await withEve(
         src: "^/api(?:/(.*))?$",
         destination: { type: "service", service: "eve-omni" },
       },
+      // Parse pipeline (GHA runners + local HTTP worker): job payload, files, webhooks
+      {
+        src: "^/internal/parse/v1(?:/(.*))?$",
+        destination: { type: "service", service: "eve-omni" },
+      },
       // Compat: frontend mistakenly using VITE_API_URL=.../eve/omni
       {
         src: "^/eve/omni/api(?:/(.*))?$",
@@ -30,6 +35,17 @@ export default await withEve(
             type: "request.path",
             op: "set",
             args: "/api/$1",
+          },
+        ],
+      },
+      {
+        src: "^/eve/omni/internal/parse/v1(?:/(.*))?$",
+        destination: { type: "service", service: "eve-omni" },
+        transforms: [
+          {
+            type: "request.path",
+            op: "set",
+            args: "/internal/parse/v1/$1",
           },
         ],
       },

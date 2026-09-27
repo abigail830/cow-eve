@@ -67,7 +67,9 @@ curl -X POST http://127.0.0.1:2000/eve/v1/dev/schedules/heartbeat
 
 ## Deploy
 
-Link and deploy with Eve / Vercel from this directory (`eve link`, `eve deploy`), or Git push with Root Directory `backend`. [`vercel.ts`](vercel.ts) publishes `/api/*` to the `eve-omni` service (platform login/chats/settings). Set the env vars above on the Vercel project. Point `CONTENT_STUDIO_URL` at `https://<backend-host>/eve/content-studio` in production.
+Link and deploy with Eve / Vercel from this directory (`eve link`, `eve deploy`), or Git push with Root Directory `backend`. [`vercel.ts`](vercel.ts) publishes `/api/*` and `/internal/parse/v1/*` to the `eve-omni` service (platform API + attachment parse for GHA/local workers). Set the env vars above on the Vercel project. Point `CONTENT_STUDIO_URL` at `https://<backend-host>/eve/content-studio` in production.
+
+For GitHub Actions parse dispatch, set `PARSE_PIPELINE_PUBLIC_BASE_URL` on the **backend** deployment origin (where `/api/agents` works). A frontend-only Vercel project will return 404 for `/internal/parse/v1/run/...`.
 
 Eve configures the workflow flow route to `maxDuration: "max"` (Vercel Pro ceiling, typically 300s). Do **not** add a classic `vercel.json` `functions.**/*` maxDuration — Eve uses Build Output services, and that pattern fails the build (`unmatched-function-pattern`).
 

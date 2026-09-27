@@ -2,8 +2,16 @@ import { useEffect, useMemo, useState } from "react";
 import type { EveMessage, EveMessagePart } from "eve/react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { resolveArtifactToolPart } from "@fde/artifact-ui";
-import { ChevronRight, FileText, ImageIcon } from "lucide-react";
+import { ChevronRight, FileText, ImageIcon, Loader2 } from "lucide-react";
 import { formatBytes, isImageMime } from "../lib/attachments";
+import {
+  ATTACHMENT_PARSE_POLL_MS,
+  attachmentNeedsParsePoll,
+  attachmentParseInProgress,
+  parseNotRequired,
+  parseStageMessage,
+  parseStatusLabel,
+} from "../lib/attachmentParseProgress";
 import {
   fetchMentionAttachments,
   type ChatAttachmentPublic,
@@ -149,16 +157,48 @@ function PartView({
 function UserAttachmentChip({
   filename,
   sizeBytes,
+  libraryRow,
 }: {
   filename: string;
   sizeBytes?: number;
+  libraryRow?: ChatAttachmentPublic;
 }) {
+  const showParse =
+    libraryRow != null && !parseNotRequired(libraryRow);
+  const parseBusy = libraryRow != null && attachmentParseInProgress(libraryRow);
+  const parseLabel = showParse && libraryRow ? parseStatusLabel(libraryRow) : null;
+  const parseDetail =
+    showParse && libraryRow ? parseStageMessage(libraryRow) : null;
+
   return (
-    <span className="msg-user-attachment-chip" title={filename}>
+    <span
+      className={[
+        "msg-user-attachment-chip",
+        parseBusy ? "msg-user-attachment-chip-busy" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      title={parseDetail ?? filename}
+    >
       <FileText size={14} strokeWidth={2} aria-hidden />
       <span className="msg-user-attachment-name">{filename}</span>
       {sizeBytes != null ? (
         <span className="msg-file-size">{formatBytes(sizeBytes)}</span>
+      ) : null}
+      {parseLabel ? (
+        <span
+          className={[
+            "msg-user-attachment-parse-badge",
+            parseBusy ? "msg-user-attachment-parse-badge-busy" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {parseBusy ? (
+            <Loader2 size={11} className="msg-user-attachment-parse-spinner" aria-hidden />
+          ) : null}
+          {parseLabel}
+        </span>
       ) : null}
     </span>
   );
@@ -185,17 +225,44 @@ export function MessageStream({
       return;
     }
     let cancelled = false;
-    void fetchMentionAttachments({ chatId, eveSessionId })
-      .then((items) => {
-        if (!cancelled) setLibraryAttachments(items);
-      })
-      .catch(() => {
-        if (!cancelled) setLibraryAttachments([]);
-      });
+    const load = () => {
+      void fetchMentionAttachments({ chatId, eveSessionId })
+        .then((items) => {
+          if (!cancelled) setLibraryAttachments(items);
+        })
+        .catch(() => {
+          if (!cancelled) setLibraryAttachments([]);
+        });
+    };
+    load();
     return () => {
       cancelled = true;
     };
   }, [chatId, eveSessionId, messages.length, token]);
+
+  const shouldPollParse = useMemo(
+    () => attachmentNeedsParsePoll(libraryAttachments),
+    [libraryAttachments],
+  );
+
+  useEffect(() => {
+    if (!token || (!chatId && !eveSessionId) || !shouldPollParse) return;
+    let cancelled = false;
+    const tick = () => {
+      void fetchMentionAttachments({ chatId, eveSessionId })
+        .then((items) => {
+          if (!cancelled) setLibraryAttachments(items);
+        })
+        .catch(() => {
+          /* ignore poll errors */
+        });
+    };
+    const timer = window.setInterval(tick, ATTACHMENT_PARSE_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [chatId, eveSessionId, shouldPollParse, token]);
 
   const libraryById = useMemo(() => {
     const map = new Map<string, ChatAttachmentPublic>();
@@ -279,6 +346,7 @@ export function MessageStream({
                         key={row.attachmentId}
                         filename={row.filename}
                         sizeBytes={row.sizeBytes}
+                        libraryRow={libraryById.get(row.attachmentId)}
                       />
                     ))}
                     {contextChips.map((row) => (
@@ -286,6 +354,7 @@ export function MessageStream({
                         key={row.id}
                         filename={row.filename}
                         sizeBytes={row.sizeBytes}
+                        libraryRow={row}
                       />
                     ))}
                   </div>
