@@ -4,6 +4,7 @@ import { ATTACHMENT_LIMITS, formatBytes } from "../lib/attachments";
 import {
   AUDIO_ACCEPT,
   type AudioCapturePublic,
+  type AudioCaptureTarget,
   uploadAudioCapturePart,
   validateAudioCaptureFile,
 } from "../lib/audioCapture";
@@ -12,6 +13,7 @@ import "./AudioCapture.css";
 type Props = {
   capture: AudioCapturePublic;
   chatId: string;
+  uploadTarget: AudioCaptureTarget;
   busy?: boolean;
   onCaptureChange: (capture: AudioCapturePublic) => void;
   onStart: () => void | Promise<void>;
@@ -21,6 +23,7 @@ type Props = {
 export function AudioCaptureInputCard({
   capture,
   chatId,
+  uploadTarget,
   busy = false,
   onCaptureChange,
   onStart,
@@ -51,7 +54,12 @@ export function AudioCaptureInputCard({
           );
           break;
         }
-        current = await uploadAudioCapturePart(chatId, current.id, file);
+        current = await uploadAudioCapturePart(
+          chatId,
+          current.id,
+          file,
+          uploadTarget,
+        );
         onCaptureChange(current);
       }
     } catch (err) {

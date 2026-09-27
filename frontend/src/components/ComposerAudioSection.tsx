@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Mic } from "lucide-react";
 import type { ChatAttachmentPublic } from "../lib/attachmentUpload";
 import { ATTACHMENT_PARSE_POLL_MS } from "../lib/attachmentParseProgress";
@@ -8,6 +8,7 @@ import {
   retryAudioCaptureTranscription,
   startAudioCaptureTranscription,
   type AudioCapturePublic,
+  type AudioCaptureTarget,
 } from "../lib/audioCapture";
 import { AudioCaptureInputCard } from "./AudioCaptureInputCard";
 import { AudioTranscriptResultCard } from "./AudioTranscriptResultCard";
@@ -15,31 +16,50 @@ import "./AudioCapture.css";
 
 type Props = {
   chatId: string | null;
-  sessionReady: boolean;
+  eveSessionId: string | null;
+  agentId: string;
   disabled?: boolean;
   onOpenPipeline: (attachment: ChatAttachmentPublic) => void;
 };
 
 export function ComposerAudioSection({
   chatId,
-  sessionReady,
+  eveSessionId,
+  agentId,
   disabled = false,
   onOpenPipeline,
 }: Props) {
+  const [resolvedChatId, setResolvedChatId] = useState<string | null>(chatId);
   const [captures, setCaptures] = useState<AudioCapturePublic[]>([]);
   const [draftCapture, setDraftCapture] = useState<AudioCapturePublic | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canUse = Boolean(chatId) && sessionReady && !disabled;
+  useEffect(() => {
+    if (chatId) setResolvedChatId(chatId);
+  }, [chatId]);
+
+  const target: AudioCaptureTarget = useMemo(
+    () => ({
+      chatId: resolvedChatId ?? chatId,
+      eveSessionId,
+      agentId,
+    }),
+    [agentId, chatId, eveSessionId, resolvedChatId],
+  );
+
+  const canUse = Boolean(target.chatId || target.eveSessionId) && !disabled;
 
   const refresh = useCallback(async () => {
-    if (!chatId) {
+    if (!target.chatId && !target.eveSessionId) {
       setCaptures([]);
       return;
     }
-    const rows = await fetchAudioCaptures(chatId);
+    const rows = await fetchAudioCaptures(target);
     setCaptures(rows);
+    if (rows[0]?.chatId) {
+      setResolvedChatId(rows[0].chatId);
+    }
     if (draftCapture) {
       const updated = rows.find((row) => row.id === draftCapture.id);
       if (updated && updated.status !== "draft") {
@@ -48,7 +68,7 @@ export function ComposerAudioSection({
         setDraftCapture(updated);
       }
     }
-  }, [chatId, draftCapture]);
+  }, [draftCapture, target]);
 
   useEffect(() => {
     void refresh();
@@ -62,19 +82,20 @@ export function ComposerAudioSection({
   );
 
   useEffect(() => {
-    if (!needsPoll || !chatId) return;
+    if (!needsPoll) return;
     const id = window.setInterval(() => {
       void refresh();
     }, ATTACHMENT_PARSE_POLL_MS);
     return () => window.clearInterval(id);
-  }, [chatId, needsPoll, refresh]);
+  }, [needsPoll, refresh]);
 
   async function handleNewCapture() {
-    if (!chatId || !canUse || creating) return;
+    if (!canUse || creating) return;
     setError(null);
     setCreating(true);
     try {
-      const capture = await createAudioCaptureDraft(chatId, "Audio transcript");
+      const capture = await createAudioCaptureDraft(target, "Audio transcript");
+      setResolvedChatId(capture.chatId);
       setDraftCapture(capture);
       await refresh();
     } catch (err) {
@@ -85,10 +106,11 @@ export function ComposerAudioSection({
   }
 
   async function handleStart() {
-    if (!chatId || !draftCapture) return;
+    const cid = draftCapture?.chatId ?? resolvedChatId;
+    if (!cid || !draftCapture) return;
     setError(null);
     try {
-      await startAudioCaptureTranscription(chatId, draftCapture.id);
+      await startAudioCaptureTranscription(cid, draftCapture.id);
       setDraftCapture(null);
       await refresh();
     } catch (err) {
@@ -96,15 +118,16 @@ export function ComposerAudioSection({
     }
   }
 
-  async function handleRetry(captureId: string) {
-    if (!chatId) return;
-    await retryAudioCaptureTranscription(chatId, captureId);
+  async function handleRetry(captureId: string, cid: string) {
+    await retryAudioCaptureTranscription(cid, captureId);
     await refresh();
   }
 
   const resultCaptures = captures.filter(
     (c) => c.status !== "draft" || (draftCapture && c.id !== draftCapture.id),
   );
+
+  const activeChatId = resolvedChatId ?? draftCapture?.chatId ?? chatId;
 
   return (
     <>
@@ -116,7 +139,7 @@ export function ComposerAudioSection({
           title={
             canUse
               ? "Create an audio transcript capture"
-              : "Send a message first to start a capture"
+              : "Connect to the agent before starting a capture"
           }
           onClick={() => void handleNewCapture()}
         >
@@ -129,30 +152,33 @@ export function ComposerAudioSection({
           {error}
         </p>
       ) : null}
-      {draftCapture && chatId ? (
+      {draftCapture && activeChatId ? (
         <AudioCaptureInputCard
           capture={draftCapture}
-          chatId={chatId}
+          chatId={activeChatId}
+          uploadTarget={target}
           busy={creating}
           onCaptureChange={setDraftCapture}
           onStart={handleStart}
           onClose={() => setDraftCapture(null)}
         />
       ) : null}
-      {resultCaptures.map((capture) => (
-        <AudioTranscriptResultCard
-          key={capture.id}
-          capture={capture}
-          chatId={chatId!}
-          onOpenPipeline={onOpenPipeline}
-          onRetry={
-            capture.status === "failed" ||
-            capture.outputAttachment?.parseStatus === "failed"
-              ? () => handleRetry(capture.id)
-              : undefined
-          }
-        />
-      ))}
+      {activeChatId
+        ? resultCaptures.map((capture) => (
+            <AudioTranscriptResultCard
+              key={capture.id}
+              capture={capture}
+              chatId={activeChatId}
+              onOpenPipeline={onOpenPipeline}
+              onRetry={
+                capture.status === "failed" ||
+                capture.outputAttachment?.parseStatus === "failed"
+                  ? () => handleRetry(capture.id, capture.chatId)
+                  : undefined
+              }
+            />
+          ))
+        : null}
     </>
   );
 }

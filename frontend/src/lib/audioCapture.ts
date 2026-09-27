@@ -1,3 +1,8 @@
+import {
+  fileToAttachmentMeta,
+  type PreparedAttachment,
+} from "./attachments";
+import { uploadChatAttachment } from "./attachmentUpload";
 import { API_URL } from "./config";
 import { getToken } from "./session";
 
@@ -19,6 +24,12 @@ export type AudioCapturePublic = {
   updatedAt: string;
 };
 
+export type AudioCaptureTarget = {
+  chatId?: string | null;
+  eveSessionId?: string | null;
+  agentId: string;
+};
+
 async function captureFetch(
   path: string,
   init?: RequestInit,
@@ -29,26 +40,42 @@ async function captureFetch(
   return fetch(`${API_URL}${path}`, { ...init, headers });
 }
 
+function targetQuery(target: AudioCaptureTarget): string {
+  const params = new URLSearchParams();
+  if (target.chatId) params.set("chatId", target.chatId);
+  if (target.eveSessionId) params.set("eveSessionId", target.eveSessionId);
+  if (target.agentId) params.set("agentId", target.agentId);
+  return params.toString();
+}
+
 export async function fetchAudioCaptures(
-  chatId: string,
+  target: AudioCaptureTarget,
 ): Promise<AudioCapturePublic[]> {
-  const res = await captureFetch(`/api/chats/${chatId}/audio-captures`);
+  const qs = targetQuery(target);
+  if (!qs.includes("chatId") && !qs.includes("eveSessionId")) return [];
+  const res = await captureFetch(`/api/audio-captures?${qs}`);
   const data = (await res.json()) as {
     ok?: boolean;
     captures?: AudioCapturePublic[];
+    error?: string;
   };
   if (!res.ok || !data.captures) return [];
   return data.captures;
 }
 
 export async function createAudioCaptureDraft(
-  chatId: string,
+  target: AudioCaptureTarget,
   title: string,
 ): Promise<AudioCapturePublic> {
-  const res = await captureFetch(`/api/chats/${chatId}/audio-captures`, {
+  const res = await captureFetch("/api/audio-captures", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title }),
+    body: JSON.stringify({
+      title,
+      chatId: target.chatId ?? undefined,
+      eveSessionId: target.eveSessionId ?? undefined,
+      agentId: target.agentId,
+    }),
   });
   const data = (await res.json()) as {
     ok?: boolean;
@@ -65,12 +92,31 @@ export async function uploadAudioCapturePart(
   chatId: string,
   captureId: string,
   file: File,
+  target: AudioCaptureTarget,
 ): Promise<AudioCapturePublic> {
-  const form = new FormData();
-  form.append("file", file);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const meta = fileToAttachmentMeta(file);
+  const prepared: PreparedAttachment = {
+    id: crypto.randomUUID(),
+    filename: meta.filename,
+    mediaType: meta.mediaType,
+    sizeBytes: bytes.length,
+    bytes,
+  };
+  const uploaded = await uploadChatAttachment(prepared, {
+    chatId,
+    eveSessionId: target.eveSessionId,
+    agentId: target.agentId,
+    skipParse: true,
+  });
+
   const res = await captureFetch(
     `/api/chats/${chatId}/audio-captures/${captureId}/parts`,
-    { method: "POST", body: form },
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ attachmentId: uploaded.id }),
+    },
   );
   const data = (await res.json()) as {
     ok?: boolean;

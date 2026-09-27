@@ -680,8 +680,6 @@ export function Composer({
     ? "Send a message first to attach files"
     : "Attach file";
 
-  const sessionReady = Boolean(chatId || eveSessionId);
-
   return (
     <form
       className="composer"
@@ -691,7 +689,8 @@ export function Composer({
     >
       <ComposerAudioSection
         chatId={effectiveChatId}
-        sessionReady={sessionReady}
+        eveSessionId={eveSessionId}
+        agentId={agentId}
         disabled={inputLocked}
         onOpenPipeline={(row) => setParseDrawerAttachment(row)}
       />

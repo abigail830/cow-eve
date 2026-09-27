@@ -166,6 +166,7 @@ export async function finalizeChatAttachmentBlobUpload(input: {
   filename: string;
   mediaType: string;
   sizeBytes: number;
+  enqueueParse?: boolean;
 }): Promise<{ attachment: ChatAttachmentPublic | null; error?: string }> {
   if (!hasBlobStorageConfigured()) {
     return { attachment: null, error: "Blob storage is not configured." };
@@ -228,6 +229,14 @@ export async function finalizeChatAttachmentBlobUpload(input: {
       attachment: null,
       error: err instanceof Error ? err.message : "Failed to register attachment.",
     };
+  }
+
+  if (input.enqueueParse === false) {
+    const skipped =
+      (await drizzleChatAttachmentRepository.markParseReady(saved.id, {
+        skipped: true,
+      })) ?? saved;
+    return { attachment: toPublicAttachment(skipped) };
   }
 
   try {

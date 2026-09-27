@@ -32,6 +32,8 @@ type UploadTarget = {
   chatId?: string | null;
   eveSessionId?: string | null;
   agentId: string;
+  /** When false, store without enqueueing parse (audio capture parts). */
+  skipParse?: boolean;
 };
 
 type UploadPolicy = {
@@ -149,6 +151,7 @@ async function uploadChatAttachmentViaBlob(
         filename: attachment.filename,
         mediaType: attachment.mediaType,
         sizeBytes: attachment.sizeBytes,
+        enqueueParse: target.skipParse ? false : undefined,
       }),
     },
   );
@@ -181,6 +184,7 @@ async function uploadChatAttachmentViaMultipart(
   form.append("agentId", target.agentId);
   if (target.chatId) form.append("chatId", target.chatId);
   if (target.eveSessionId) form.append("eveSessionId", target.eveSessionId);
+  if (target.skipParse) form.append("enqueueParse", "false");
 
   const res = await attachmentFetch("/api/chat-attachments", {
     method: "POST",

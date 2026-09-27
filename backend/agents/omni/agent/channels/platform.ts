@@ -55,6 +55,7 @@ import {
 } from "../../../../platform/interfaces/http/parse-internal.handlers";
 import {
   addAudioCapturePartFile,
+  addAudioCapturePartFromAttachment,
   createAudioCaptureDraft,
   getAudioCaptureTranscriptMarkdown,
   listAudioCapturesForUser,
@@ -152,6 +153,13 @@ export default defineChannel({
     preflight("/api/chat-attachments/blob-upload"),
     preflight("/api/chats/:id/attachments"),
     preflight("/api/chats/:id/attachments/:attachmentId"),
+    preflight("/api/audio-captures"),
+    preflight("/api/chats/:id/audio-captures"),
+    preflight("/api/chats/:id/audio-captures/:captureId"),
+    preflight("/api/chats/:id/audio-captures/:captureId/parts"),
+    preflight("/api/chats/:id/audio-captures/:captureId/start"),
+    preflight("/api/chats/:id/audio-captures/:captureId/retry"),
+    preflight("/api/chats/:id/audio-captures/:captureId/transcript"),
     preflight("/internal/parse/v1/webhook"),
 
     POST("/api/auth/login", async (request) => {
@@ -833,6 +841,7 @@ export default defineChannel({
         filename?: string;
         mediaType?: string;
         sizeBytes?: number;
+        enqueueParse?: boolean;
       };
       try {
         body = (await request.json()) as typeof body;
@@ -858,6 +867,7 @@ export default defineChannel({
         filename: String(body.filename ?? "").trim() || "attachment",
         mediaType: String(body.mediaType ?? "").trim() || "application/octet-stream",
         sizeBytes: Number(body.sizeBytes ?? 0),
+        enqueueParse: body.enqueueParse === false ? false : undefined,
       });
 
       if (!result.attachment) {
@@ -968,6 +978,11 @@ export default defineChannel({
       }
 
       const bytes = new Uint8Array(await file.arrayBuffer());
+      const enqueueParseField = String(form.get("enqueueParse") ?? "").trim();
+      const enqueueParse =
+        enqueueParseField === "false" || enqueueParseField === "0"
+          ? false
+          : undefined;
       const result = await uploadChatAttachmentForUser({
         userId: auth.principalId,
         agentId,
@@ -976,6 +991,7 @@ export default defineChannel({
         filename: file.name || "attachment",
         mediaType: file.type || "application/octet-stream",
         bytes,
+        enqueueParse,
       });
 
       if (!result.attachment) {
@@ -1159,6 +1175,56 @@ export default defineChannel({
       return withCors(response, request);
     }),
 
+    GET("/api/audio-captures", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      const url = new URL(request.url);
+      const chatId = url.searchParams.get("chatId")?.trim() || undefined;
+      const eveSessionId = url.searchParams.get("eveSessionId")?.trim() || undefined;
+      const agentId = url.searchParams.get("agentId")?.trim() || undefined;
+      if (!chatId && !eveSessionId) {
+        return json(
+          { ok: false, error: "chatId or eveSessionId is required" },
+          400,
+          request,
+        );
+      }
+      const captures = await listAudioCapturesForUser({
+        userId: auth.principalId,
+        chatId,
+        eveSessionId,
+        agentId,
+      });
+      return json({ ok: true, captures }, 200, request);
+    }),
+
+    POST("/api/audio-captures", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      let body: {
+        title?: string;
+        chatId?: string;
+        eveSessionId?: string;
+        agentId?: string;
+      };
+      try {
+        body = (await request.json()) as typeof body;
+      } catch {
+        return json({ ok: false, error: "Invalid JSON" }, 400, request);
+      }
+      const result = await createAudioCaptureDraft({
+        userId: auth.principalId,
+        chatId: body.chatId?.trim() || undefined,
+        eveSessionId: body.eveSessionId?.trim() || undefined,
+        agentId: body.agentId?.trim() || undefined,
+        title: body.title?.trim() ?? "Audio transcript",
+      });
+      if (!result.capture) {
+        return json({ ok: false, error: result.error ?? "Failed" }, 400, request);
+      }
+      return json({ ok: true, capture: result.capture }, 201, request);
+    }),
+
     GET("/api/chats/:id/audio-captures", async (request, { params }) => {
       const auth = await requireUser(request);
       if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
@@ -1192,6 +1258,30 @@ export default defineChannel({
     POST("/api/chats/:id/audio-captures/:captureId/parts", async (request, { params }) => {
       const auth = await requireUser(request);
       if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      const contentType = request.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        let body: { attachmentId?: string };
+        try {
+          body = (await request.json()) as { attachmentId?: string };
+        } catch {
+          return json({ ok: false, error: "Invalid JSON" }, 400, request);
+        }
+        const attachmentId = String(body.attachmentId ?? "").trim();
+        if (!attachmentId) {
+          return json({ ok: false, error: "attachmentId is required" }, 400, request);
+        }
+        const result = await addAudioCapturePartFromAttachment({
+          userId: auth.principalId,
+          chatId: params.id,
+          captureId: params.captureId,
+          attachmentId,
+        });
+        if (!result.capture) {
+          return json({ ok: false, error: result.error ?? "Link failed" }, 400, request);
+        }
+        return json({ ok: true, capture: result.capture }, 200, request);
+      }
+
       let form: FormData;
       try {
         form = await request.formData();

@@ -21,6 +21,34 @@ import { enqueueAudioCaptureParseJob } from "./audio-capture-parse.use-case.js";
 
 const MAX_PARTS_PER_CAPTURE = 8;
 
+async function resolveChatForAudio(input: {
+  userId: string;
+  chatId?: string;
+  eveSessionId?: string;
+  agentId?: string;
+}) {
+  if (input.chatId) {
+    return drizzleChatRepository.getChatMetaForUser({
+      userId: input.userId,
+      chatId: input.chatId,
+    });
+  }
+  if (input.eveSessionId) {
+    const existing = await drizzleChatRepository.getChatByEveSessionForUser({
+      userId: input.userId,
+      eveSessionId: input.eveSessionId,
+    });
+    if (existing) return existing;
+    if (!input.agentId) return null;
+    return drizzleChatRepository.ensureChat({
+      userId: input.userId,
+      agentId: input.agentId,
+      eveSessionId: input.eveSessionId,
+    });
+  }
+  return null;
+}
+
 export type AudioCapturePublic = {
   id: string;
   chatId: string;
@@ -75,14 +103,19 @@ async function loadOutputPublic(
 
 export async function createAudioCaptureDraft(input: {
   userId: string;
-  chatId: string;
   title: string;
+  chatId?: string;
+  eveSessionId?: string;
+  agentId?: string;
 }): Promise<{ capture: AudioCapturePublic | null; error?: string }> {
-  const chat = await drizzleChatRepository.getChatMetaForUser({
-    userId: input.userId,
-    chatId: input.chatId,
-  });
-  if (!chat) return { capture: null, error: "Chat not found." };
+  if (!input.chatId && !input.eveSessionId) {
+    return { capture: null, error: "chatId or eveSessionId is required." };
+  }
+
+  const chat = await resolveChatForAudio(input);
+  if (!chat) {
+    return { capture: null, error: "Chat not found for this session." };
+  }
 
   const title = input.title.trim() || "Audio transcript";
   const slug = title.replace(/[^\w.\-()+ ]+/g, "_").slice(0, 60);
@@ -90,41 +123,49 @@ export async function createAudioCaptureDraft(input: {
   const attachmentId = crypto.randomUUID();
   const storageKey = `${attachmentId}/${filename}`;
   const placeholder = `# ${title}\n\n_Transcription pending…_\n`;
-  await putAttachmentBytes(
-    chat.id,
-    storageKey,
-    new TextEncoder().encode(placeholder),
-    "text/markdown",
-  );
-  const output = await drizzleChatAttachmentRepository.createWithId({
-    id: attachmentId,
-    chatId: chat.id,
-    filename,
-    mediaType: "text/markdown",
-    sizeBytes: placeholder.length,
-    storageKey,
-    contentHash: null,
-  });
-  const outputRow =
-    (await drizzleChatAttachmentRepository.markParseReady(output.id, {
-      skipped: true,
-    })) ?? output;
 
-  const capture = await insertAudioCapture({
-    chatId: chat.id,
-    title,
-    outputAttachmentId: outputRow.id,
-    status: "draft",
-  });
+  try {
+    await putAttachmentBytes(
+      chat.id,
+      storageKey,
+      new TextEncoder().encode(placeholder),
+      "text/markdown",
+    );
+    const output = await drizzleChatAttachmentRepository.createWithId({
+      id: attachmentId,
+      chatId: chat.id,
+      filename,
+      mediaType: "text/markdown",
+      sizeBytes: placeholder.length,
+      storageKey,
+      contentHash: null,
+    });
+    const outputRow =
+      (await drizzleChatAttachmentRepository.markParseReady(output.id, {
+        skipped: true,
+      })) ?? output;
 
-  const full = await getAudioCaptureForChat({
-    chatId: chat.id,
-    captureId: capture.id,
-  });
-  if (!full) return { capture: null, error: "Failed to create capture." };
-  return {
-    capture: toPublicCapture(full, toPublicAttachment(outputRow)),
-  };
+    const capture = await insertAudioCapture({
+      chatId: chat.id,
+      title,
+      outputAttachmentId: outputRow.id,
+      status: "draft",
+    });
+
+    const full = await getAudioCaptureForChat({
+      chatId: chat.id,
+      captureId: capture.id,
+    });
+    if (!full) return { capture: null, error: "Failed to create capture." };
+    return {
+      capture: toPublicCapture(full, toPublicAttachment(outputRow)),
+    };
+  } catch (err) {
+    return {
+      capture: null,
+      error: err instanceof Error ? err.message : "Failed to create capture.",
+    };
+  }
 }
 
 export async function addAudioCapturePartFile(input: {
@@ -198,6 +239,75 @@ export async function addAudioCapturePartFile(input: {
   return { capture: toPublicCapture(full, output) };
 }
 
+export async function addAudioCapturePartFromAttachment(input: {
+  userId: string;
+  chatId: string;
+  captureId: string;
+  attachmentId: string;
+}): Promise<{ capture: AudioCapturePublic | null; error?: string }> {
+  const capture = await getAudioCaptureForChat({
+    chatId: input.chatId,
+    captureId: input.captureId,
+  });
+  if (!capture) return { capture: null, error: "Capture not found." };
+  if (capture.status !== "draft") {
+    return { capture: null, error: "Capture is no longer editable." };
+  }
+  const partCount = await countAudioCaptureParts(capture.id);
+  if (partCount >= MAX_PARTS_PER_CAPTURE) {
+    return {
+      capture: null,
+      error: `At most ${MAX_PARTS_PER_CAPTURE} audio files per capture.`,
+    };
+  }
+
+  const chat = await drizzleChatRepository.getChatMetaForUser({
+    userId: input.userId,
+    chatId: input.chatId,
+  });
+  if (!chat) return { capture: null, error: "Chat not found." };
+
+  const attachment = await drizzleChatAttachmentRepository.getById({
+    chatId: chat.id,
+    attachmentId: input.attachmentId,
+  });
+  if (!attachment) {
+    return { capture: null, error: "Attachment not found in this chat." };
+  }
+
+  let kind;
+  try {
+    kind = classifyAttachment({
+      filename: attachment.filename,
+      mimeType: attachment.mediaType,
+    });
+  } catch {
+    return { capture: null, error: "Unsupported file type." };
+  }
+  if (kind !== "audio") {
+    return { capture: null, error: "Only audio files can be added to a capture." };
+  }
+
+  const alreadyLinked = capture.parts.some(
+    (part) => part.attachmentId === attachment.id,
+  );
+  if (!alreadyLinked) {
+    await addAudioCapturePart({
+      captureId: capture.id,
+      attachmentId: attachment.id,
+      sortOrder: partCount,
+    });
+  }
+
+  const full = await getAudioCaptureForChat({
+    chatId: input.chatId,
+    captureId: capture.id,
+  });
+  if (!full) return { capture: null, error: "Capture not found." };
+  const output = await loadOutputPublic(full.chatId, full.outputAttachmentId);
+  return { capture: toPublicCapture(full, output) };
+}
+
 export async function startAudioCaptureTranscription(input: {
   userId: string;
   chatId: string;
@@ -252,12 +362,11 @@ export async function startAudioCaptureTranscription(input: {
 
 export async function listAudioCapturesForUser(input: {
   userId: string;
-  chatId: string;
+  chatId?: string;
+  eveSessionId?: string;
+  agentId?: string;
 }): Promise<AudioCapturePublic[]> {
-  const chat = await drizzleChatRepository.getChatMetaForUser({
-    userId: input.userId,
-    chatId: input.chatId,
-  });
+  const chat = await resolveChatForAudio(input);
   if (!chat) return [];
   const rows = await listAudioCapturesForChat(chat.id);
   const result: AudioCapturePublic[] = [];
