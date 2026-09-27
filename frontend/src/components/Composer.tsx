@@ -428,6 +428,7 @@ export function Composer({
   const addFiles = useCallback(
     async (files: readonly File[]) => {
       if (files.length === 0 || disabled || resuming) return;
+      if (persistAttachments && !(chatId || eveSessionId)) return;
       setAttachmentError(null);
       setPreparingAttachments(true);
       try {
@@ -450,7 +451,16 @@ export function Composer({
         setPreparingAttachments(false);
       }
     },
-    [attachments, canUpload, disabled, resuming, uploadOne],
+    [
+      attachments,
+      canUpload,
+      chatId,
+      disabled,
+      eveSessionId,
+      persistAttachments,
+      resuming,
+      uploadOne,
+    ],
   );
 
   async function submit(e: FormEvent) {
@@ -659,8 +669,15 @@ export function Composer({
     (hasDraft || attachments.length > 0) && !sendBlockedByParse;
   const showStop = busy && !hasDraft && attachments.length === 0 && !resuming;
   const inputLocked = disabled || resuming || preparingAttachments;
+  const attachNeedsSession =
+    persistAttachments && !(chatId || eveSessionId);
   const attachDisabled =
-    inputLocked || attachments.length >= ATTACHMENT_LIMITS.maxFilesPerMessage;
+    inputLocked ||
+    attachNeedsSession ||
+    attachments.length >= ATTACHMENT_LIMITS.maxFilesPerMessage;
+  const attachButtonTitle = attachNeedsSession
+    ? "Send a message first to attach files"
+    : "Attach file";
 
   return (
     <form
@@ -700,11 +717,6 @@ export function Composer({
         {preparingAttachments ? (
           <p className="composer-attachment-status" role="status">
             Preparing attachments…
-          </p>
-        ) : null}
-        {waitingForUploadSession && !preparingAttachments ? (
-          <p className="composer-attachment-status" role="status">
-            Connecting to the agent… Attachments upload once the session is ready.
           </p>
         ) : null}
         <textarea
@@ -756,8 +768,8 @@ export function Composer({
             <button
               type="button"
               className="composer-icon-btn"
-              title="Attach file"
-              aria-label="Attach file"
+              title={attachButtonTitle}
+              aria-label={attachButtonTitle}
               disabled={attachDisabled}
               onClick={() => fileInputRef.current?.click()}
             >

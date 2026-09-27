@@ -420,10 +420,12 @@ function AgentChatSession({
     if (!isBusy) setCancelling(false);
   }, [isBusy]);
 
+  // Reset attachment UI hints only when switching conversations (new chat / open history),
+  // not when Eve assigns sessionId or the platform chat row appears mid-turn.
   useEffect(() => {
     setUserMessageAttachmentHints(new Map());
     pendingSendAttachmentHintsRef.current = [];
-  }, [bound.chatId, bound.session?.sessionId]);
+  }, [bound.key]);
 
   useEffect(() => {
     const fromBound = bound.session?.sessionId?.trim();
@@ -459,6 +461,19 @@ function AgentChatSession({
         const [matched] = queue.splice(matchIndex, 1);
         if (!next) next = new Map(prev);
         next.set(msg.id, matched.items);
+      }
+
+      if (queue.length > 0) {
+        for (let i = data.messages.length - 1; i >= 0; i -= 1) {
+          const msg = data.messages[i];
+          if (msg.role !== "user") continue;
+          const map = next ?? prev;
+          if (map.has(msg.id)) continue;
+          const [matched] = queue.splice(0, 1);
+          if (!next) next = new Map(prev);
+          next.set(msg.id, matched.items);
+          break;
+        }
       }
 
       pendingSendAttachmentHintsRef.current = queue;

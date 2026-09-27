@@ -225,16 +225,13 @@ export function MessageStream({
       return;
     }
     let cancelled = false;
-    const load = () => {
-      void fetchMentionAttachments({ chatId, eveSessionId })
-        .then((items) => {
-          if (!cancelled) setLibraryAttachments(items);
-        })
-        .catch(() => {
-          if (!cancelled) setLibraryAttachments([]);
-        });
-    };
-    load();
+    void fetchMentionAttachments({ chatId, eveSessionId })
+      .then((items) => {
+        if (!cancelled) setLibraryAttachments(items);
+      })
+      .catch(() => {
+        /* keep prior library rows so sent-message attachment chips stay visible */
+      });
     return () => {
       cancelled = true;
     };

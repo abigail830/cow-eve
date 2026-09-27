@@ -41,12 +41,16 @@ export function hintsFromPrepared(
   return ordered;
 }
 
+function normalizeHintText(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
 export function messageMatchesSendHint(
   visibleText: string,
   hint: PendingSendAttachmentHint,
 ): boolean {
-  const text = visibleText.trim();
-  const sent = hint.text.trim();
+  const text = normalizeHintText(visibleText);
+  const sent = normalizeHintText(hint.text);
   if (sent.length > 0) return text === sent;
   return hint.items.length > 0 && text.length === 0;
 }
