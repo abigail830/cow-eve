@@ -4,6 +4,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -131,10 +132,56 @@ export const parseJobRuns = pgTable(
   (table) => [index("parse_job_runs_attachment_idx").on(table.attachmentId)],
 );
 
+export const audioCaptures = pgTable(
+  "audio_captures",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    status: text("status").notNull().default("draft"),
+    outputAttachmentId: uuid("output_attachment_id")
+      .notNull()
+      .references(() => chatAttachments.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("audio_captures_chat_created_idx").on(
+      table.chatId,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const audioCaptureParts = pgTable(
+  "audio_capture_parts",
+  {
+    captureId: uuid("capture_id")
+      .notNull()
+      .references(() => audioCaptures.id, { onDelete: "cascade" }),
+    attachmentId: uuid("attachment_id")
+      .notNull()
+      .references(() => chatAttachments.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (table) => [
+    primaryKey({ columns: [table.captureId, table.attachmentId] }),
+    index("audio_capture_parts_attachment_idx").on(table.attachmentId),
+  ],
+);
+
 export type ChatRow = typeof chats.$inferSelect;
 export type ChatEventRow = typeof chatEvents.$inferSelect;
 export type ChatAttachmentRow = typeof chatAttachments.$inferSelect;
 export type ParseJobRunRow = typeof parseJobRuns.$inferSelect;
+export type AudioCaptureRow = typeof audioCaptures.$inferSelect;
+export type AudioCapturePartRow = typeof audioCaptureParts.$inferSelect;
 export type PlatformUserRow = typeof platformUsers.$inferSelect;
 export type PlatformSettingsRow = typeof platformSettings.$inferSelect;
 

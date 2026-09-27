@@ -39,6 +39,7 @@ import {
   type ChatAttachmentPublic,
 } from "../lib/attachmentUpload";
 import { AttachmentParseDrawer } from "./AttachmentParseDrawer";
+import { ComposerAudioSection } from "./ComposerAudioSection";
 import { ComposerAttachmentMention } from "./ComposerAttachmentMention";
 import { ComposerStagedChips } from "./ComposerStagedChips";
 import "./Composer.css";
@@ -679,6 +680,8 @@ export function Composer({
     ? "Send a message first to attach files"
     : "Attach file";
 
+  const sessionReady = Boolean(chatId || eveSessionId);
+
   return (
     <form
       className="composer"
@@ -686,6 +689,12 @@ export function Composer({
       onDrop={handleDrop}
       onDragOver={handleDragOver}
     >
+      <ComposerAudioSection
+        chatId={effectiveChatId}
+        sessionReady={sessionReady}
+        disabled={inputLocked}
+        onOpenPipeline={(row) => setParseDrawerAttachment(row)}
+      />
       <div className="composer-box">
         <ComposerAttachmentMention
           open={mention !== null}

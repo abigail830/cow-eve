@@ -57,6 +57,13 @@
       "when": 1789796000000,
       "tag": "0008_attachment_gist",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789797000000,
+      "tag": "0009_audio_captures",
+      "breakpoints": true
     }
   ]
 }

@@ -48,9 +48,19 @@ import {
   handleParseFigureGet,
   handleParseFigurePut,
   handleParseOriginalFile,
+  handleAsrFileDownload,
+  handleAsrFilesMint,
   handleParseRunPayload,
   handleParseWebhook,
 } from "../../../../platform/interfaces/http/parse-internal.handlers";
+import {
+  addAudioCapturePartFile,
+  createAudioCaptureDraft,
+  getAudioCaptureTranscriptMarkdown,
+  listAudioCapturesForUser,
+  retryAudioCaptureTranscription,
+  startAudioCaptureTranscription,
+} from "../../../../platform/application/attachment/audio-capture.use-case.js";
 import { handleChatAttachmentBlobUploadRequest } from "../../../../platform/interfaces/http/chat-attachment-blob-upload.handler.js";
 import type { HandleUploadBody } from "@vercel/blob/client";
 
@@ -1137,6 +1147,126 @@ export default defineChannel({
     GET("/internal/parse/v1/run/:jobId", async (request, { params }) => {
       const response = await handleParseRunPayload(params.jobId, request);
       return withCors(response, request);
+    }),
+
+    POST("/internal/parse/v1/run/:jobId/asr-files/mint", async (request, { params }) => {
+      const response = await handleAsrFilesMint(params.jobId, request);
+      return withCors(response, request);
+    }),
+
+    GET("/internal/parse/v1/asr-files/:attachmentId", async (request, { params }) => {
+      const response = await handleAsrFileDownload(params.attachmentId, request);
+      return withCors(response, request);
+    }),
+
+    GET("/api/chats/:id/audio-captures", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      const captures = await listAudioCapturesForUser({
+        userId: auth.principalId,
+        chatId: params.id,
+      });
+      return json({ ok: true, captures }, 200, request);
+    }),
+
+    POST("/api/chats/:id/audio-captures", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      let body: { title?: string };
+      try {
+        body = (await request.json()) as { title?: string };
+      } catch {
+        return json({ ok: false, error: "Invalid JSON" }, 400, request);
+      }
+      const result = await createAudioCaptureDraft({
+        userId: auth.principalId,
+        chatId: params.id,
+        title: body.title?.trim() ?? "Audio transcript",
+      });
+      if (!result.capture) {
+        return json({ ok: false, error: result.error ?? "Failed" }, 400, request);
+      }
+      return json({ ok: true, capture: result.capture }, 201, request);
+    }),
+
+    POST("/api/chats/:id/audio-captures/:captureId/parts", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      let form: FormData;
+      try {
+        form = await request.formData();
+      } catch {
+        return json({ ok: false, error: "Expected multipart form" }, 400, request);
+      }
+      const file = form.get("file");
+      if (!(file instanceof File)) {
+        return json({ ok: false, error: "Missing file field" }, 400, request);
+      }
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const result = await addAudioCapturePartFile({
+        userId: auth.principalId,
+        chatId: params.id,
+        captureId: params.captureId,
+        filename: file.name || "audio",
+        mediaType: file.type || "application/octet-stream",
+        bytes,
+      });
+      if (!result.capture) {
+        return json({ ok: false, error: result.error ?? "Upload failed" }, 400, request);
+      }
+      return json({ ok: true, capture: result.capture }, 200, request);
+    }),
+
+    POST("/api/chats/:id/audio-captures/:captureId/start", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      const result = await startAudioCaptureTranscription({
+        userId: auth.principalId,
+        chatId: params.id,
+        captureId: params.captureId,
+      });
+      if (!result.capture) {
+        return json({ ok: false, error: result.error ?? "Failed" }, 400, request);
+      }
+      return json({ ok: true, capture: result.capture }, 200, request);
+    }),
+
+    POST("/api/chats/:id/audio-captures/:captureId/retry", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      const result = await retryAudioCaptureTranscription({
+        userId: auth.principalId,
+        chatId: params.id,
+        captureId: params.captureId,
+      });
+      if (!result.capture) {
+        return json({ ok: false, error: result.error ?? "Failed" }, 400, request);
+      }
+      return json({ ok: true, capture: result.capture }, 200, request);
+    }),
+
+    GET("/api/chats/:id/audio-captures/:captureId/transcript", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      const result = await getAudioCaptureTranscriptMarkdown({
+        userId: auth.principalId,
+        chatId: params.id,
+        captureId: params.captureId,
+      });
+      if (!result.markdown) {
+        return json({ ok: false, error: result.error ?? "Not found" }, 404, request);
+      }
+      return new Response(result.markdown, {
+        status: 200,
+        headers: {
+          ...Object.fromEntries(Object.entries(corsHeaders(request))),
+          "Content-Type": "text/markdown; charset=utf-8",
+          "Content-Disposition": contentDispositionAttachment(
+            result.filename ?? "transcript.md",
+          ),
+          "Cache-Control": "private, no-store",
+        },
+      });
     }),
 
     GET("/internal/parse/v1/files/:attachmentId/original", async (request, { params }) => {

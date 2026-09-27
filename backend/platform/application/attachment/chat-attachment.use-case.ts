@@ -4,6 +4,7 @@ import {
   type ChatAttachment,
   type ChatAttachmentPublic,
 } from "../../domain/attachment/chat-attachment.entity";
+import { ParseStatus } from "../../domain/parse/parse-status.js";
 import {
   finalizeAttachmentParse,
   retryAttachmentParse as retryParseJob,
@@ -72,6 +73,8 @@ export async function uploadChatAttachmentForUser(input: {
   filename: string;
   mediaType: string;
   bytes: Uint8Array;
+  /** When false, store audio/part files without enqueueing parse (e.g. capture parts). */
+  enqueueParse?: boolean;
 }): Promise<{ attachment: ChatAttachmentPublic | null; error?: string }> {
   if (input.bytes.byteLength > ATTACHMENT_MAX_BYTES_PER_FILE) {
     return {
@@ -122,7 +125,13 @@ export async function uploadChatAttachmentForUser(input: {
       sizeBytes: input.bytes.byteLength,
       storageKey,
       contentHash,
+      ...(input.enqueueParse === false
+        ? { parseStatus: ParseStatus.SKIPPED }
+        : {}),
     });
+    if (input.enqueueParse === false) {
+      return { attachment: toPublicAttachment(saved) };
+    }
     try {
       const parsed = await finalizeAttachmentParse(saved, kind);
       return { attachment: toPublicAttachment(parsed) };

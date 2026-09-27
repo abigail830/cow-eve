@@ -1,4 +1,8 @@
 import {
+  mintAsrFileUrls,
+  readAsrFileForSignedUrl,
+} from "../../application/parse/parse-asr.use-case.js";
+import {
   applyParseWebhook,
   getParseJobPayloadForRun,
   verifyWebhookSignature,
@@ -19,6 +23,62 @@ import {
 function extractBearer(authorization: string | null): string | null {
   if (!authorization?.toLowerCase().startsWith("bearer ")) return null;
   return authorization.split(" ", 2)[1]?.trim() ?? null;
+}
+
+export async function handleAsrFilesMint(
+  jobId: string,
+  request: Request,
+): Promise<Response> {
+  const token = extractBearer(request.headers.get("authorization"));
+  if (!token) {
+    return Response.json({ error: "missing bearer token" }, { status: 401 });
+  }
+  let body: { attachment_ids?: string[] };
+  try {
+    body = (await request.json()) as { attachment_ids?: string[] };
+  } catch {
+    return Response.json({ error: "invalid json" }, { status: 400 });
+  }
+  const attachmentIds = Array.isArray(body.attachment_ids)
+    ? body.attachment_ids.map(String)
+    : [];
+  const minted = await mintAsrFileUrls({
+    jobId,
+    bearerToken: token,
+    attachmentIds,
+  });
+  if (!minted) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+  return Response.json(minted);
+}
+
+export async function handleAsrFileDownload(
+  attachmentId: string,
+  request: Request,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const jobId = url.searchParams.get("job_id") ?? "";
+  const exp = Number.parseInt(url.searchParams.get("exp") ?? "", 10);
+  const sig = url.searchParams.get("sig") ?? "";
+  if (!jobId || !sig || !Number.isFinite(exp)) {
+    return Response.json({ error: "invalid request" }, { status: 400 });
+  }
+  const file = await readAsrFileForSignedUrl({
+    jobId,
+    attachmentId,
+    exp,
+    sig,
+  });
+  if (!file) {
+    return Response.json({ error: "not found" }, { status: 404 });
+  }
+  return new Response(Buffer.from(file.bytes), {
+    headers: {
+      "content-type": file.mediaType,
+      "cache-control": "private, no-store",
+    },
+  });
 }
 
 export async function handleParseRunPayload(

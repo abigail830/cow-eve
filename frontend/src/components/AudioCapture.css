@@ -1,0 +1,168 @@
+.composer-audio-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.composer-audio-toolbar-btn {
+  border: 1px solid #f0d4bc;
+  background: #fffaf6;
+  color: #b35a1a;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.composer-audio-toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.composer-audio-toolbar-btn:not(:disabled):hover {
+  background: #fff0e6;
+  border-color: #f27a2a;
+}
+
+.audio-capture-card,
+.audio-transcript-result-card {
+  border: 1px solid #f0d4bc;
+  border-radius: 12px;
+  background: #fffdfb;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.audio-capture-card-header,
+.audio-transcript-result-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.audio-capture-card-title,
+.audio-transcript-result-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+}
+
+.audio-capture-card-sub,
+.audio-transcript-result-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #777;
+}
+
+.audio-capture-close {
+  border: none;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.audio-capture-title-input {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.audio-capture-parts {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.audio-capture-part {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #444;
+  padding: 6px 8px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #f3f3f3;
+}
+
+.audio-capture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.audio-capture-actions button {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  cursor: pointer;
+}
+
+.audio-capture-actions button.primary {
+  background: #f27a2a;
+  border-color: #f27a2a;
+  color: #fff;
+}
+
+.audio-capture-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.audio-capture-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #c0392b;
+}
+
+.audio-transcript-result-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.audio-transcript-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.audio-transcript-result-actions button {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  cursor: pointer;
+}
+
+.audio-transcript-preview {
+  margin-top: 12px;
+  max-height: 240px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #eee;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}

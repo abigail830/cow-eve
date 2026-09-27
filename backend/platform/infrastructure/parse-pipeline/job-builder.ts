@@ -83,3 +83,72 @@ export function buildJobPayload(
   };
   return { payload, runToken };
 }
+
+export type AudioCapturePartRef = {
+  attachmentId: string;
+  filename: string;
+  sortOrder: number;
+};
+
+export function buildAudioCaptureJobPayload(
+  outputRow: ChatAttachment,
+  parts: readonly AudioCapturePartRef[],
+  input: {
+    jobId: string;
+    webhookSecret: string;
+    captureId: string;
+    title: string;
+  },
+): { payload: Record<string, unknown>; runToken: string } {
+  const publicBase = getParsePipelinePublicBaseUrl();
+  if (!publicBase) {
+    throw new Error("PARSE_PIPELINE_PUBLIC_BASE_URL is required for parse dispatch");
+  }
+  const runToken = newRunToken();
+  const storage = buildInternalStorageSpec({
+    publicBaseUrl: publicBase,
+    attachmentId: outputRow.id,
+    filename: outputRow.filename,
+    mimeType: outputRow.mediaType,
+    sizeBytes: outputRow.sizeBytes,
+    contentHash: outputRow.contentHash ?? null,
+    runToken,
+  });
+  const webhookUrl = `${publicBase.replace(/\/+$/, "")}${getParsePipelineWebhookPath()}`;
+
+  const payload: Record<string, unknown> = {
+    schema_version: "1.0",
+    job_id: input.jobId,
+    idempotency_key: `audio_capture:${input.captureId}:${outputRow.id}`,
+    pipeline_id: "audio_transcription_standard",
+    storage,
+    source: {
+      source_type: "audio_capture",
+      source_id: input.captureId,
+      tenant_id: outputRow.chatId,
+      filename: outputRow.filename,
+      mime_type: outputRow.mediaType,
+      size_bytes: outputRow.sizeBytes,
+      content_hash: outputRow.contentHash ?? null,
+      capture: {
+        capture_id: input.captureId,
+        title: input.title,
+        parts: parts.map((part) => ({
+          attachment_id: part.attachmentId,
+          filename: part.filename,
+          sort_order: part.sortOrder,
+        })),
+      },
+    },
+    options: {
+      asr: {
+        diarization_enabled: true,
+      },
+    },
+    callbacks: {
+      webhook_url: webhookUrl,
+      webhook_secret: input.webhookSecret,
+    },
+  };
+  return { payload, runToken };
+}

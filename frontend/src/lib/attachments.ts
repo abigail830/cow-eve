@@ -1,10 +1,12 @@
 /** Eve inbound attachment limits — aligned with platform attachment spec. */
 
 export const ATTACHMENT_LIMITS = {
-  maxFilesPerMessage: 5,
+  maxFilesPerMessage: 8,
   /** Per-file cap (direct blob upload on Vercel; multipart API below serverMultipartMaxBytes). */
-  maxBytesPerFile: 50 * 1024 * 1024,
-  maxTotalBytesPerMessage: 100 * 1024 * 1024,
+  maxBytesPerFile: 60 * 1024 * 1024,
+  maxTotalBytesPerMessage: 480 * 1024 * 1024,
+  /** Max audio files in one audio transcript capture. */
+  maxAudioFilesPerCapture: 8,
   /** Above this size the browser uploads directly to Vercel Blob (not via /api/chat-attachments). */
   serverMultipartMaxBytes: 4 * 1024 * 1024,
   /**
