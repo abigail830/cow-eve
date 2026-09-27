@@ -80,11 +80,6 @@
   --cover-accent: var(--cover-audio-transcript);
 }
 
-.artifact-cover.artifact-audio_transcript .cover-dot {
-  fill: var(--cover-accent);
-  color: var(--cover-accent);
-}
-
 .artifact-cover.artifact-generic {
   --cover-accent: var(--cover-generic);
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { MessageStreamEvent } from "eve/client";
 import type { EveMessage, EveMessagePart } from "eve/react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { resolveArtifactToolPart } from "@fde/artifact-ui";
@@ -23,6 +24,10 @@ import {
   userVisibleTextFromParts,
 } from "../lib/userMessageAttachments";
 import type { AudioCapturePublic } from "../lib/audioCapture";
+import {
+  buildChatTimeline,
+  captureIdsInPlatformStream,
+} from "../lib/platformProductTurns";
 import { AudioCaptureUserBubble } from "./AudioCaptureUserBubble";
 import { AudioTranscriptResultCard } from "./AudioTranscriptResultCard";
 import { MarkdownContent } from "./MarkdownContent";
@@ -42,6 +47,7 @@ type Props = {
   >;
   previewArtifactId?: string | null;
   onPreviewArtifact?: (spec: ArtifactSpec) => void;
+  events?: readonly MessageStreamEvent[];
   audioCaptures?: readonly AudioCapturePublic[];
   onRetryAudioCapture?: (chatId: string, captureId: string) => void | Promise<void>;
   onOpenAttachmentPipeline?: (attachment: ChatAttachmentPublic) => void;
@@ -220,6 +226,7 @@ export function MessageStream({
   userMessageAttachmentHints,
   previewArtifactId,
   onPreviewArtifact,
+  events,
   audioCaptures = [],
   onRetryAudioCapture,
   onOpenAttachmentPipeline,
@@ -281,13 +288,31 @@ export function MessageStream({
     [messages],
   );
 
+  const captureById = useMemo(() => {
+    const map = new Map<string, AudioCapturePublic>();
+    for (const row of audioCaptures) map.set(row.id, row);
+    return map;
+  }, [audioCaptures]);
+
+  const legacyAudioCaptures = useMemo(() => {
+    const inStream = captureIdsInPlatformStream(events);
+    return audioCaptures.filter((c) => !inStream.has(c.id));
+  }, [audioCaptures, events]);
+
+  const timeline = useMemo(
+    () => buildChatTimeline({ displayMessages, events }),
+    [displayMessages, events],
+  );
+
   const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
   const streamingOnAssistant =
     streaming && lastMessage?.role === "assistant";
   const streamingPending =
     streaming && (!lastMessage || lastMessage.role === "user");
 
-  const hasAudioTurns = audioCaptures.length > 0;
+  const hasAudioTurns =
+    legacyAudioCaptures.length > 0 ||
+    timeline.some((row) => row.type === "platform_audio");
 
   if (messages.length === 0 && !streaming && !hasAudioTurns) {
     return (
@@ -297,11 +322,53 @@ export function MessageStream({
     );
   }
 
+  const lastTimelineMessageIndex = timeline.reduce(
+    (acc, row, index) => (row.type === "message" ? index : acc),
+    -1,
+  );
+
+  function renderAudioCaptureTurn(capture: AudioCapturePublic) {
+    return (
+      <div key={capture.id} className="msg-audio-capture-turn">
+        <div className="msg-row user">
+          <div className="msg-bubble user">
+            <AudioCaptureUserBubble capture={capture} />
+          </div>
+        </div>
+        <div className="msg-row assistant">
+          <div className="msg-assistant">
+            <div className="msg-artifact">
+              <AudioTranscriptResultCard
+                capture={capture}
+                chatId={capture.chatId}
+                onOpenPipeline={onOpenAttachmentPipeline}
+                onPreviewArtifact={onPreviewArtifact}
+                onRetry={
+                  onRetryAudioCapture
+                    ? () => onRetryAudioCapture(capture.chatId, capture.id)
+                    : undefined
+                }
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="msg-stream">
-      {displayMessages.map(({ message: msg, extraAttachmentIds }, index) => {
+      {timeline.map((row, index) => {
+        if (row.type === "platform_audio") {
+          const capture = captureById.get(row.captureId);
+          if (!capture) return null;
+          return renderAudioCaptureTurn(capture);
+        }
+
+        const msg = row.message;
+        const extraAttachmentIds = row.extraAttachmentIds;
         const isLastAssistant =
-          streamingOnAssistant && index === displayMessages.length - 1;
+          streamingOnAssistant && index === lastTimelineMessageIndex;
 
         if (msg.role === "user") {
           const fileParts = msg.parts.filter((p) => p.type === "file");
@@ -392,32 +459,7 @@ export function MessageStream({
           </div>
         );
       })}
-      {audioCaptures.map((capture) => (
-        <div key={capture.id} className="msg-audio-capture-turn">
-          <div className="msg-row user">
-            <div className="msg-bubble user">
-              <AudioCaptureUserBubble capture={capture} />
-            </div>
-          </div>
-          <div className="msg-row assistant">
-            <div className="msg-assistant">
-              <div className="msg-artifact">
-                <AudioTranscriptResultCard
-                  capture={capture}
-                  chatId={capture.chatId}
-                  onOpenPipeline={onOpenAttachmentPipeline}
-                  onPreviewArtifact={onPreviewArtifact}
-                  onRetry={
-                    onRetryAudioCapture
-                      ? () => onRetryAudioCapture(capture.chatId, capture.id)
-                      : undefined
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
+      {legacyAudioCaptures.map((capture) => renderAudioCaptureTurn(capture))}
       {streamingPending ? (
         <div className="msg-row assistant">
           <div className="msg-assistant">

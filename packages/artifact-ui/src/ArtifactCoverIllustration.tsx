@@ -99,18 +99,14 @@ function MarkdownCover() {
   );
 }
 
-/** Waveform + transcript lines — audio capture deliverable. */
+/** Same page layout as Markdown cover — waveform column + transcript lines. */
 function AudioTranscriptCover() {
   return (
     <svg viewBox="0 0 180 112" aria-hidden="true">
-      <rect className="cover-fill" x="24" y="30" width="52" height="52" rx="10" />
-      <path d="M38 56V44M46 62V38M54 52V48M62 58V42" strokeWidth="2.5" />
-      <path d="M50 66c0 6 4 10 10 10s10-4 10-10" />
-      <path d="M50 66v6" />
-      <path d="M88 24h54v64H88z" />
-      <path className="cover-fill" d="M98 36h34v10H98z" />
-      <path d="M98 54h28M98 64h22M98 74h26" />
-      <circle cx="115" cy="41" r="3" fill="currentColor" stroke="none" className="cover-dot" />
+      <path d="M32 22h116v68H32z" />
+      <path className="cover-fill" d="M42 34h40v44H42z" />
+      <path d="M48 46v20M54 42v28M60 48v16M66 40v32M72 47v18" />
+      <path d="M96 42h48M96 54h36M96 66h42M96 78h28" />
     </svg>
   );
 }

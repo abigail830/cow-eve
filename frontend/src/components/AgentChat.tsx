@@ -312,6 +312,7 @@ export function AgentChat({
       onStreamingChange={onStreamingChange}
       schedulesOpen={schedulesOpen}
       onSchedulesOpenChange={onSchedulesOpenChange}
+      onReloadConversation={(chatId) => void bindChat(chatId)}
     />
   );
 }
@@ -335,6 +336,7 @@ type SessionProps = {
   onActiveChatChange?: (chatId: string | null) => void;
   schedulesOpen: boolean;
   onSchedulesOpenChange?: (open: boolean) => void;
+  onReloadConversation?: (chatId: string) => void;
 };
 
 function AgentChatSession({
@@ -356,6 +358,7 @@ function AgentChatSession({
   onStreamingChange,
   schedulesOpen,
   onSchedulesOpenChange,
+  onReloadConversation,
 }: SessionProps) {
   const isOmni = agent.id === "omni";
   const [previewArtifact, setPreviewArtifact] = useState<ArtifactSpec | null>(null);
@@ -850,6 +853,7 @@ function AgentChatSession({
                 ) : null}
                 <MessageStream
                   messages={data.messages}
+                  events={events}
                   streaming={isBusy}
                   apiBase={API_URL}
                   token={token}
@@ -890,9 +894,11 @@ function AgentChatSession({
             persistAttachments={Boolean(token)}
             parseDrawerAttachment={parseDrawerAttachment}
             onParseDrawerAttachmentChange={setParseDrawerAttachment}
-            onAudioCaptureActivity={() =>
-              setAudioCaptureRefreshKey((k) => k + 1)
-            }
+            onAudioCaptureActivity={() => {
+              setAudioCaptureRefreshKey((k) => k + 1);
+              const cid = activeChatId ?? bound.chatId;
+              if (cid) onReloadConversation?.(cid);
+            }}
             onSend={handleSend}
             onStop={requestCancellation}
           />

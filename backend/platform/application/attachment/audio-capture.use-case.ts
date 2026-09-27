@@ -17,6 +17,11 @@ import { drizzleChatAttachmentRepository } from "../../infrastructure/persistenc
 import { drizzleChatRepository } from "../../infrastructure/persistence/chat/drizzle-chat.repository.js";
 import { uploadChatAttachmentForUser } from "./chat-attachment.use-case.js";
 import { enqueueAudioCaptureParseJob } from "./audio-capture-parse.use-case.js";
+import {
+  buildArtifactSpecForAudioCapture,
+  buildAudioTranscriptProductTurn,
+} from "../chat/build-audio-transcript-product-turn.js";
+import { appendPlatformProductTurn } from "../chat/platform-product-turn.use-case.js";
 
 const MAX_PARTS_PER_CAPTURE = 8;
 
@@ -349,7 +354,29 @@ export async function startAudioCaptureTranscription(input: {
   });
   if (!full) return { capture: null, error: "Capture not found." };
   const outputPublic = await loadOutputPublic(full.chatId, full.outputAttachmentId);
-  return { capture: toPublicCapture(full, outputPublic) };
+  const publicCapture = toPublicCapture(full, outputPublic);
+
+  try {
+    const spec = buildArtifactSpecForAudioCapture(publicCapture);
+    const bundle = buildAudioTranscriptProductTurn({
+      capture: publicCapture,
+      artifactSpec: spec,
+    });
+    await appendPlatformProductTurn({
+      userId: input.userId,
+      chatId: input.chatId,
+      bundle,
+      product: "audio_transcript",
+      instanceId: capture.id,
+    });
+  } catch (err) {
+    console.warn("[audio-capture] platform product turn append failed", {
+      captureId: capture.id,
+      error: err instanceof Error ? err.message : err,
+    });
+  }
+
+  return { capture: publicCapture };
 }
 
 export async function listAudioCapturesForUser(input: {
