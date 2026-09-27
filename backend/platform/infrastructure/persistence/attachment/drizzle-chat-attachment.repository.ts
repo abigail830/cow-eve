@@ -81,6 +81,44 @@ export class DrizzleChatAttachmentRepository implements ChatAttachmentRepository
     return toDomain(row);
   }
 
+  async createWithId(input: {
+    id: string;
+    chatId: string;
+    filename: string;
+    mediaType: string;
+    sizeBytes: number;
+    storageKey: string;
+    contentHash?: string | null;
+  }): Promise<ChatAttachment> {
+    const db = requireDb();
+    const existing = await db.query.chatAttachments.findFirst({
+      where: and(
+        eq(chatAttachments.chatId, input.chatId),
+        eq(chatAttachments.filename, input.filename),
+      ),
+    });
+    if (existing) {
+      throw new Error(
+        `An attachment named "${input.filename}" already exists in this chat.`,
+      );
+    }
+
+    const [row] = await db
+      .insert(chatAttachments)
+      .values({
+        id: input.id,
+        chatId: input.chatId,
+        filename: input.filename,
+        mediaType: input.mediaType,
+        sizeBytes: input.sizeBytes,
+        storageKey: input.storageKey,
+        contentHash: input.contentHash ?? null,
+        parseStatus: ParseStatus.READY,
+      })
+      .returning();
+    return toDomain(row);
+  }
+
   async listByChatId(chatId: string): Promise<ChatAttachment[]> {
     const db = requireDb();
     const rows = await db

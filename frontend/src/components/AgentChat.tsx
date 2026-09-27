@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { ArtifactPreviewPanel } from "@fde/artifact-ui";
 import { useEveAgent } from "eve/react";
@@ -366,6 +373,9 @@ function AgentChatSession({
   // eve fires onSessionChange for every stream event; only refresh when the
   // durable session id actually changes (new chat), plus once on turn finish.
   const knownSessionIdRef = useRef(bound.session?.sessionId);
+  const [knownEveSessionId, setKnownEveSessionId] = useState<string | null>(
+    bound.session?.sessionId ?? null,
+  );
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const onStreamingChangeRef = useRef(onStreamingChange);
   onStreamingChangeRef.current = onStreamingChange;
@@ -381,6 +391,7 @@ function AgentChatSession({
       const nextId = session?.sessionId;
       if (!nextId || nextId === knownSessionIdRef.current) return;
       knownSessionIdRef.current = nextId;
+      setKnownEveSessionId(nextId);
       onRefreshChats();
     },
     onFinish: () => {
@@ -413,6 +424,19 @@ function AgentChatSession({
     setUserMessageAttachmentHints(new Map());
     pendingSendAttachmentHintsRef.current = [];
   }, [bound.chatId, bound.session?.sessionId]);
+
+  useEffect(() => {
+    const fromBound = bound.session?.sessionId?.trim();
+    if (fromBound) {
+      knownSessionIdRef.current = fromBound;
+      setKnownEveSessionId(fromBound);
+    }
+  }, [bound.session?.sessionId, bound.key]);
+
+  const uploadEveSessionId = useMemo(
+    () => resolveUploadEveSessionId(session, events, knownEveSessionId),
+    [events, knownEveSessionId, session],
+  );
 
   useEffect(() => {
     const pending = pendingSendAttachmentHintsRef.current;
@@ -763,7 +787,7 @@ function AgentChatSession({
                   apiBase={API_URL}
                   token={token}
                   chatId={activeChatId ?? bound.chatId}
-                  eveSessionId={session?.sessionId ?? null}
+                  eveSessionId={uploadEveSessionId}
                   userMessageAttachmentHints={userMessageAttachmentHints}
                   previewArtifactId={previewArtifact?.artifact_id ?? null}
                   onPreviewArtifact={handlePreviewArtifact}
@@ -789,7 +813,7 @@ function AgentChatSession({
             resuming={isResuming}
             cancelling={cancelling}
             chatId={activeChatId ?? bound.chatId}
-            eveSessionId={session?.sessionId ?? null}
+            eveSessionId={uploadEveSessionId}
             agentId={agent.id}
             persistAttachments={Boolean(token)}
             onSend={handleSend}
@@ -974,6 +998,28 @@ function DeleteChatDialog({
       </div>
     </div>
   );
+}
+
+function resolveUploadEveSessionId(
+  session: { sessionId?: string } | undefined,
+  events: readonly MessageStreamEvent[],
+  knownId: string | null,
+): string | null {
+  const fromSession = session?.sessionId?.trim();
+  if (fromSession) return fromSession;
+  const fromKnown = knownId?.trim();
+  if (fromKnown) return fromKnown;
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index] as {
+      sessionId?: string;
+      data?: { sessionId?: string };
+    };
+    const fromEvent = event.sessionId ?? event.data?.sessionId;
+    if (typeof fromEvent === "string" && fromEvent.trim()) {
+      return fromEvent.trim();
+    }
+  }
+  return null;
 }
 
 function latestTurnFailure(

@@ -101,6 +101,14 @@ export {
   uploadChatAttachmentForUser,
 } from "../application/attachment/chat-attachment.use-case";
 export {
+  finalizeChatAttachmentBlobUpload,
+  getAttachmentUploadPolicy,
+  parseBlobUploadClientPayload,
+  prepareChatAttachmentBlobUpload,
+  ATTACHMENT_MAX_BYTES_PER_FILE,
+  CHAT_ATTACHMENT_ALLOWED_MEDIA_TYPES,
+} from "../application/attachment/chat-attachment-blob-upload.use-case";
+export {
   buildChatLibrary,
   findAttachments,
   loadContentMd,

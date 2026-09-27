@@ -14,6 +14,7 @@ import "./ComposerStagedChips.css";
 type Props = {
   attachments: readonly PreparedAttachment[];
   libraryById?: ReadonlyMap<string, ChatAttachmentPublic>;
+  canUpload?: boolean;
   onRemove: (id: string) => void;
   onChipClick?: (attachment: ChatAttachmentPublic) => void;
 };
@@ -42,17 +43,28 @@ function toDrawerAttachment(
 
 function resolveChipParseBadge(
   attachment: PreparedAttachment,
-  libraryRow?: ChatAttachmentPublic,
+  libraryRow: ChatAttachmentPublic | undefined,
+  canUpload: boolean,
 ): {
   label: string | null;
   detail: string | null;
   busy: boolean;
   failed: boolean;
 } {
-  if (attachment.uploadState === "uploading" || attachment.uploadState === "local") {
+  if (attachment.uploadState === "uploading") {
     return {
-      label: attachment.uploadState === "local" ? "Pending upload" : "Uploading",
+      label: "Uploading",
       detail: null,
+      busy: true,
+      failed: false,
+    };
+  }
+  if (attachment.uploadState === "local") {
+    return {
+      label: canUpload ? "Pending upload" : "Waiting for session",
+      detail: canUpload
+        ? null
+        : "The agent session is still connecting. Upload starts automatically.",
       busy: true,
       failed: false,
     };
@@ -117,6 +129,7 @@ function resolveChipParseBadge(
 export function ComposerStagedChips({
   attachments,
   libraryById,
+  canUpload = true,
   onRemove,
   onChipClick,
 }: Props) {
@@ -128,7 +141,7 @@ export function ComposerStagedChips({
         const libraryRow = attachment.platformId
           ? libraryById?.get(attachment.platformId)
           : undefined;
-        const parseBadge = resolveChipParseBadge(attachment, libraryRow);
+        const parseBadge = resolveChipParseBadge(attachment, libraryRow, canUpload);
         const clickable = Boolean(onChipClick);
 
         return (

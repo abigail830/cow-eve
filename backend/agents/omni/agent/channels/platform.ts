@@ -18,6 +18,9 @@ import {
   listChatAttachmentsForUserBySession,
   uploadChatAttachmentForUser,
   retryChatAttachmentParseForUser,
+  getAttachmentUploadPolicy,
+  prepareChatAttachmentBlobUpload,
+  finalizeChatAttachmentBlobUpload,
   getDatabaseUrl,
   getJwtSecret,
   getUserMemorySnapshot,
@@ -48,6 +51,8 @@ import {
   handleParseRunPayload,
   handleParseWebhook,
 } from "../../../../platform/interfaces/http/parse-internal.handlers";
+import { handleChatAttachmentBlobUploadRequest } from "../../../../platform/interfaces/http/chat-attachment-blob-upload.handler.js";
+import type { HandleUploadBody } from "@vercel/blob/client";
 
 function corsHeaders(request?: Request): HeadersInit {
   return {
@@ -131,6 +136,10 @@ export default defineChannel({
     preflight("/api/chats/:id/artifacts/:artifactId/preview"),
     preflight("/api/chats/:id/artifacts/:artifactId/preview/:filePath*"),
     preflight("/api/chat-attachments"),
+    preflight("/api/chat-attachments/upload-policy"),
+    preflight("/api/chat-attachments/prepare-blob-upload"),
+    preflight("/api/chat-attachments/finalize-blob-upload"),
+    preflight("/api/chat-attachments/blob-upload"),
     preflight("/api/chats/:id/attachments"),
     preflight("/api/chats/:id/attachments/:attachmentId"),
     preflight("/internal/parse/v1/webhook"),
@@ -740,6 +749,175 @@ export default defineChannel({
           });
 
       return json({ ok: true, attachments }, 200, request);
+    }),
+
+    GET("/api/chat-attachments/upload-policy", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      return json({ ok: true, policy: getAttachmentUploadPolicy() }, 200, request);
+    }),
+
+    POST("/api/chat-attachments/prepare-blob-upload", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+
+      let body: {
+        chatId?: string;
+        eveSessionId?: string;
+        agentId?: string;
+        filename?: string;
+        mediaType?: string;
+        sizeBytes?: number;
+      };
+      try {
+        body = (await request.json()) as typeof body;
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400, request);
+      }
+
+      const result = await prepareChatAttachmentBlobUpload({
+        userId: auth.principalId,
+        agentId: String(body.agentId ?? "").trim() || "omni",
+        chatId: body.chatId?.trim() || undefined,
+        eveSessionId: body.eveSessionId?.trim() || undefined,
+        filename: String(body.filename ?? "").trim() || "attachment",
+        mediaType: String(body.mediaType ?? "").trim() || "application/octet-stream",
+        sizeBytes: Number(body.sizeBytes ?? 0),
+      });
+
+      if ("error" in result) {
+        return json({ ok: false, error: result.error }, 400, request);
+      }
+
+      return json({ ok: true, ...result }, 200, request);
+    }),
+
+    POST("/api/chat-attachments/finalize-blob-upload", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+
+      let body: {
+        attachmentId?: string;
+        chatId?: string;
+        agentId?: string;
+        filename?: string;
+        mediaType?: string;
+        sizeBytes?: number;
+      };
+      try {
+        body = (await request.json()) as typeof body;
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400, request);
+      }
+
+      const attachmentId = String(body.attachmentId ?? "").trim();
+      const chatId = String(body.chatId ?? "").trim();
+      if (!attachmentId || !chatId) {
+        return json(
+          { ok: false, error: "attachmentId and chatId are required" },
+          400,
+          request,
+        );
+      }
+
+      const result = await finalizeChatAttachmentBlobUpload({
+        userId: auth.principalId,
+        agentId: String(body.agentId ?? "").trim() || "omni",
+        attachmentId,
+        chatId,
+        filename: String(body.filename ?? "").trim() || "attachment",
+        mediaType: String(body.mediaType ?? "").trim() || "application/octet-stream",
+        sizeBytes: Number(body.sizeBytes ?? 0),
+      });
+
+      if (!result.attachment) {
+        return json(
+          { ok: false, error: result.error ?? "Finalize failed" },
+          400,
+          request,
+        );
+      }
+
+      return json(
+        {
+          ok: true,
+          attachment: result.attachment,
+          ...(result.error ? { warning: result.error } : {}),
+        },
+        201,
+        request,
+      );
+    }),
+
+    POST("/api/chat-attachments/blob-upload", async (request) => {
+      let body: HandleUploadBody;
+      try {
+        body = (await request.json()) as HandleUploadBody;
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400, request);
+      }
+
+      if (body.type === "blob.generate-client-token") {
+        const auth = await requireUser(request);
+        if (!auth) {
+          return json({ ok: false, error: "Unauthorized" }, 401, request);
+        }
+        try {
+          const result = await handleChatAttachmentBlobUploadRequest({
+            request,
+            body,
+            userId: auth.principalId,
+          });
+          return json(result, 200, request);
+        } catch (err) {
+          return json(
+            {
+              ok: false,
+              error: err instanceof Error ? err.message : "Blob upload token failed",
+            },
+            400,
+            request,
+          );
+        }
+      }
+
+      try {
+        const result = await handleChatAttachmentBlobUploadRequest({
+          request,
+          body,
+          userId: "",
+        });
+        return json(result, 200, request);
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error: err instanceof Error ? err.message : "Blob upload callback failed",
+          },
+          400,
+          request,
+        );
+      }
     }),
 
     POST("/api/chat-attachments", async (request) => {

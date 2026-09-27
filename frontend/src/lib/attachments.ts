@@ -2,9 +2,11 @@
 
 export const ATTACHMENT_LIMITS = {
   maxFilesPerMessage: 5,
-  /** Per-file upload cap on the wire (backend uploadPolicy). */
-  maxBytesPerFile: 20 * 1024 * 1024,
-  maxTotalBytesPerMessage: 50 * 1024 * 1024,
+  /** Per-file cap (direct blob upload on Vercel; multipart API below serverMultipartMaxBytes). */
+  maxBytesPerFile: 50 * 1024 * 1024,
+  maxTotalBytesPerMessage: 100 * 1024 * 1024,
+  /** Above this size the browser uploads directly to Vercel Blob (not via /api/chat-attachments). */
+  serverMultipartMaxBytes: 4 * 1024 * 1024,
   /**
    * Eve hydrates images ≤ 3 MiB as inline bytes for multimodal models.
    * Larger images become sandbox path references only.

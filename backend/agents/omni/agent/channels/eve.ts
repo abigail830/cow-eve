@@ -26,7 +26,7 @@ const channel = eveChannel({
   auth: platformRouteAuth(),
   cors: platformCors(),
   uploadPolicy: {
-    maxBytes: 20 * 1024 * 1024,
+    maxBytes: 50 * 1024 * 1024,
     allowedMediaTypes: CHAT_ATTACHMENT_MEDIA_TYPES,
   },
 });

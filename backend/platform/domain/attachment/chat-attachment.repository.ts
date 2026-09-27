@@ -11,6 +11,16 @@ export type ChatAttachmentRepository = {
     parseStatus?: string;
   }): Promise<ChatAttachment>;
 
+  createWithId(input: {
+    id: string;
+    chatId: string;
+    filename: string;
+    mediaType: string;
+    sizeBytes: number;
+    storageKey: string;
+    contentHash?: string | null;
+  }): Promise<ChatAttachment>;
+
   listByChatId(chatId: string): Promise<ChatAttachment[]>;
 
   getById(input: {

@@ -1,4 +1,6 @@
+import { upload } from "@vercel/blob/client";
 import { API_URL } from "./config";
+import { ATTACHMENT_LIMITS } from "./attachments";
 import { getToken } from "./session";
 import type { PreparedAttachment } from "./attachments";
 
@@ -32,6 +34,14 @@ type UploadTarget = {
   agentId: string;
 };
 
+type UploadPolicy = {
+  maxBytesPerFile: number;
+  serverMultipartMaxBytes: number;
+  clientBlobUpload: boolean;
+};
+
+let uploadPolicyCache: UploadPolicy | null = null;
+
 async function attachmentFetch(
   path: string,
   init?: RequestInit,
@@ -42,14 +52,126 @@ async function attachmentFetch(
   return fetch(`${API_URL}${path}`, { ...init, headers });
 }
 
-export async function uploadChatAttachment(
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function getUploadPolicy(): Promise<UploadPolicy> {
+  if (uploadPolicyCache) return uploadPolicyCache;
+  const res = await attachmentFetch("/api/chat-attachments/upload-policy");
+  const data = (await res.json()) as {
+    ok?: boolean;
+    error?: string;
+    policy?: UploadPolicy;
+  };
+  if (!res.ok || !data.policy) {
+    uploadPolicyCache = {
+      maxBytesPerFile: ATTACHMENT_LIMITS.maxBytesPerFile,
+      serverMultipartMaxBytes: ATTACHMENT_LIMITS.serverMultipartMaxBytes,
+      clientBlobUpload: false,
+    };
+    return uploadPolicyCache;
+  }
+  uploadPolicyCache = data.policy;
+  return uploadPolicyCache;
+}
+
+function shouldUseDirectBlobUpload(
+  sizeBytes: number,
+  policy: UploadPolicy,
+): boolean {
+  return (
+    policy.clientBlobUpload &&
+    sizeBytes > policy.serverMultipartMaxBytes
+  );
+}
+
+async function uploadChatAttachmentViaBlob(
   attachment: PreparedAttachment,
   target: UploadTarget,
 ): Promise<ChatAttachmentPublic> {
-  if (!target.chatId && !target.eveSessionId) {
-    throw new Error("Cannot upload attachment before chat session exists.");
+  const prepareRes = await attachmentFetch(
+    "/api/chat-attachments/prepare-blob-upload",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chatId: target.chatId ?? undefined,
+        eveSessionId: target.eveSessionId ?? undefined,
+        agentId: target.agentId,
+        filename: attachment.filename,
+        mediaType: attachment.mediaType,
+        sizeBytes: attachment.sizeBytes,
+      }),
+    },
+  );
+  const prepared = (await prepareRes.json()) as {
+    ok?: boolean;
+    error?: string;
+    attachmentId?: string;
+    chatId?: string;
+    pathname?: string;
+    clientPayload?: string;
+  };
+  if (
+    !prepareRes.ok ||
+    !prepared.attachmentId ||
+    !prepared.chatId ||
+    !prepared.pathname ||
+    !prepared.clientPayload
+  ) {
+    throw new Error(prepared.error ?? `Prepare upload failed (${prepareRes.status})`);
   }
 
+  const body = new Blob([Uint8Array.from(attachment.bytes)], {
+    type: attachment.mediaType,
+  });
+
+  await upload(prepared.pathname, body, {
+    access: "private",
+    handleUploadUrl: `${API_URL}/api/chat-attachments/blob-upload`,
+    clientPayload: prepared.clientPayload,
+    headers: authHeaders(),
+    multipart: attachment.sizeBytes > 8 * 1024 * 1024,
+    contentType: attachment.mediaType,
+  });
+
+  const finalizeRes = await attachmentFetch(
+    "/api/chat-attachments/finalize-blob-upload",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        attachmentId: prepared.attachmentId,
+        chatId: prepared.chatId,
+        agentId: target.agentId,
+        filename: attachment.filename,
+        mediaType: attachment.mediaType,
+        sizeBytes: attachment.sizeBytes,
+      }),
+    },
+  );
+
+  const finalized = (await finalizeRes.json()) as {
+    ok?: boolean;
+    error?: string;
+    warning?: string;
+    attachment?: ChatAttachmentPublic;
+  };
+  if (!finalizeRes.ok || !finalized.attachment) {
+    throw new Error(finalized.error ?? `Finalize upload failed (${finalizeRes.status})`);
+  }
+  if (finalized.warning?.trim()) {
+    console.warn("[attachment upload]", finalized.warning);
+  }
+  return finalized.attachment;
+}
+
+async function uploadChatAttachmentViaMultipart(
+  attachment: PreparedAttachment,
+  target: UploadTarget,
+): Promise<ChatAttachmentPublic> {
   const form = new FormData();
   form.append(
     "file",
@@ -65,7 +187,12 @@ export async function uploadChatAttachment(
     body: form,
   });
 
-  let data: { ok?: boolean; error?: string; attachment?: ChatAttachmentPublic };
+  let data: {
+    ok?: boolean;
+    error?: string;
+    warning?: string;
+    attachment?: ChatAttachmentPublic;
+  };
   try {
     data = (await res.json()) as typeof data;
   } catch {
@@ -76,7 +203,33 @@ export async function uploadChatAttachment(
     throw new Error(data.error ?? `Upload failed (${res.status})`);
   }
 
+  if (data.warning?.trim()) {
+    console.warn("[attachment upload]", data.warning);
+  }
+
   return data.attachment;
+}
+
+export async function uploadChatAttachment(
+  attachment: PreparedAttachment,
+  target: UploadTarget,
+): Promise<ChatAttachmentPublic> {
+  if (!target.chatId && !target.eveSessionId) {
+    throw new Error("Cannot upload attachment before chat session exists.");
+  }
+
+  const policy = await getUploadPolicy();
+  if (attachment.sizeBytes > policy.maxBytesPerFile) {
+    throw new Error(
+      `File exceeds the ${Math.round(policy.maxBytesPerFile / (1024 * 1024))} MB limit.`,
+    );
+  }
+
+  if (shouldUseDirectBlobUpload(attachment.sizeBytes, policy)) {
+    return uploadChatAttachmentViaBlob(attachment, target);
+  }
+
+  return uploadChatAttachmentViaMultipart(attachment, target);
 }
 
 export async function deleteChatAttachment(

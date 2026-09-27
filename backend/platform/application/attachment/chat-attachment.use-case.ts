@@ -17,6 +17,11 @@ import {
   getAttachmentBytes,
   putAttachmentBytes,
 } from "../../infrastructure/attachment/attachment-storage.js";
+import {
+  ATTACHMENT_MAX_BYTES_PER_FILE,
+  ATTACHMENT_SERVER_MULTIPART_MAX_BYTES,
+} from "../../infrastructure/config/attachment-limits.config.js";
+import { hasBlobStorageConfigured } from "../../infrastructure/artifact/blob-client.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import { drizzleChatRepository } from "../../infrastructure/persistence/chat/drizzle-chat.repository.js";
 
@@ -71,6 +76,23 @@ export async function uploadChatAttachmentForUser(input: {
   mediaType: string;
   bytes: Uint8Array;
 }): Promise<{ attachment: ChatAttachmentPublic | null; error?: string }> {
+  if (input.bytes.byteLength > ATTACHMENT_MAX_BYTES_PER_FILE) {
+    return {
+      attachment: null,
+      error: `File exceeds the ${ATTACHMENT_MAX_BYTES_PER_FILE / (1024 * 1024)} MB limit.`,
+    };
+  }
+  if (
+    hasBlobStorageConfigured() &&
+    input.bytes.byteLength > ATTACHMENT_SERVER_MULTIPART_MAX_BYTES
+  ) {
+    return {
+      attachment: null,
+      error:
+        "File is too large to upload through the API route. Retry — the app will use direct blob upload.",
+    };
+  }
+
   const chat = await resolveOwnedChat(input);
   if (!chat) {
     return { attachment: null, error: "Chat not found for this session." };

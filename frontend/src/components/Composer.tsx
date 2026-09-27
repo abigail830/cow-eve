@@ -240,8 +240,14 @@ export function Composer({
     stagedPlatformIds,
   ]);
 
+  const waitingForUploadSession = useMemo(() => {
+    if (!persistAttachments || attachments.length === 0) return false;
+    return !(chatId || eveSessionId);
+  }, [attachments.length, chatId, eveSessionId, persistAttachments]);
+
   const sendBlockedByParse = useMemo(() => {
     if (!persistAttachments) return false;
+    if (waitingForUploadSession) return true;
 
     const mentionIds = parseAttachmentMentionIds(text, libraryAttachments);
     for (const id of mentionIds) {
@@ -273,6 +279,7 @@ export function Composer({
     libraryById,
     persistAttachments,
     text,
+    waitingForUploadSession,
   ]);
 
   useEffect(() => {
@@ -681,6 +688,7 @@ export function Composer({
         <ComposerStagedChips
           attachments={attachments}
           libraryById={libraryById}
+          canUpload={Boolean(canUpload)}
           onRemove={removeAttachment}
           onChipClick={(row) => setParseDrawerAttachment(row)}
         />
@@ -694,9 +702,9 @@ export function Composer({
             Preparing attachments…
           </p>
         ) : null}
-        {sendBlockedByParse && !preparingAttachments ? (
+        {waitingForUploadSession && !preparingAttachments ? (
           <p className="composer-attachment-status" role="status">
-            Waiting for attachment parse to finish…
+            Connecting to the agent… Attachments upload once the session is ready.
           </p>
         ) : null}
         <textarea

@@ -41,7 +41,7 @@ function localObjectPath(chatId: string, objectName: string): string {
   );
 }
 
-function blobPath(chatId: string, objectName: string): string {
+export function blobPath(chatId: string, objectName: string): string {
   return `${CHAT_ATTACHMENTS_DIR}/${chatId}/${objectName}`;
 }
 
