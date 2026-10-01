@@ -1,11 +1,5 @@
 :root {
-  --ambient-linear: linear-gradient(
-    165deg,
-    var(--accent-muted, #fff0e7) 0%,
-    #ffffff 42%,
-    #f7f7f6 78%,
-    color-mix(in srgb, var(--accent-muted, #fff0e7) 35%, #ffffff) 100%
-  );
+  /* Ambient tokens live in styles/themes/*.css — do not redefine here (import order). */
   --glass-blur: blur(28px) saturate(1.35);
   --glass-surface: rgba(255, 255, 255, 0.42);
   --glass-surface-raised: rgba(255, 255, 255, 0.58);
@@ -32,23 +26,26 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: var(--ambient-linear);
+  background: var(
+    --ambient-linear,
+    linear-gradient(165deg, #ffffff 0%, #f7f7f6 100%)
+  );
 }
 
 .platform-ambient::after {
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.4;
+  opacity: var(--ambient-overlay-opacity, 0.4);
   background:
     radial-gradient(
       ellipse 100% 75% at 50% 100%,
-      rgba(255, 255, 255, 0.65) 0%,
+      var(--ambient-overlay-highlight) 0%,
       transparent 55%
     ),
     radial-gradient(
       ellipse 90% 70% at 28% 22%,
-      color-mix(in srgb, var(--accent-soft, #ffd1b8) 55%, transparent) 0%,
+      var(--ambient-overlay-tint) 0%,
       transparent 55%
     );
 }
@@ -76,8 +73,8 @@
   left: -6%;
   background: radial-gradient(
     circle at 42% 42%,
-    color-mix(in srgb, var(--accent, #ff6611) 28%, transparent) 0%,
-    color-mix(in srgb, var(--accent-soft, #ffd1b8) 70%, transparent) 38%,
+    var(--ambient-orb-primary-inner) 0%,
+    var(--ambient-orb-primary-mid) 38%,
     transparent 68%
   );
   opacity: 0.85;
@@ -90,7 +87,7 @@
   right: -8%;
   background: radial-gradient(
     circle at 50% 50%,
-    color-mix(in srgb, var(--accent-muted, #fff0e7) 90%, var(--accent-soft, #ffd1b8)) 0%,
+    var(--ambient-orb-secondary) 0%,
     transparent 70%
   );
   opacity: 0.9;

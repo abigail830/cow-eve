@@ -1,0 +1,190 @@
+/**
+ * ARQL — slate rail, teal accent, navy-to-mint ambient wash.
+ */
+[data-theme="arql"] {
+  --font-body: Arial, Helvetica, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  --font-heading: Arial, Helvetica, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+
+  --brand-navy: #1a1e33;
+
+  --accent: #00ddb3;
+  --accent-strong: #00b894;
+  --accent-soft: #9af0e0;
+  --accent-muted: rgba(0, 221, 179, 0.14);
+  --accent-on-accent: var(--brand-navy);
+
+  --color-ink: #1a1e33;
+  --text-primary: var(--color-ink);
+  --color-text-secondary: #33374c;
+  --text-secondary: var(--color-text-secondary);
+  --color-text-muted: #6b7280;
+  --text-muted: var(--color-text-muted);
+
+  --surface-canvas: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #f5f7f8;
+  --surface-nav: var(--brand-navy);
+  --surface-overlay: rgba(255, 255, 255, 0.92);
+
+  --border-subtle: #e2e6e8;
+  --border-default: #d8dde0;
+
+  --color-info: #1877f2;
+  --color-error: #dc3545;
+  --color-teal: #00a884;
+
+  --paper-cover: #f5f7f8;
+  --paper-cover-soft: color-mix(in srgb, var(--paper-cover) 72%, transparent);
+  --paper-cover-muted: color-mix(in srgb, var(--paper-cover) 45%, transparent);
+  --paper-cover-faint: color-mix(in srgb, var(--surface-canvas) 92%, var(--paper-cover));
+  --paper-cover-border: color-mix(
+    in srgb,
+    var(--paper-cover) 65%,
+    rgba(26, 30, 51, 0.08)
+  );
+
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-composer: 6px;
+  --radius-pill: 4px;
+
+  --segment-tab-active-bg: #ffffff;
+  --segment-tab-active-fg: var(--brand-navy);
+  --segment-tab-hover-bg: color-mix(in srgb, var(--brand-navy) 5%, #ffffff);
+  --segment-tab-hover-fg: var(--brand-navy);
+  --ambient-overlay-opacity: 0.1;
+
+  --chat-font-size: 13px;
+  --chat-line-height: 1.55;
+
+  --theme-preview-rail: var(--surface-nav);
+  --theme-preview-rail-accent: var(--accent);
+  --theme-preview-rail-line: rgba(245, 247, 248, 0.35);
+  --theme-preview-chat: var(--surface-canvas);
+  --theme-preview-chat-line: #e2e6e8;
+
+  --nav-fg: rgba(245, 247, 248, 0.92);
+  --nav-fg-muted: rgba(245, 247, 248, 0.55);
+  --nav-fg-subtle: rgba(245, 247, 248, 0.45);
+  --nav-fg-icon: rgba(245, 247, 248, 0.65);
+  --nav-title-fg: #ffffff;
+  --nav-hover-bg: rgba(255, 255, 255, 0.06);
+  --nav-hover-fg-icon: rgba(255, 255, 255, 0.88);
+  --nav-active-bg: rgba(0, 221, 179, 0.14);
+  --nav-active-fg: #00ddb3;
+  --nav-border: #33374c;
+  --nav-identity-ring: rgba(255, 255, 255, 0.12);
+  --nav-folder-active-bg: rgba(255, 255, 255, 0.08);
+  --nav-folder-active-border: rgba(0, 221, 179, 0.35);
+  --nav-folder-active-fg: #f5f7f8;
+
+  --nav-user-name-fg: rgba(245, 247, 248, 0.96);
+  --nav-user-email-fg: rgba(245, 247, 248, 0.58);
+  --nav-user-avatar-bg: rgba(0, 221, 179, 0.2);
+  --nav-user-avatar-fg: #9af0e0;
+  --nav-user-trigger-hover: rgba(255, 255, 255, 0.08);
+
+  --chat-user-bubble-bg: color-mix(in srgb, var(--accent-muted) 55%, #ffffff);
+  --chat-user-bubble-fg: var(--text-primary);
+
+  --composer-border: color-mix(in srgb, var(--accent) 28%, var(--border-subtle));
+  --composer-bg: var(--surface-raised);
+  --composer-shadow: 0 2px 20px color-mix(in srgb, var(--brand-navy) 6%, transparent);
+  --composer-text-fg: var(--text-primary);
+  --composer-muted-fg: var(--text-muted);
+  --composer-icon-hover-bg: var(--accent-muted);
+  --composer-toolbar-border: color-mix(in srgb, var(--accent) 22%, var(--border-subtle));
+  --composer-toolbar-bg: color-mix(in srgb, var(--accent-muted) 70%, #ffffff);
+  --composer-toolbar-fg: color-mix(in srgb, var(--brand-navy) 72%, var(--accent-strong));
+  --composer-toolbar-hover-bg: color-mix(in srgb, var(--accent-muted) 95%, #ffffff);
+
+  --ambient-linear: linear-gradient(
+    125deg,
+    var(--brand-navy) 0%,
+    color-mix(in srgb, var(--brand-navy) 55%, #243056) 30%,
+    color-mix(in srgb, var(--accent-strong) 65%, var(--brand-navy)) 55%,
+    color-mix(in srgb, var(--accent) 85%, var(--accent-strong)) 78%,
+    #8ef0dc 100%
+  );
+  --ambient-orb-primary-inner: color-mix(in srgb, var(--brand-navy) 55%, transparent);
+  --ambient-orb-primary-mid: color-mix(in srgb, var(--accent) 42%, transparent);
+  --ambient-orb-secondary: color-mix(in srgb, var(--accent-soft) 82%, var(--accent));
+  --ambient-overlay-highlight: color-mix(in srgb, var(--brand-navy) 18%, transparent);
+  --ambient-overlay-tint: color-mix(in srgb, var(--accent) 32%, transparent);
+
+  --glass-surface: rgba(255, 255, 255, 0.38);
+  --glass-surface-raised: rgba(255, 255, 255, 0.62);
+  --glass-surface-strong: rgba(26, 30, 51, 0.28);
+  --glass-border: rgba(255, 255, 255, 0.35);
+
+  --home-greeting-fg: #ffffff;
+  --home-lead-fg: rgba(245, 247, 248, 0.92);
+  --home-footer-fg: color-mix(in srgb, var(--brand-navy) 78%, #000000);
+  --home-header-fg: rgba(245, 247, 248, 0.94);
+  --home-brand-agent-fg: #ffffff;
+  --home-brand-team-fg: #c8fff4;
+  --home-agent-card-desc-fg: var(--color-text-secondary);
+  --home-header-border: transparent;
+  --home-header-shadow: 0 6px 28px rgba(15, 18, 32, 0.28);
+  --home-header-highlight: none;
+}
+
+[data-theme="arql"] .platform-orb--neutral {
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--brand-navy) 35%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 28%, transparent) 42%,
+    transparent 70%
+  );
+  opacity: 0.85;
+  top: 8%;
+  right: 5%;
+}
+
+[data-theme="arql"] .platform-orb--peach {
+  opacity: 0.92;
+  left: -12%;
+  background: radial-gradient(
+    circle at 40% 40%,
+    color-mix(in srgb, var(--brand-navy) 70%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 45%, transparent) 40%,
+    transparent 68%
+  );
+}
+
+[data-theme="arql"] .platform-orb--warm {
+  opacity: 0.88;
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--accent-soft) 95%, var(--accent)) 0%,
+    color-mix(in srgb, var(--accent) 35%, transparent) 45%,
+    transparent 72%
+  );
+}
+
+[data-theme="arql"] .platform-ambient::after {
+  opacity: var(--ambient-overlay-opacity, 0.1);
+}
+
+[data-theme="arql"] .workspace-btn,
+[data-theme="arql"] .workspace-file-card,
+[data-theme="arql"] .workspace-file-card-icon,
+[data-theme="arql"] .workspace-preview-close {
+  border-radius: var(--radius-md);
+}
+
+[data-theme="arql"] .composer-box {
+  border-radius: var(--radius-composer);
+}
+
+[data-theme="arql"] .composer-audio-toolbar-btn {
+  border-radius: var(--radius-pill);
+}
+
+[data-theme="arql"] .home-agent-card {
+  border-radius: var(--radius-lg);
+}
+

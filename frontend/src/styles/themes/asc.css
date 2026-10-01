@@ -1,0 +1,130 @@
+/**
+ * ASC — default product theme (orange accent, light surfaces, Poppins).
+ * Components should prefer semantic tokens below, not raw hex.
+ */
+:root,
+[data-theme="asc"] {
+  --font-body: "Poppins", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  --font-heading: "Poppins", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+
+  /* Brand / accent */
+  --accent: #ff6611;
+  --accent-strong: #ff8541;
+  --accent-soft: #ffd1b8;
+  --accent-muted: #fff0e7;
+  --accent-on-accent: #ffffff;
+
+  /* Text */
+  --color-ink: #0f1514;
+  --text-primary: var(--color-ink);
+  --color-text-secondary: #575b5b;
+  --text-secondary: var(--color-text-secondary);
+  --color-text-muted: #878a8a;
+  --text-muted: var(--color-text-muted);
+
+  /* Surfaces */
+  --surface-canvas: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #fafafa;
+  --surface-nav: #fafafa;
+  --surface-overlay: rgba(255, 255, 255, 0.82);
+
+  /* Borders */
+  --border-subtle: #e8e8e8;
+  --border-default: #ececec;
+
+  /* Status */
+  --color-info: #1877f2;
+  --color-error: #dc3545;
+  --color-teal: #077069;
+
+  /* Paper / marketing wash (home ambient, settings rail) */
+  --paper-cover: #fff0e7;
+  --paper-cover-soft: color-mix(in srgb, var(--paper-cover) 68%, transparent);
+  --paper-cover-muted: color-mix(in srgb, var(--paper-cover) 38%, transparent);
+  --paper-cover-faint: color-mix(in srgb, var(--surface-canvas) 88%, var(--paper-cover));
+  --paper-cover-border: color-mix(
+    in srgb,
+    var(--paper-cover) 72%,
+    rgba(0, 0, 0, 0.06)
+  );
+
+  /* Radius scale */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-composer: 16px;
+  --radius-pill: 999px;
+
+  --segment-tab-active-bg: var(--accent-muted);
+  --segment-tab-active-fg: var(--accent);
+  --segment-tab-hover-bg: #f5f5f5;
+  --segment-tab-hover-fg: var(--text-primary);
+  --ambient-overlay-opacity: 0.4;
+
+  /* Chat typography */
+  --chat-font-size: 13px;
+  --chat-line-height: 1.6;
+
+  /* Theme preview swatches (settings UI) */
+  --theme-preview-rail: var(--surface-nav);
+  --theme-preview-rail-accent: var(--accent);
+  --theme-preview-rail-line: #c8caca;
+  --theme-preview-chat: var(--surface-canvas);
+  --theme-preview-chat-line: #e0e0e0;
+
+  /* Agent sidebar (light rail) */
+  --nav-fg: #555555;
+  --nav-fg-muted: #999999;
+  --nav-fg-subtle: #9a9a9a;
+  --nav-fg-icon: #888888;
+  --nav-title-fg: var(--color-ink);
+  --nav-hover-bg: rgba(0, 0, 0, 0.04);
+  --nav-hover-fg-icon: #333333;
+  --nav-active-bg: color-mix(in srgb, var(--accent) 12%, transparent);
+  --nav-active-fg: color-mix(in srgb, var(--accent) 85%, var(--color-ink));
+  --nav-border: var(--border-subtle);
+  --nav-identity-ring: rgba(0, 0, 0, 0.06);
+  --nav-folder-active-bg: #ffffff;
+  --nav-folder-active-border: var(--border-subtle);
+  --nav-folder-active-fg: #1a1a1a;
+
+  --nav-user-name-fg: var(--text-primary);
+  --nav-user-email-fg: var(--text-muted);
+  --nav-user-avatar-bg: #1a1a1a;
+  --nav-user-avatar-fg: #ffffff;
+  --nav-user-trigger-hover: rgba(0, 0, 0, 0.04);
+
+  --chat-user-bubble-bg: var(--accent-muted);
+  --chat-user-bubble-fg: var(--text-primary);
+
+  --composer-border: color-mix(in srgb, var(--accent-soft) 72%, #ffffff);
+  --composer-bg: var(--surface-raised);
+  --composer-shadow: 0 2px 16px color-mix(in srgb, var(--accent) 8%, transparent);
+  --composer-text-fg: var(--text-primary);
+  --composer-muted-fg: var(--text-muted);
+  --composer-icon-hover-bg: color-mix(in srgb, var(--accent-muted) 85%, #ffffff);
+  --composer-toolbar-border: color-mix(in srgb, var(--accent-soft) 65%, #ffffff);
+  --composer-toolbar-bg: color-mix(in srgb, var(--accent-muted) 45%, #ffffff);
+  --composer-toolbar-fg: color-mix(in srgb, var(--accent) 55%, var(--color-ink));
+  --composer-toolbar-hover-bg: var(--accent-muted);
+
+  --ambient-linear: linear-gradient(
+    165deg,
+    var(--accent-muted) 0%,
+    #ffffff 42%,
+    #f7f7f6 78%,
+    color-mix(in srgb, var(--accent-muted) 35%, #ffffff) 100%
+  );
+  --ambient-orb-primary-inner: color-mix(in srgb, var(--accent) 28%, transparent);
+  --ambient-orb-primary-mid: color-mix(in srgb, var(--accent-soft) 70%, transparent);
+  --ambient-orb-secondary: color-mix(
+    in srgb,
+    var(--accent-muted) 90%,
+    var(--accent-soft)
+  );
+  --ambient-overlay-highlight: rgba(255, 255, 255, 0.65);
+  --ambient-overlay-tint: color-mix(in srgb, var(--accent-soft) 55%, transparent);
+}

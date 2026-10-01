@@ -5,6 +5,10 @@
   background: transparent;
 }
 
+[data-theme="arql"] .home-shell {
+  background: var(--ambient-linear);
+}
+
 .home-header {
   position: relative;
   z-index: 2;
@@ -18,10 +22,12 @@
   background: var(--glass-surface-strong);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid var(--glass-border-soft);
-  box-shadow:
+  border-bottom: var(--home-header-border, 1px solid var(--glass-border-soft));
+  box-shadow: var(
+    --home-header-shadow,
     0 1px 0 rgba(255, 255, 255, 0.5) inset,
-    0 4px 24px rgba(30, 45, 80, 0.04);
+    0 4px 24px rgba(30, 45, 80, 0.04)
+  ); /* fallback: inset highlight + soft drop shadow */
 }
 
 .home-header-actions {
@@ -75,8 +81,11 @@
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.2;
-  color: var(--color-ink);
-  text-shadow: 0 1px 24px rgba(255, 255, 255, 0.85);
+  color: var(--home-greeting-fg, var(--color-ink));
+  text-shadow: var(
+    --home-greeting-shadow,
+    0 1px 24px rgba(255, 255, 255, 0.85)
+  );
 }
 
 .home-lead {
@@ -84,9 +93,8 @@
   font-size: 1rem;
   font-weight: 400;
   line-height: 1.5;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-  text-shadow: 0 1px 16px rgba(255, 255, 255, 0.9);
+  color: var(--home-lead-fg, var(--color-text-secondary));
+  text-shadow: var(--home-lead-shadow, 0 1px 16px rgba(255, 255, 255, 0.9));
 }
 
 .home-error {
@@ -183,7 +191,7 @@
 .home-agent-card-desc {
   font-size: 0.75rem;
   font-weight: 400;
-  color: #8f8f8f;
+  color: var(--home-agent-card-desc-fg, #8f8f8f);
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -203,9 +211,75 @@
   margin: 0;
   font-size: 0.8125rem;
   font-weight: 400;
-  color: #b0b0b0;
+  color: var(--home-footer-fg, #b0b0b0);
   letter-spacing: 0.01em;
-  text-shadow: 0 1px 12px rgba(255, 255, 255, 0.8);
+  text-shadow: var(--home-footer-shadow, 0 1px 12px rgba(255, 255, 255, 0.8));
+}
+
+[data-theme="arql"] .home-greeting {
+  text-shadow: 0 2px 28px rgba(26, 30, 51, 0.45);
+}
+
+[data-theme="arql"] .home-lead {
+  text-shadow: 0 1px 20px rgba(26, 30, 51, 0.35);
+}
+
+[data-theme="arql"] .home-footer p {
+  text-shadow: none;
+  font-weight: 500;
+}
+
+[data-theme="arql"] .home-header {
+  border-bottom-width: 0;
+  box-shadow: var(--home-header-shadow);
+}
+
+[data-theme="arql"] .home-header .platform-brand-agent {
+  color: var(--home-brand-agent-fg);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="arql"] .home-header .platform-brand-team {
+  color: var(--home-brand-team-fg);
+  font-weight: 700;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 12px rgba(0, 221, 179, 0.35);
+}
+
+[data-theme="arql"] .home-agent-card {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 8px 32px rgba(15, 18, 32, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+[data-theme="arql"] .home-agent-card:hover {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+[data-theme="arql"] .home-agent-card-desc {
+  color: var(--home-agent-card-desc-fg);
+  font-weight: 500;
+}
+
+[data-theme="arql"] .home-header .home-header-icon-btn {
+  color: var(--home-header-fg);
+}
+
+[data-theme="arql"] .home-header .home-header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+[data-theme="arql"] .home-header .user-account-icon,
+[data-theme="arql"] .home-header .user-account-name-minimal {
+  color: var(--home-header-fg);
+}
+
+[data-theme="arql"] .home-header .user-account-menu.minimal .user-account-trigger:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 @media (max-width: 640px) {

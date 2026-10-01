@@ -2,11 +2,17 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   ChevronLeft,
   Cpu,
+  Palette,
   Pencil,
   Plus,
   Trash2,
   Users,
 } from "lucide-react";
+import { ColorThemePicker } from "../components/ColorThemePicker";
+import {
+  getStoredThemeId,
+  type ThemeId,
+} from "../lib/theme";
 import { Link, Navigate } from "react-router-dom";
 import {
   createUser,
@@ -33,7 +39,7 @@ import { IconButton } from "../components/IconButton";
 import { useAuth } from "../lib/auth";
 import "./Settings.css";
 
-type TabId = "model" | "users";
+type TabId = "appearance" | "model" | "users";
 
 const REASONING_OPTIONS: ModelReasoning[] = [
   "provider-default",
@@ -52,7 +58,7 @@ function formatDateTime(iso: string | null) {
 
 export function SettingsPage() {
   const { token } = useAuth();
-  const [tab, setTab] = useState<TabId>("model");
+  const [tab, setTab] = useState<TabId>("appearance");
 
   if (!token) return <Navigate to="/login" replace />;
 
@@ -68,6 +74,14 @@ export function SettingsPage() {
 
       <div className="settings-shell">
         <nav className="settings-tabs">
+          <button
+            type="button"
+            className={tab === "appearance" ? "active" : ""}
+            onClick={() => setTab("appearance")}
+          >
+            <Palette size={16} strokeWidth={2} />
+            Appearance
+          </button>
           <button
             type="button"
             className={tab === "model" ? "active" : ""}
@@ -87,9 +101,32 @@ export function SettingsPage() {
         </nav>
 
         <div className="settings-panel">
-          {tab === "model" ? <ModelSettingsTab /> : <UsersSettingsTab />}
+          {tab === "appearance" ? (
+            <AppearanceSettingsTab />
+          ) : tab === "model" ? (
+            <ModelSettingsTab />
+          ) : (
+            <UsersSettingsTab />
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AppearanceSettingsTab() {
+  const [themeId, setThemeId] = useState<ThemeId>(() => getStoredThemeId());
+
+  return (
+    <div className="appearance-settings">
+      <div className="model-form-intro">
+        <h2>Color theme</h2>
+        <p>
+          Choose the accent and surface colors for the app. Changes apply
+          immediately.
+        </p>
+      </div>
+      <ColorThemePicker value={themeId} onChange={setThemeId} />
     </div>
   );
 }

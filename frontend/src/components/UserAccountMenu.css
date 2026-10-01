@@ -8,7 +8,7 @@
 }
 
 .user-account-menu.minimal .user-account-trigger:hover {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--nav-user-trigger-hover, rgba(0, 0, 0, 0.03));
 }
 
 .user-account-icon {
@@ -42,15 +42,15 @@
 }
 
 .user-account-trigger:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--nav-user-trigger-hover, rgba(0, 0, 0, 0.04));
 }
 
 .user-account-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #1a1a1a;
-  color: #fff;
+  background: var(--nav-user-avatar-bg, #1a1a1a);
+  color: var(--nav-user-avatar-fg, #fff);
   font-size: 0.75rem;
   font-weight: 700;
   display: grid;
@@ -72,7 +72,7 @@
 .user-account-name {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--nav-user-name-fg, #1a1a1a);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -80,7 +80,7 @@
 
 .user-account-email {
   font-size: 0.6875rem;
-  color: #888;
+  color: var(--nav-user-email-fg, #888);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

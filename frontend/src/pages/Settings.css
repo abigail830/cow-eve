@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--surface-canvas);
 }
 
 .settings-header {
@@ -12,8 +12,8 @@
   align-items: center;
   gap: 16px;
   padding: 0 20px;
-  background: #fff;
-  border-bottom: 1px solid #ececec;
+  background: var(--surface-canvas);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .settings-header h1 {
@@ -45,13 +45,19 @@
   flex: 1;
   display: flex;
   min-height: 0;
-  background: #fff;
+  background: var(--surface-canvas);
+}
+
+.appearance-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .settings-tabs {
   width: 240px;
   flex-shrink: 0;
-  border-right: 1px solid #ececec;
+  border-right: 1px solid var(--border-default);
   padding: 14px 10px;
   display: flex;
   flex-direction: column;
@@ -91,7 +97,7 @@
   flex: 1;
   padding: 28px 40px 36px;
   min-width: 0;
-  background: #fff;
+  background: var(--surface-canvas);
 }
 
 .settings-placeholder h2,
@@ -137,7 +143,7 @@
   gap: 6px;
   border: none;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on-accent, #fff);
   padding: 8px 14px;
 }
 
@@ -316,7 +322,7 @@
 .model-editor-actions button {
   border: none;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on-accent, #fff);
   padding: 10px 16px;
 }
 

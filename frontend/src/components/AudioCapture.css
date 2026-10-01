@@ -6,9 +6,9 @@
 }
 
 .composer-audio-toolbar-btn {
-  border: 1px solid #f0d4bc;
-  background: #fffaf6;
-  color: #b35a1a;
+  border: 1px solid var(--composer-toolbar-border);
+  background: var(--composer-toolbar-bg);
+  color: var(--composer-toolbar-fg);
   font-size: 12px;
   font-weight: 500;
   padding: 6px 12px;
@@ -22,7 +22,7 @@
 }
 
 .composer-audio-toolbar-btn:not(:disabled):hover {
-  background: #fff0e6;
+  background: var(--composer-toolbar-hover-bg);
   border-color: var(--accent);
 }
 
@@ -116,7 +116,7 @@
 .audio-capture-actions button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent-on-accent, #fff);
 }
 
 .audio-capture-actions button:disabled {
@@ -155,7 +155,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #b35a1a;
+  color: var(--composer-toolbar-fg);
 }
 
 .audio-capture-user-bubble-title {

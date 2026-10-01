@@ -79,7 +79,7 @@
   gap: 6px;
   padding: 6px 12px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: #fff;
   font-size: 0.8125rem;
   cursor: pointer;
@@ -88,7 +88,8 @@
 .workspace-btn.primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-on-accent, #fff);
+  font-weight: 600;
 }
 
 .workspace-btn.primary:hover:not(:disabled) {
@@ -146,7 +147,7 @@
   align-items: center;
   width: 100%;
   border: 1px solid #e8e8e8;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: #fff;
   overflow: hidden;
   transition:

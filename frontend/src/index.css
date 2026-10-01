@@ -1,39 +1,17 @@
 @import "./styles/platform-ambient.css";
+@import "./styles/themes/asc.css";
+@import "./styles/themes/arql.css";
 
 :root {
-  --font-body: "Poppins", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", sans-serif;
-  --font-heading: "Poppins", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
-    "Microsoft YaHei", sans-serif;
   font-family: var(--font-body);
   line-height: 1.4;
   font-weight: 400;
-  color: var(--color-ink);
-  background: #fff;
+  color: var(--text-primary);
+  background: var(--surface-canvas);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  /* Brand palette (product naming stays Agent Team; no parent-company copy) */
-  --accent: #ff6611;
-  --accent-strong: #ff8541;
-  --accent-soft: #ffd1b8;
-  --accent-muted: #fff0e7;
-  --color-ink: #0f1514;
-  --color-text-secondary: #575b5b;
-  --color-text-muted: #878a8a;
-  --color-info: #1877f2;
-  --color-error: #dc3545;
-  --color-teal: #077069;
-
-  --paper-cover: #fff0e7;
-  --paper-cover-soft: color-mix(in srgb, var(--paper-cover) 68%, transparent);
-  --paper-cover-muted: color-mix(in srgb, var(--paper-cover) 38%, transparent);
-  --paper-cover-faint: color-mix(in srgb, #fff 88%, var(--paper-cover));
-  --paper-cover-border: color-mix(in srgb, var(--paper-cover) 72%, rgba(0, 0, 0, 0.06));
-  --chat-font-size: 13px;
-  --chat-line-height: 1.6;
 }
 
 *,
@@ -47,7 +25,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: var(--font-body);
-  color: var(--color-ink);
+  color: var(--text-primary);
+  background: var(--surface-canvas);
 }
 
 #root {

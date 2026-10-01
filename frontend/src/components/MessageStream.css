@@ -29,8 +29,8 @@
 .msg-bubble.user {
   max-width: 80%;
   width: fit-content;
-  background: #fff0e6;
-  color: #1a1a1a;
+  background: var(--chat-user-bubble-bg);
+  color: var(--chat-user-bubble-fg);
   padding: 10px 14px;
   border-radius: 14px 14px 4px 14px;
   font-size: var(--chat-font-size);

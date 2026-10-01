@@ -188,7 +188,7 @@
 }
 
 .artifacts-card.active {
-  border-color: var(--accent, #c45c26);
+  border-color: var(--accent);
   box-shadow: 0 1px 4px rgba(15, 21, 20, 0.06);
 }
 
@@ -200,7 +200,7 @@
   height: 36px;
   border-radius: 8px;
   background: var(--accent-muted, rgba(196, 92, 38, 0.08));
-  color: var(--accent, #c45c26);
+  color: var(--accent);
 }
 
 .artifacts-card-main {

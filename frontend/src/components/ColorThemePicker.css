@@ -1,0 +1,166 @@
+.color-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  max-width: 520px;
+}
+
+.color-theme-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.color-theme-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-default));
+}
+
+.color-theme-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.color-theme-swatch {
+  display: flex;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-canvas);
+}
+
+.color-theme-swatch-rail {
+  width: 38%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px;
+  background: var(--theme-preview-rail);
+  box-sizing: border-box;
+}
+
+.color-theme-swatch-rail-accent {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--theme-preview-rail-accent);
+}
+
+.color-theme-swatch-rail-line {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--theme-preview-rail-line);
+  width: 85%;
+}
+
+.color-theme-swatch-rail-line.muted {
+  opacity: 0.55;
+  width: 65%;
+}
+
+.color-theme-swatch-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 10px;
+  background: var(--theme-preview-chat);
+  box-sizing: border-box;
+}
+
+.color-theme-swatch-main-line {
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--theme-preview-chat-line);
+  width: 78%;
+}
+
+.color-theme-swatch-main-line.short {
+  width: 52%;
+  opacity: 0.75;
+}
+
+.color-theme-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.color-theme-card-name {
+  font-family: var(--font-heading);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.color-theme-card-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.color-theme-current {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Preview swatches use fixed palette per theme (independent of active theme). */
+.color-theme-swatch-asc .color-theme-swatch-rail {
+  background: #fafafa;
+}
+
+.color-theme-swatch-asc .color-theme-swatch-rail-accent {
+  background: #ff6611;
+}
+
+.color-theme-swatch-asc .color-theme-swatch-rail-line {
+  background: #c8caca;
+}
+
+.color-theme-swatch-asc .color-theme-swatch-main {
+  background: #ffffff;
+}
+
+.color-theme-swatch-asc .color-theme-swatch-main-line {
+  background: #e0e0e0;
+}
+
+.color-theme-swatch-arql .color-theme-swatch-rail {
+  background: #1a1e33;
+}
+
+.color-theme-swatch-arql .color-theme-swatch-rail-accent {
+  background: #00ddb3;
+}
+
+.color-theme-swatch-arql .color-theme-swatch-rail-line {
+  background: rgba(245, 247, 248, 0.35);
+}
+
+.color-theme-swatch-arql .color-theme-swatch-main {
+  background: #ffffff;
+}
+
+.color-theme-swatch-arql .color-theme-swatch-main-line {
+  background: #e2e6e8;
+}

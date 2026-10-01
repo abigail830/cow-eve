@@ -157,7 +157,7 @@
 .workspace-import-btn.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--accent-on-accent, #fff);
 }
 
 .workspace-import-btn.primary:hover:not(:disabled) {
