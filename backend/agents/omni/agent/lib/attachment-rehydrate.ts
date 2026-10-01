@@ -26,6 +26,100 @@ function messageParts(message: unknown): unknown[] {
   return [];
 }
 
+function textChunksFromMessage(message: unknown): string[] {
+  if (!message || typeof message !== "object") return [];
+  const record = message as Record<string, unknown>;
+  const chunks: string[] = [];
+
+  if (typeof record.content === "string" && record.content.trim()) {
+    chunks.push(record.content);
+  } else if (Array.isArray(record.content)) {
+    for (const part of record.content) {
+      if (typeof part === "string" && part.trim()) {
+        chunks.push(part);
+        continue;
+      }
+      if (!part || typeof part !== "object") continue;
+      const piece = part as Record<string, unknown>;
+      if (piece.type === "text" && typeof piece.text === "string") {
+        chunks.push(piece.text);
+      }
+    }
+  }
+
+  if (Array.isArray(record.parts)) {
+    for (const part of record.parts) {
+      if (!part || typeof part !== "object") continue;
+      const piece = part as Record<string, unknown>;
+      if (piece.type === "text" && typeof piece.text === "string") {
+        chunks.push(piece.text);
+      }
+    }
+  }
+
+  return chunks;
+}
+
+function parseClientContextPayload(jsonPart: string): {
+  attachmentIds: string[];
+  workspaceFileIds: string[];
+} {
+  const attachmentIds: string[] = [];
+  const workspaceFileIds: string[] = [];
+  try {
+    const payload = JSON.parse(jsonPart) as {
+      attachmentIds?: unknown;
+      workspaceFileIds?: unknown;
+    };
+    const rawAtt = payload.attachmentIds;
+    if (Array.isArray(rawAtt)) {
+      for (const item of rawAtt) {
+        const id = String(item ?? "").trim();
+        if (id) attachmentIds.push(id);
+      }
+    }
+    const rawWs = payload.workspaceFileIds;
+    if (Array.isArray(rawWs)) {
+      for (const item of rawWs) {
+        const id = String(item ?? "").trim();
+        if (id) workspaceFileIds.push(id);
+      }
+    }
+  } catch {
+    // ignore malformed client context
+  }
+  return { attachmentIds, workspaceFileIds };
+}
+
+function idsFromClientContextChunks(chunks: readonly string[]): {
+  attachmentIds: string[];
+  workspaceFileIds: string[];
+} {
+  const attachmentIds: string[] = [];
+  const workspaceFileIds: string[] = [];
+  const seenAtt = new Set<string>();
+  const seenWs = new Set<string>();
+
+  for (const chunk of chunks) {
+    const trimmed = chunk.trim();
+    if (!trimmed.startsWith(CLIENT_CONTEXT_PREFIX)) continue;
+    const jsonPart = trimmed.slice(CLIENT_CONTEXT_PREFIX.length).trim();
+    const parsed = parseClientContextPayload(jsonPart);
+    for (const id of parsed.attachmentIds) {
+      if (seenAtt.has(id)) continue;
+      seenAtt.add(id);
+      attachmentIds.push(id);
+    }
+    for (const id of parsed.workspaceFileIds) {
+      if (seenWs.has(id)) continue;
+      seenWs.add(id);
+      workspaceFileIds.push(id);
+    }
+  }
+
+  return { attachmentIds, workspaceFileIds };
+}
+
 function partFilename(part: Record<string, unknown>): string {
   return typeof part.filename === "string" ? part.filename.trim() : "";
 }
@@ -193,43 +287,14 @@ const CLIENT_CONTEXT_PREFIX = "Client context:";
 export function parseSendAttachmentIdsFromMessages(
   messages: readonly unknown[],
 ): string[] {
-  const ids: string[] = [];
   const seen = new Set<string>();
-
+  const ids: string[] = [];
   for (const message of messages) {
-    if (!message || typeof message !== "object") continue;
-    const record = message as Record<string, unknown>;
-    const chunks: string[] = [];
-    if (typeof record.content === "string") {
-      chunks.push(record.content);
-    } else if (Array.isArray(record.content)) {
-      for (const part of record.content) {
-        if (!part || typeof part !== "object") continue;
-        const piece = part as Record<string, unknown>;
-        if (piece.type === "text" && typeof piece.text === "string") {
-          chunks.push(piece.text);
-        }
-      }
-    }
-    for (const chunk of chunks) {
-      if (!chunk.startsWith(CLIENT_CONTEXT_PREFIX)) continue;
-      const jsonPart = chunk.slice(CLIENT_CONTEXT_PREFIX.length).trim();
-      try {
-        const payload = JSON.parse(jsonPart) as {
-          attachmentIds?: unknown;
-          workspaceFileIds?: unknown;
-        };
-        const raw = payload.attachmentIds;
-        if (!Array.isArray(raw)) continue;
-        for (const item of raw) {
-          const id = String(item ?? "").trim();
-          if (!id || seen.has(id)) continue;
-          seen.add(id);
-          ids.push(id);
-        }
-      } catch {
-        // ignore malformed client context
-      }
+    const parsed = idsFromClientContextChunks(textChunksFromMessage(message));
+    for (const id of parsed.attachmentIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      ids.push(id);
     }
   }
   return ids;
@@ -239,40 +304,14 @@ export function parseSendAttachmentIdsFromMessages(
 export function parseWorkspaceFileIdsFromMessages(
   messages: readonly unknown[],
 ): string[] {
-  const ids: string[] = [];
   const seen = new Set<string>();
-
+  const ids: string[] = [];
   for (const message of messages) {
-    if (!message || typeof message !== "object") continue;
-    const record = message as Record<string, unknown>;
-    const chunks: string[] = [];
-    if (typeof record.content === "string") {
-      chunks.push(record.content);
-    } else if (Array.isArray(record.content)) {
-      for (const part of record.content) {
-        if (!part || typeof part !== "object") continue;
-        const piece = part as Record<string, unknown>;
-        if (piece.type === "text" && typeof piece.text === "string") {
-          chunks.push(piece.text);
-        }
-      }
-    }
-    for (const chunk of chunks) {
-      if (!chunk.startsWith(CLIENT_CONTEXT_PREFIX)) continue;
-      const jsonPart = chunk.slice(CLIENT_CONTEXT_PREFIX.length).trim();
-      try {
-        const payload = JSON.parse(jsonPart) as { workspaceFileIds?: unknown };
-        const raw = payload.workspaceFileIds;
-        if (!Array.isArray(raw)) continue;
-        for (const item of raw) {
-          const id = String(item ?? "").trim();
-          if (!id || seen.has(id)) continue;
-          seen.add(id);
-          ids.push(id);
-        }
-      } catch {
-        // ignore malformed client context
-      }
+    const parsed = idsFromClientContextChunks(textChunksFromMessage(message));
+    for (const id of parsed.workspaceFileIds) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      ids.push(id);
     }
   }
   return ids;

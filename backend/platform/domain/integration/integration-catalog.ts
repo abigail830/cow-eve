@@ -1,0 +1,84 @@
+/** Code-defined integration catalog (not per-user). User values live in user_integrations. */
+
+export type IntegrationFieldKind = "secret" | "url" | "text";
+
+export type IntegrationFieldDefinition = {
+  key: string;
+  kind: IntegrationFieldKind;
+  label: string;
+  description?: string;
+  placeholder?: string;
+  required: boolean;
+  /** Non-secret fields stored in user_integrations.config */
+  storeInConfig?: boolean;
+};
+
+export type IntegrationDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  docUrl: string;
+  /** Empty = shown for every agent in the Integrations nav */
+  agentIds?: readonly string[];
+  fields: readonly IntegrationFieldDefinition[];
+};
+
+export const INTEGRATION_ZHIPU_WEB_SEARCH = "zhipu_web_search";
+export const INTEGRATION_HYBRID_SEARCH = "hybrid_search";
+
+export const INTEGRATION_CATALOG: readonly IntegrationDefinition[] = [
+  {
+    id: INTEGRATION_ZHIPU_WEB_SEARCH,
+    name: "Zhipu Web Search",
+    description:
+      "Search the public web via Zhipu Coding Plan MCP (web_search_prime). Use when knowledge bases are insufficient or you need fresh information.",
+    docUrl:
+      "https://docs.bigmodel.cn/cn/coding-plan/mcp/search-mcp-server",
+    fields: [
+      {
+        key: "apiKey",
+        kind: "secret",
+        label: "API Key",
+        description:
+          "Coding Plan API key from 智谱开放平台 (personal or team plan). Stored without the Bearer prefix; the platform sends Authorization: Bearer <key> per Zhipu MCP docs.",
+        placeholder: "xxxxxxxxxxxxxxxxxxxxxxxx",
+        required: true,
+      },
+    ],
+  },
+  {
+    id: INTEGRATION_HYBRID_SEARCH,
+    name: "Hybrid Search (Knowledge)",
+    description:
+      "List knowledge bases and run hybrid retrieval for grounded Q&A (kb-qa skill).",
+    docUrl: "https://cow-platform-ii.vercel.app",
+    fields: [
+      {
+        key: "mcpUrl",
+        kind: "url",
+        label: "MCP URL",
+        description: "Hybrid search MCP endpoint. Leave blank to use the platform default.",
+        storeInConfig: true,
+        required: false,
+      },
+      {
+        key: "apiKey",
+        kind: "secret",
+        label: "API Key",
+        required: true,
+      },
+    ],
+  },
+];
+
+export function getIntegrationDefinition(
+  id: string,
+): IntegrationDefinition | undefined {
+  return INTEGRATION_CATALOG.find((row) => row.id === id);
+}
+
+export function integrationsForAgent(agentId: string): IntegrationDefinition[] {
+  return INTEGRATION_CATALOG.filter(
+    (row) => !row.agentIds?.length || row.agentIds.includes(agentId),
+  );
+}

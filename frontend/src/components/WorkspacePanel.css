@@ -263,9 +263,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 14px 16px;
+  min-height: 48px;
+  padding: 0 16px;
+  box-sizing: border-box;
   border-bottom: 1px solid #ececec;
   flex-shrink: 0;
+  background: #fff;
 }
 
 .workspace-preview-header h3 {

@@ -2,7 +2,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 0 12px 8px;
+  margin-bottom: 8px;
 }
 
 .composer-workspace-chip {
@@ -10,11 +10,12 @@
   align-items: center;
   gap: 6px;
   max-width: 100%;
-  padding: 4px 8px;
-  border-radius: 8px;
-  background: #eef4ff;
-  border: 1px solid #c5d8ff;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: #fff7f0;
+  border: 1px solid #f5c9a8;
   font-size: 0.75rem;
+  color: #555;
 }
 
 .composer-workspace-chip-name {
@@ -25,11 +26,12 @@
 }
 
 .composer-workspace-chip-source {
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: #fff;
-  color: #446;
-  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-muted);
+  color: color-mix(in srgb, var(--accent) 75%, var(--color-ink));
+  font-weight: 600;
+  font-size: 0.6875rem;
 }
 
 .composer-workspace-chip-status {
@@ -46,5 +48,5 @@
 }
 
 .composer-workspace-chip-remove:hover {
-  color: #111;
+  color: var(--accent);
 }

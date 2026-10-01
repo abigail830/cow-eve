@@ -92,6 +92,20 @@
       "when": 1789800100000,
       "tag": "0013_parse_job_runs_attachment_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789800200000,
+      "tag": "0014_chat_workspace_file_refs",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789800300000,
+      "tag": "0015_user_integrations",
+      "breakpoints": true
     }
   ]
 }

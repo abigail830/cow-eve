@@ -52,7 +52,11 @@ export default defineTool({
     }
 
     try {
-      const { workspaceFileIds } = collectSessionDocumentIds(ctx);
+      const { workspaceFileIds } = await collectSessionDocumentIds({
+        ctx,
+        userId,
+        chatId,
+      });
       const library = await buildSessionDocumentLibrary({
         chatId,
         userId,

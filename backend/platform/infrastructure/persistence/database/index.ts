@@ -8,6 +8,8 @@ export {
   chats,
   chatEvents,
   chatAttachments,
+  chatWorkspaceFileRefs,
+  userIntegrations,
   workspaceFolders,
   workspaceFiles,
   parseJobRuns,
@@ -26,5 +28,6 @@ export {
   type AudioCapturePartRow,
   type PlatformUserRow,
   type PlatformSettingsRow,
+  type UserIntegrationRow,
   type ScheduledTaskRow,
 } from "./schema";

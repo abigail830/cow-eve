@@ -383,21 +383,32 @@
 
 .document-preview-tabs {
   display: flex;
-  gap: 4px;
-  padding: 0 12px 10px;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 16px;
+  box-sizing: border-box;
   border-bottom: 1px solid #ececec;
   flex-shrink: 0;
+  background: #fff;
 }
 
 .document-preview-tabs button {
-  padding: 6px 10px;
+  margin: 0;
+  padding: 0 12px;
+  height: 30px;
   border: none;
   border-radius: 8px;
   background: transparent;
   font-size: 0.8125rem;
   font-weight: 500;
+  line-height: 1;
   color: #666;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .document-preview-tabs button:hover {

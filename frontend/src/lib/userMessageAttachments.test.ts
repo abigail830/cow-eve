@@ -4,6 +4,9 @@ import {
   clientContextIdsFromMessageParts,
   collapseUserClientContextMessages,
   isClientContextOnlyMessage,
+  stripClientContextFromText,
+  userVisibleTextFromParts,
+  workspaceFileIdsFromMessageParts,
 } from "./userMessageAttachments.js";
 
 describe("userMessageAttachments workspace ids", () => {
@@ -42,5 +45,14 @@ describe("userMessageAttachments workspace ids", () => {
     const collapsed = collapseUserClientContextMessages(messages);
     assert.equal(collapsed.length, 1);
     assert.deepEqual(collapsed[0]?.extraWorkspaceFileIds, ["f1"]);
+  });
+
+  it("strips embedded client context from user-visible text", () => {
+    const combined =
+      'Summarize this\nClient context:\n{"workspaceFileIds":["f1"]}';
+    assert.equal(stripClientContextFromText(combined), "Summarize this");
+    const parts = [{ type: "text" as const, text: combined }];
+    assert.equal(userVisibleTextFromParts(parts), "Summarize this");
+    assert.deepEqual(workspaceFileIdsFromMessageParts(parts), ["f1"]);
   });
 });

@@ -2,6 +2,9 @@ import { defineHook } from "eve/hooks";
 import {
   linkScheduleRunChat,
   persistStreamEvent,
+  registerChatWorkspaceFileRefsForUser,
+  resolveChatIdForEveSession,
+  workspaceFileIdsFromMessageReceivedData,
 } from "#platform/composition/public-api.js";
 
 function readScheduleId(
@@ -23,6 +26,34 @@ export default defineHook({
           eveSessionId: ctx.session.id,
           event,
         });
+
+        if (
+          userId &&
+          event.type === "message.received" &&
+          event.data &&
+          typeof event.data === "object"
+        ) {
+          const workspaceFileIds = workspaceFileIdsFromMessageReceivedData(
+            event.data,
+          );
+          if (workspaceFileIds.length > 0) {
+            const chatId = await resolveChatIdForEveSession({
+              userId,
+              eveSessionId: ctx.session.id,
+            });
+            if (chatId) {
+              try {
+                await registerChatWorkspaceFileRefsForUser({
+                  userId,
+                  chatId,
+                  workspaceFileIds,
+                });
+              } catch {
+                // Non-fatal; send-time registration is primary.
+              }
+            }
+          }
+        }
         const scheduleId = readScheduleId(auth?.attributes);
         if (scheduleId && userId) {
           await linkScheduleRunChat({

@@ -10,6 +10,8 @@ import {
   getDatabaseUrl,
   chats,
   chatEvents,
+  chatWorkspaceFileRefs,
+  workspaceFiles,
   type ChatRow,
 } from "../database";
 
@@ -342,6 +344,46 @@ export class DrizzleChatRepository implements ChatRepository {
       )
       .returning({ id: chats.id });
     return Boolean(row);
+  }
+
+  async addChatWorkspaceFileRefs(input: {
+    chatId: string;
+    workspaceFileIds: readonly string[];
+  }): Promise<void> {
+    const db = requireDb();
+    const ids = [...new Set(input.workspaceFileIds.map((id) => id.trim()).filter(Boolean))];
+    if (ids.length === 0) return;
+    await db
+      .insert(chatWorkspaceFileRefs)
+      .values(
+        ids.map((workspaceFileId) => ({
+          chatId: input.chatId,
+          workspaceFileId,
+        })),
+      )
+      .onConflictDoNothing();
+  }
+
+  async listChatWorkspaceFileRefs(input: {
+    chatId: string;
+    userId: string;
+  }): Promise<string[]> {
+    const db = getDb();
+    if (!db) return [];
+    const rows = await db
+      .select({ workspaceFileId: chatWorkspaceFileRefs.workspaceFileId })
+      .from(chatWorkspaceFileRefs)
+      .innerJoin(
+        workspaceFiles,
+        eq(workspaceFiles.id, chatWorkspaceFileRefs.workspaceFileId),
+      )
+      .where(
+        and(
+          eq(chatWorkspaceFileRefs.chatId, input.chatId),
+          eq(workspaceFiles.userId, input.userId),
+        ),
+      );
+    return rows.map((row) => row.workspaceFileId);
   }
 }
 

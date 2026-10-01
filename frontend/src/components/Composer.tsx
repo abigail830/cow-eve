@@ -57,6 +57,8 @@ export type ComposerSendPayload = {
   attachmentIds: readonly string[];
   /** Workspace file ids referenced this turn (import chips). */
   workspaceFileIds: readonly string[];
+  /** Resolved workspace rows for optimistic message chips (same order as ids). */
+  workspaceFiles: readonly WorkspaceFilePublic[];
 };
 
 type Props = {
@@ -630,11 +632,20 @@ export function Composer({
       return;
     }
 
+    const workspaceFiles = workspaceFileIds
+      .map((id) =>
+        [...sessionWorkspaceFiles, ...workspaceImports].find(
+          (row) => row.id === id,
+        ),
+      )
+      .filter((row): row is WorkspaceFilePublic => Boolean(row));
+
     await onSend({
       text: value,
       attachments,
       attachmentIds,
       workspaceFileIds,
+      workspaceFiles,
     });
     setText("");
     setAttachments([]);

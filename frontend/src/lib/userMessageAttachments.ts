@@ -2,6 +2,13 @@ import type { EveMessage } from "eve/react";
 
 const CLIENT_CONTEXT_PREFIX = "Client context:";
 
+/** User-visible text only — strip embedded Eve client-context blocks. */
+export function stripClientContextFromText(text: string): string {
+  const idx = text.indexOf(CLIENT_CONTEXT_PREFIX);
+  if (idx < 0) return text;
+  return text.slice(0, idx).trimEnd();
+}
+
 function parseClientContextPayload(text: string): {
   attachmentIds: string[];
   workspaceFileIds: string[];
@@ -32,6 +39,20 @@ function parseClientContextPayload(text: string): {
   }
 }
 
+function collectIdsFromTextPart(
+  text: string,
+  collect: (parsed: ReturnType<typeof parseClientContextPayload>) => void,
+): void {
+  let searchFrom = 0;
+  while (searchFrom < text.length) {
+    const idx = text.indexOf(CLIENT_CONTEXT_PREFIX, searchFrom);
+    if (idx < 0) break;
+    const slice = text.slice(idx).trim();
+    collect(parseClientContextPayload(slice));
+    searchFrom = idx + CLIENT_CONTEXT_PREFIX.length;
+  }
+}
+
 export function parseAttachmentIdsFromClientContext(text: string): string[] {
   return parseClientContextPayload(text).attachmentIds;
 }
@@ -47,11 +68,13 @@ export function attachmentIdsFromMessageParts(
   const seen = new Set<string>();
   for (const part of parts) {
     if (part.type !== "text" || !("text" in part)) continue;
-    for (const id of parseAttachmentIdsFromClientContext(part.text)) {
-      if (seen.has(id)) continue;
-      seen.add(id);
-      ids.push(id);
-    }
+    collectIdsFromTextPart(part.text, (parsed) => {
+      for (const id of parsed.attachmentIds) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        ids.push(id);
+      }
+    });
   }
   return ids;
 }
@@ -63,11 +86,13 @@ export function workspaceFileIdsFromMessageParts(
   const seen = new Set<string>();
   for (const part of parts) {
     if (part.type !== "text" || !("text" in part)) continue;
-    for (const id of parseWorkspaceFileIdsFromClientContext(part.text)) {
-      if (seen.has(id)) continue;
-      seen.add(id);
-      ids.push(id);
-    }
+    collectIdsFromTextPart(part.text, (parsed) => {
+      for (const id of parsed.workspaceFileIds) {
+        if (seen.has(id)) continue;
+        seen.add(id);
+        ids.push(id);
+      }
+    });
   }
   return ids;
 }
@@ -82,13 +107,17 @@ export function clientContextIdsFromMessageParts(parts: EveMessage["parts"]): {
   const seenWs = new Set<string>();
   for (const part of parts) {
     if (part.type !== "text" || !("text" in part)) continue;
-    const parsed = parseClientContextPayload(part.text);
-    for (const id of parsed.attachmentIds) {
+    const chunkIds = { attachmentIds: [] as string[], workspaceFileIds: [] as string[] };
+    collectIdsFromTextPart(part.text, (parsed) => {
+      chunkIds.attachmentIds.push(...parsed.attachmentIds);
+      chunkIds.workspaceFileIds.push(...parsed.workspaceFileIds);
+    });
+    for (const id of chunkIds.attachmentIds) {
       if (seenAtt.has(id)) continue;
       seenAtt.add(id);
       attachmentIds.push(id);
     }
-    for (const id of parsed.workspaceFileIds) {
+    for (const id of chunkIds.workspaceFileIds) {
       if (seenWs.has(id)) continue;
       seenWs.add(id);
       workspaceFileIds.push(id);
@@ -103,16 +132,20 @@ export function isClientContextOnlyMessage(message: EveMessage): boolean {
     (p) => p.type === "text" && "text" in p && p.text.trim(),
   );
   if (textParts.length === 0) return false;
-  const hasNonContext = textParts.some(
-    (p) =>
-      "text" in p &&
-      !p.text.trim().startsWith(CLIENT_CONTEXT_PREFIX),
-  );
+  const hasNonContext = textParts.some((p) => {
+    if (!("text" in p)) return false;
+    return stripClientContextFromText(p.text).trim().length > 0;
+  });
   if (hasNonContext) return false;
   return textParts.some((p) => {
     if (!("text" in p)) return false;
-    const ctx = parseClientContextPayload(p.text);
-    return ctx.attachmentIds.length > 0 || ctx.workspaceFileIds.length > 0;
+    let found = false;
+    collectIdsFromTextPart(p.text, (ctx) => {
+      if (ctx.attachmentIds.length > 0 || ctx.workspaceFileIds.length > 0) {
+        found = true;
+      }
+    });
+    return found;
   });
 }
 
@@ -120,9 +153,8 @@ export function userVisibleTextFromParts(parts: EveMessage["parts"]): string {
   const chunks: string[] = [];
   for (const part of parts) {
     if (part.type !== "text" || !("text" in part)) continue;
-    const text = part.text;
-    if (text.trim().startsWith(CLIENT_CONTEXT_PREFIX)) continue;
-    chunks.push(text);
+    const visible = stripClientContextFromText(part.text).trim();
+    if (visible) chunks.push(visible);
   }
   return chunks.join("\n").trim();
 }

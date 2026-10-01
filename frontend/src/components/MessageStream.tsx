@@ -426,7 +426,7 @@ export function MessageStream({
             const row = file ? workspaceFileAsAttachmentRow(file) : undefined;
             return {
               id,
-              filename: file?.filename ?? `Workspace file ${id.slice(0, 8)}…`,
+              filename: file?.filename ?? "Workspace file",
               sizeBytes: file?.sizeBytes,
               libraryRow: row,
               stale: !file,

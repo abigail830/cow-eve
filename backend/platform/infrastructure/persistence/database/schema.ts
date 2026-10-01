@@ -232,6 +232,40 @@ export const audioCaptureParts = pgTable(
   ],
 );
 
+export const userIntegrations = pgTable(
+  "user_integrations",
+  {
+    userId: text("user_id").notNull(),
+    integrationId: text("integration_id").notNull(),
+    secretsEncrypted: jsonb("secrets_encrypted").notNull().default({}),
+    config: jsonb("config").notNull().default({}),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.integrationId] }),
+    index("user_integrations_user_idx").on(table.userId),
+  ],
+);
+
+export const chatWorkspaceFileRefs = pgTable(
+  "chat_workspace_file_refs",
+  {
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    workspaceFileId: uuid("workspace_file_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.chatId, table.workspaceFileId] }),
+    index("chat_workspace_file_refs_file_idx").on(table.workspaceFileId),
+  ],
+);
+
 export type ChatRow = typeof chats.$inferSelect;
 export type ChatEventRow = typeof chatEvents.$inferSelect;
 export type ChatAttachmentRow = typeof chatAttachments.$inferSelect;
@@ -242,6 +276,7 @@ export type AudioCaptureRow = typeof audioCaptures.$inferSelect;
 export type AudioCapturePartRow = typeof audioCaptureParts.$inferSelect;
 export type PlatformUserRow = typeof platformUsers.$inferSelect;
 export type PlatformSettingsRow = typeof platformSettings.$inferSelect;
+export type UserIntegrationRow = typeof userIntegrations.$inferSelect;
 
 export const scheduledTasks = pgTable(
   "scheduled_tasks",

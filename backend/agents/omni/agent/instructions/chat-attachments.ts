@@ -4,7 +4,9 @@ import {
   buildHydrateTextForEntries,
   buildSessionDocumentLibrary,
   classifyAttachment,
+  listChatWorkspaceFileRefsForUser,
   listWorkspaceFilesForDocumentIndex,
+  registerChatWorkspaceFileRefsForUser,
   PARSE_READY_STATUSES,
   type DocumentIndexEntry,
 } from "#platform/composition/public-api.js";
@@ -59,7 +61,21 @@ export default defineDynamic({
       const userText = extractLatestUserText(messages);
       const mentioned = parseMentionedFilenames(userText);
       const sendAttachmentIds = parseSendAttachmentIdsFromMessages(messages);
-      const workspaceFileIds = parseWorkspaceFileIdsFromMessages(messages);
+      const fromMessages = parseWorkspaceFileIdsFromMessages(messages);
+
+      const chatId = await resolveChatIdForSession({
+        userId,
+        eveSessionId: ctx.session.id,
+      });
+
+      const persisted =
+        chatId != null
+          ? await listChatWorkspaceFileRefsForUser({ userId, chatId })
+          : [];
+      const workspaceFileIds = [
+        ...new Set([...fromMessages, ...persisted]),
+      ];
+
       if (
         mentioned.length === 0 &&
         sendAttachmentIds.length === 0 &&
@@ -68,10 +84,17 @@ export default defineDynamic({
         return null;
       }
 
-      const chatId = await resolveChatIdForSession({
-        userId,
-        eveSessionId: ctx.session.id,
-      });
+      if (chatId && fromMessages.length > 0) {
+        try {
+          await registerChatWorkspaceFileRefsForUser({
+            chatId,
+            userId,
+            workspaceFileIds,
+          });
+        } catch {
+          // Best-effort; tools also load refs registered before send.
+        }
+      }
 
       const lines: string[] = [];
 

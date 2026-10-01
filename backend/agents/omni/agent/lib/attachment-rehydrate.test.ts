@@ -22,6 +22,19 @@ describe("parseWorkspaceFileIdsFromMessages", () => {
     assert.deepEqual(parseSendAttachmentIdsFromMessages(messages), ["a1"]);
   });
 
+  it("collects ids from Eve multiline client context format", () => {
+    const messages = [
+      {
+        role: "user",
+        kind: "context.instruction",
+        content:
+          'Client context:\n{"workspaceFileIds":["w-multi"],"attachmentIds":["a-multi"]}',
+      },
+    ];
+    assert.deepEqual(parseWorkspaceFileIdsFromMessages(messages), ["w-multi"]);
+    assert.deepEqual(parseSendAttachmentIdsFromMessages(messages), ["a-multi"]);
+  });
+
   it("dedupes across messages", () => {
     const messages = [
       {

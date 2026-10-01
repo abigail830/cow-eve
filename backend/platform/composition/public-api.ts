@@ -130,6 +130,11 @@ export {
   type SessionDocumentListItem,
 } from "../application/doc-retrieval/session-document-list.use-case";
 export {
+  registerChatWorkspaceFileRefsForUser,
+  listChatWorkspaceFileRefsForUser,
+} from "../application/doc-retrieval/chat-workspace-refs.use-case.js";
+export { workspaceFileIdsFromMessageReceivedData } from "../application/doc-retrieval/client-context-parse.js";
+export {
   listWorkspaceFoldersForUser,
   createWorkspaceFolderForUser,
   renameWorkspaceFolderForUser,
@@ -163,6 +168,11 @@ export {
   buildHydrateTextForEntries,
   buildTurnAttachmentBlock,
 } from "../application/doc-retrieval/manifest-hydrate";
+export {
+  listIntegrationsForUser,
+  saveUserIntegration,
+  type IntegrationCatalogItemPublic,
+} from "../application/integration/user-integration.use-case.js";
 export { resolveChatIdForEveSession } from "../application/chat/chat-session.use-case";
 export { scheduleChatTitleOnce } from "../application/chat/chat-title-scheduler";
 export { renameChatTitleForUser } from "../application/chat/chat-title.use-case";

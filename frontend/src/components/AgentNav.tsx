@@ -6,6 +6,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
+  Plug,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -15,7 +16,7 @@ import { StreamingIndicator } from "./StreamingIndicator";
 import { UserAccountMenu } from "./UserAccountMenu";
 import "./AgentNav.css";
 
-export type AgentNavView = "work" | "workspace";
+export type AgentNavView = "work" | "workspace" | "integrations";
 
 type Props = {
   agent: AgentInfo;
@@ -58,28 +59,29 @@ export function AgentNav({
       <div className="agent-nav-top">
         {!collapsed ? (
           <div className="agent-nav-identity">
-            <img src={agent.avatar} alt="" width={40} height={40} />
+            <img src={agent.avatar} alt="" width={44} height={44} />
             <div className="agent-nav-identity-text">
-              <Link to="/" className="agent-nav-home-brand">
-                <span className="agent-nav-home-brand-agent">Agent</span>
-                <span className="agent-nav-home-brand-team"> Team</span>
-              </Link>
-              <span className="agent-nav-agent-name">
-                {agent.displayName}
+              <div className="agent-nav-agent-title">
+                <span className="agent-nav-agent-title-name">
+                  {agent.displayName}
+                </span>
                 {streaming ? (
                   <span className="agent-nav-streaming-inline">
                     <StreamingIndicator variant="dot" />
                     Working…
                   </span>
                 ) : null}
-              </span>
+              </div>
+              <Link to="/" className="agent-nav-home-link">
+                All agents
+              </Link>
             </div>
           </div>
         ) : (
           <Link
             to="/"
             className="agent-nav-identity-collapsed"
-            title="Agent Team"
+            title={agent.displayName}
           >
             <img src={agent.avatar} alt="" width={32} height={32} />
           </Link>
@@ -97,6 +99,20 @@ export function AgentNav({
         >
           <MessageSquare size={18} strokeWidth={2} aria-hidden />
           {!collapsed ? <span>Work</span> : null}
+        </button>
+
+        <button
+          type="button"
+          className={
+            view === "integrations"
+              ? "agent-nav-item active"
+              : "agent-nav-item"
+          }
+          title="Integrations"
+          onClick={() => onViewChange("integrations")}
+        >
+          <Plug size={18} strokeWidth={2} aria-hidden />
+          {!collapsed ? <span>Integrations</span> : null}
         </button>
 
         <div className="agent-nav-hub">

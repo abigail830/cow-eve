@@ -1,0 +1,305 @@
+import { useCallback, useEffect, useState } from "react";
+import { ExternalLink, Plug } from "lucide-react";
+import {
+  fetchIntegrations,
+  saveIntegration,
+  type IntegrationCatalogItem,
+  type IntegrationFieldPublic,
+} from "../lib/integrations";
+import "./IntegrationsPanel.css";
+
+type Props = {
+  agentId: string;
+};
+
+function FieldInput({
+  field,
+  value,
+  onChange,
+  hint,
+}: {
+  field: IntegrationFieldPublic;
+  value: string;
+  onChange: (value: string) => void;
+  hint: string | null;
+}) {
+  const isSecret = field.kind === "secret";
+  return (
+    <label className="integration-field">
+      <span className="integration-field-label">
+        {field.label}
+        {field.required ? (
+          <span className="integration-required" aria-hidden>
+            *
+          </span>
+        ) : null}
+      </span>
+      {field.description ? (
+        <span className="integration-field-desc">{field.description}</span>
+      ) : null}
+      <input
+        type={isSecret ? "password" : field.kind === "url" ? "url" : "text"}
+        className="integration-field-input"
+        placeholder={
+          isSecret && hint
+            ? `Saved (${hint}) — enter to replace`
+            : field.placeholder
+        }
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        autoComplete={isSecret ? "off" : undefined}
+      />
+    </label>
+  );
+}
+
+function IntegrationCard({
+  item,
+  onSaved,
+}: {
+  item: IntegrationCatalogItem;
+  onSaved: (next: IntegrationCatalogItem) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [secrets, setSecrets] = useState<Record<string, string>>({});
+  const [config, setConfig] = useState<Record<string, string>>({
+    ...item.config,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setConfig({ ...item.config });
+    setSecrets({});
+    setSaved(false);
+    setError(null);
+  }, [item.id, item.updatedAt]);
+
+  const resetDraft = () => {
+    setConfig({ ...item.config });
+    setSecrets({});
+    setError(null);
+    setSaved(false);
+  };
+
+  const openSetup = () => {
+    resetDraft();
+    setExpanded(true);
+  };
+
+  const closeSetup = () => {
+    resetDraft();
+    setExpanded(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const secretPayload: Record<string, string | undefined> = {};
+      for (const field of item.fields) {
+        if (field.kind !== "secret") continue;
+        const v = secrets[field.key]?.trim();
+        if (v) secretPayload[field.key] = v;
+      }
+      const configPayload: Record<string, string | undefined> = {};
+      for (const field of item.fields) {
+        if (!field.storeInConfig) continue;
+        configPayload[field.key] = config[field.key]?.trim() ?? "";
+      }
+      const next = await saveIntegration(item.id, {
+        secrets: secretPayload,
+        config: configPayload,
+      });
+      onSaved(next);
+      setSecrets({});
+      setSaved(true);
+      setExpanded(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const primaryActionLabel = item.configured ? "Manage" : "Connect";
+
+  return (
+    <article
+      className={
+        expanded ? "integration-card integration-card-expanded" : "integration-card"
+      }
+    >
+      <div className="integration-card-row">
+        <span className="integration-card-icon" aria-hidden>
+          <Plug size={20} strokeWidth={1.75} />
+        </span>
+        <div className="integration-card-main">
+          <div className="integration-card-head">
+            <span className="integration-card-name">{item.name}</span>
+            <button
+              type="button"
+              className={
+                expanded
+                  ? "integration-card-cta integration-card-cta-ghost"
+                  : item.configured
+                    ? "integration-card-cta integration-card-cta-ghost"
+                    : "integration-card-cta integration-card-cta-primary"
+              }
+              aria-expanded={expanded}
+              onClick={() => (expanded ? closeSetup() : openSetup())}
+            >
+              {expanded ? "Close" : primaryActionLabel}
+            </button>
+          </div>
+          <p className="integration-card-desc">{item.description}</p>
+          <p className="integration-card-meta">
+            <span
+              className={
+                item.configured
+                  ? "integration-meta-status integration-meta-status-on"
+                  : "integration-meta-status"
+              }
+            >
+              {item.configured ? "Connected" : "Not connected"}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {expanded ? (
+        <div className="integration-card-setup">
+          <a
+            className="integration-doc-link"
+            href={item.docUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Documentation
+            <ExternalLink size={13} strokeWidth={2} aria-hidden />
+          </a>
+          <div className="integration-fields">
+            {item.fields.map((field) =>
+              field.kind === "secret" ? (
+                <FieldInput
+                  key={field.key}
+                  field={field}
+                  value={secrets[field.key] ?? ""}
+                  hint={item.secretHints[field.key] ?? null}
+                  onChange={(v) =>
+                    setSecrets((prev) => ({ ...prev, [field.key]: v }))
+                  }
+                />
+              ) : field.storeInConfig ? (
+                <FieldInput
+                  key={field.key}
+                  field={field}
+                  value={config[field.key] ?? ""}
+                  hint={null}
+                  onChange={(v) =>
+                    setConfig((prev) => ({ ...prev, [field.key]: v }))
+                  }
+                />
+              ) : null,
+            )}
+          </div>
+          {error ? (
+            <p className="integration-inline-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          {saved ? (
+            <p className="integration-inline-saved" role="status">
+              Saved. New chat sessions will use these credentials.
+            </p>
+          ) : null}
+          <div className="integration-setup-actions">
+            <button
+              type="button"
+              className="integration-action-btn integration-action-btn-ghost"
+              disabled={saving}
+              onClick={closeSetup}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="integration-action-btn integration-action-btn-primary"
+              disabled={saving}
+              onClick={() => void handleSave()}
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+export function IntegrationsPanel({ agentId }: Props) {
+  const [items, setItems] = useState<IntegrationCatalogItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const list = await fetchIntegrations(agentId);
+      setItems(list);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load integrations.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [agentId]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  const handleSaved = (next: IntegrationCatalogItem) => {
+    setItems((prev) => prev.map((row) => (row.id === next.id ? next : row)));
+  };
+
+  return (
+    <div className="integrations-panel">
+      <div className="integrations-panel-body">
+        <section className="integrations-list-column">
+          <header className="integrations-list-header">
+            <div className="integrations-list-header-text">
+              <h2 className="integrations-panel-title">Integrations</h2>
+              <p className="integrations-panel-subtitle">
+                Your credentials are shared across all agents on this account.
+              </p>
+            </div>
+          </header>
+          {loading ? (
+            <p className="integrations-muted">Loading…</p>
+          ) : error ? (
+            <p className="integrations-error" role="alert">
+              {error}
+            </p>
+          ) : items.length === 0 ? (
+            <p className="integrations-muted">No integrations available yet.</p>
+          ) : (
+            <div className="integrations-list">
+              {items.map((item) => (
+                <IntegrationCard
+                  key={item.id}
+                  item={item}
+                  onSaved={handleSaved}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}

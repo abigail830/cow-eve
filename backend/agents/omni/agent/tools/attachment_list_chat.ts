@@ -25,7 +25,11 @@ export default defineTool({
       return { status: "error" as const, message: "Chat not found for session." };
     }
 
-    const { workspaceFileIds } = collectSessionDocumentIds(ctx);
+    const { workspaceFileIds } = await collectSessionDocumentIds({
+      ctx,
+      userId,
+      chatId,
+    });
     const attachments = await listSessionDocumentsForAgent({
       userId,
       eveSessionId: ctx.session.id,

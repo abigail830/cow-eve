@@ -47,6 +47,7 @@ import { mergeStreamEventsForTimeline } from "../lib/platformProductTurns";
 import {
   buildMessageContent,
   mergeAttachmentIdsForSend,
+  mergeClientContextIntoMessage,
 } from "../lib/attachmentSend";
 import {
   hintsFromPrepared,
@@ -59,6 +60,7 @@ import {
   userVisibleTextFromParts,
   workspaceFileIdsFromMessageParts,
 } from "../lib/userMessageAttachments";
+import { registerChatWorkspaceFileRefs } from "../lib/chatWorkspaceRefs";
 import {
   lookupWorkspaceFiles,
   type WorkspaceFilePublic,
@@ -392,6 +394,9 @@ function AgentChatSession({
     ReadonlyMap<string, readonly UserMessageAttachmentHint[]>
   >(() => new Map());
   const pendingSendAttachmentHintsRef = useRef<PendingSendAttachmentHint[]>([]);
+  const [optimisticWorkspaceFiles, setOptimisticWorkspaceFiles] = useState<
+    ReadonlyMap<string, WorkspaceFilePublic>
+  >(() => new Map());
   /** True after cancel() is accepted until the stream settles. */
   const [cancelling, setCancelling] = useState(false);
   const [pendingDeleteChat, setPendingDeleteChat] = useState<ChatSummary | null>(
@@ -452,6 +457,12 @@ function AgentChatSession({
     return map;
   }, [sessionWorkspaceFiles]);
 
+  const workspaceFilesById = useMemo(() => {
+    const map = new Map<string, WorkspaceFilePublic>(optimisticWorkspaceFiles);
+    for (const [id, file] of sessionWorkspaceFilesById) map.set(id, file);
+    return map;
+  }, [optimisticWorkspaceFiles, sessionWorkspaceFilesById]);
+
   useEffect(() => {
     if (sessionWorkspaceFileIds.length === 0) {
       setSessionWorkspaceFiles([]);
@@ -496,6 +507,7 @@ function AgentChatSession({
   useEffect(() => {
     setUserMessageAttachmentHints(new Map());
     pendingSendAttachmentHintsRef.current = [];
+    setOptimisticWorkspaceFiles(new Map());
   }, [bound.key]);
 
   useEffect(() => {
@@ -739,15 +751,18 @@ function AgentChatSession({
         payload.attachmentIds ?? [],
       );
       const workspaceFileIds = payload.workspaceFileIds ?? [];
+      const clientContextPayload = {
+        ...(attachmentIds.length > 0 ? { attachmentIds } : {}),
+        ...(workspaceFileIds.length > 0 ? { workspaceFileIds } : {}),
+      };
+      const messageForSend =
+        attachmentIds.length > 0 || workspaceFileIds.length > 0
+          ? mergeClientContextIntoMessage(message, clientContextPayload)
+          : message;
       const sendOptions = {
         ...(isBusy ? { turnPolicy: "steer" as const } : {}),
         ...(attachmentIds.length > 0 || workspaceFileIds.length > 0
-          ? {
-              clientContext: {
-                ...(attachmentIds.length > 0 ? { attachmentIds } : {}),
-                ...(workspaceFileIds.length > 0 ? { workspaceFileIds } : {}),
-              },
-            }
+          ? { clientContext: clientContextPayload }
           : {}),
       };
       const libraryBackup =
@@ -763,10 +778,33 @@ function AgentChatSession({
         });
       }
 
+      const workspaceFiles = payload.workspaceFiles ?? [];
+      if (workspaceFiles.length > 0) {
+        setOptimisticWorkspaceFiles((prev) => {
+          const next = new Map(prev);
+          for (const file of workspaceFiles) next.set(file.id, file);
+          return next;
+        });
+      }
+
+      const chatIdForRefs = activeChatId ?? bound.chatId;
+      if (token && chatIdForRefs && workspaceFileIds.length > 0) {
+        try {
+          await registerChatWorkspaceFileRefs(chatIdForRefs, workspaceFileIds);
+        } catch (err) {
+          setSendError(
+            err instanceof Error
+              ? err.message
+              : "Could not link workspace files to this chat.",
+          );
+          return;
+        }
+      }
+
       // While a turn is active, steer at the next boundary instead of opening
       // a second turn (eve rejects plain send with "already processing").
       void send(
-        message,
+        messageForSend,
         Object.keys(sendOptions).length > 0 ? sendOptions : undefined,
       )
         .then(() => {
@@ -785,6 +823,7 @@ function AgentChatSession({
     [
       activeChatId,
       agent.id,
+      bound.chatId,
       flushAttachmentLibrary,
       isBusy,
       isResuming,
@@ -947,7 +986,7 @@ function AgentChatSession({
                     retryCapture(cid, captureId)
                   }
                   onOpenAttachmentPipeline={setParseDrawerAttachment}
-                  workspaceFilesById={sessionWorkspaceFilesById}
+                  workspaceFilesById={workspaceFilesById}
                 />
                 {cancelling && isBusy ? (
                   <p className="chat-status" role="status">

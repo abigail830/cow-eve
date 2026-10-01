@@ -192,10 +192,10 @@
 .msg-user-attachment-source {
   font-size: 0.6875rem;
   font-weight: 600;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: #eef4ff;
-  color: #334;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--accent-muted);
+  color: color-mix(in srgb, var(--accent) 75%, var(--color-ink));
 }
 
 .msg-user-attachment-stale {
