@@ -1,4 +1,4 @@
-export type ThemeId = "asc" | "arql";
+export type ThemeId = "asc" | "arql" | "inspire";
 
 export type ThemeDefinition = {
   id: ThemeId;
@@ -18,6 +18,11 @@ export const COLOR_THEMES: readonly ThemeDefinition[] = [
     id: "arql",
     name: "ARQL",
     description: "Teal accent · slate rail",
+  },
+  {
+    id: "inspire",
+    name: "Inspire",
+    description: "Creative blue · light rail",
   },
 ] as const;
 

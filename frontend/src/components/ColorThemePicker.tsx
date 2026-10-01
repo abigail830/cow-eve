@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import { COLOR_THEMES, setStoredThemeId, type ThemeId } from "../lib/theme";
 import "./ColorThemePicker.css";
 
@@ -47,12 +48,19 @@ export function ColorThemePicker({ value, onChange }: Props) {
           >
             <ThemePreviewSwatch themeId={theme.id} />
             <span className="color-theme-card-text">
-              <span className="color-theme-card-name">{theme.name}</span>
+              <span className="color-theme-card-name">
+                {theme.name}
+                {selected ? (
+                  <Check
+                    size={16}
+                    strokeWidth={2.5}
+                    className="color-theme-card-check"
+                    aria-hidden
+                  />
+                ) : null}
+              </span>
               <span className="color-theme-card-desc">{theme.description}</span>
             </span>
-            {selected ? (
-              <span className="color-theme-current">Current</span>
-            ) : null}
           </button>
         );
       })}

@@ -1,0 +1,242 @@
+/**
+ * Inspire — tech consulting palette: light gray rail, Creative Blue accent,
+ * tech gray surfaces, deep gray body text (MiSans + Georgia headings).
+ */
+[data-theme="inspire"] {
+  --font-body: "MiSans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Segoe UI", sans-serif;
+  --font-heading: Georgia, "Times New Roman", "PingFang SC", serif;
+
+  --brand-starry: #0a2342;
+  --brand-creative: #34b3e4;
+
+  --accent: var(--brand-creative);
+  --accent-strong: #2899c9;
+  --accent-soft: #a8d8ef;
+  --accent-muted: rgba(52, 179, 228, 0.14);
+  --accent-on-accent: #ffffff;
+
+  --color-ink: #333333;
+  --text-primary: var(--color-ink);
+  --color-text-secondary: #4a5568;
+  --text-secondary: var(--color-text-secondary);
+  --color-text-muted: #999999;
+  --text-muted: var(--color-text-muted);
+
+  --surface-canvas: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #f0f2f5;
+  --surface-nav: #f7f9fb;
+  --surface-overlay: rgba(255, 255, 255, 0.94);
+
+  --border-subtle: #e2e6ea;
+  --border-default: #d5dbe3;
+
+  --color-info: var(--brand-creative);
+  --color-error: #dc3545;
+  --color-teal: #2899c9;
+
+  --paper-cover: #f0f2f5;
+  --paper-cover-soft: color-mix(in srgb, var(--paper-cover) 70%, transparent);
+  --paper-cover-muted: color-mix(in srgb, var(--paper-cover) 42%, transparent);
+  --paper-cover-faint: color-mix(in srgb, var(--surface-canvas) 90%, var(--paper-cover));
+  --paper-cover-border: color-mix(
+    in srgb,
+    var(--paper-cover) 60%,
+    rgba(10, 35, 66, 0.1)
+  );
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-composer: 12px;
+  --radius-pill: 999px;
+
+  --segment-tab-active-bg: #ffffff;
+  --segment-tab-active-fg: var(--brand-starry);
+  --segment-tab-hover-bg: var(--surface-muted);
+  --segment-tab-hover-fg: var(--text-primary);
+  --ambient-overlay-opacity: 0.12;
+
+  --chat-font-size: 13px;
+  --chat-line-height: 1.55;
+
+  --theme-preview-rail: #f7f9fb;
+  --theme-preview-rail-accent: var(--brand-creative);
+  --theme-preview-rail-line: #d5dbe3;
+  --theme-preview-chat: #ffffff;
+  --theme-preview-chat-line: #e2e6ea;
+
+  --nav-fg: #4a5568;
+  --nav-fg-muted: #999999;
+  --nav-fg-subtle: #8a9199;
+  --nav-fg-icon: #6b7280;
+  --nav-title-fg: var(--brand-starry);
+  --nav-hover-bg: rgba(10, 35, 66, 0.04);
+  --nav-hover-fg-icon: var(--color-ink);
+  --nav-active-bg: rgba(52, 179, 228, 0.14);
+  --nav-active-fg: color-mix(in srgb, var(--brand-creative) 78%, var(--brand-starry));
+  --nav-border: var(--border-subtle);
+  --nav-identity-ring: rgba(10, 35, 66, 0.08);
+  --nav-folder-active-bg: #ffffff;
+  --nav-folder-active-border: color-mix(in srgb, var(--brand-creative) 35%, var(--border-subtle));
+  --nav-folder-active-fg: var(--brand-starry);
+
+  --nav-user-name-fg: var(--text-primary);
+  --nav-user-email-fg: var(--text-muted);
+  --nav-user-avatar-bg: color-mix(in srgb, var(--brand-creative) 22%, #ffffff);
+  --nav-user-avatar-fg: var(--brand-starry);
+  --nav-user-trigger-hover: rgba(10, 35, 66, 0.05);
+
+  --chat-user-bubble-bg: var(--brand-starry);
+  --chat-user-bubble-fg: #ffffff;
+  --chat-user-bubble-link-fg: var(--accent-soft);
+
+  --composer-border: color-mix(in srgb, var(--accent) 25%, var(--border-subtle));
+  --composer-bg: var(--surface-raised);
+  --composer-shadow: 0 2px 18px color-mix(in srgb, var(--brand-starry) 7%, transparent);
+  --composer-text-fg: var(--text-primary);
+  --composer-muted-fg: var(--text-muted);
+  --composer-icon-hover-bg: var(--accent-muted);
+  --composer-toolbar-border: color-mix(in srgb, var(--accent) 20%, var(--border-subtle));
+  --composer-toolbar-bg: color-mix(in srgb, var(--accent-muted) 65%, #ffffff);
+  --composer-toolbar-fg: color-mix(in srgb, var(--brand-starry) 75%, var(--accent-strong));
+  --composer-toolbar-hover-bg: color-mix(in srgb, var(--accent-muted) 90%, #ffffff);
+
+  --ambient-linear: linear-gradient(
+    128deg,
+    var(--brand-starry) 0%,
+    color-mix(in srgb, var(--brand-starry) 62%, #163556) 28%,
+    color-mix(in srgb, var(--brand-starry) 18%, var(--surface-muted)) 52%,
+    #ffffff 68%,
+    color-mix(in srgb, var(--brand-creative) 14%, var(--surface-muted)) 100%
+  );
+  --ambient-orb-primary-inner: color-mix(in srgb, var(--brand-starry) 50%, transparent);
+  --ambient-orb-primary-mid: color-mix(in srgb, var(--brand-creative) 32%, transparent);
+  --ambient-orb-secondary: color-mix(in srgb, var(--accent-soft) 70%, #ffffff);
+  --ambient-overlay-highlight: color-mix(in srgb, var(--brand-starry) 12%, transparent);
+  --ambient-overlay-tint: color-mix(in srgb, var(--brand-creative) 22%, transparent);
+
+  --glass-surface: rgba(255, 255, 255, 0.42);
+  --glass-surface-raised: rgba(255, 255, 255, 0.68);
+  --glass-surface-strong: rgba(255, 255, 255, 0.52);
+  --glass-border: rgba(255, 255, 255, 0.4);
+
+  --home-greeting-fg: #ffffff;
+  --home-lead-fg: rgba(240, 242, 245, 0.94);
+  --home-footer-fg: color-mix(in srgb, var(--brand-starry) 82%, #000000);
+  --home-header-fg: rgba(255, 255, 255, 0.94);
+  --home-header-actions-fg: var(--brand-starry);
+  --home-brand-agent-fg: #ffffff;
+  --home-brand-team-fg: var(--brand-starry);
+  --home-agent-card-desc-fg: var(--color-text-secondary);
+  --home-header-border: transparent;
+  --home-header-shadow: 0 6px 26px rgba(10, 35, 66, 0.22);
+}
+
+[data-theme="inspire"] .platform-orb--peach {
+  opacity: 0.88;
+  background: radial-gradient(
+    circle at 40% 40%,
+    color-mix(in srgb, var(--brand-starry) 65%, transparent) 0%,
+    color-mix(in srgb, var(--brand-creative) 28%, transparent) 42%,
+    transparent 68%
+  );
+}
+
+[data-theme="inspire"] .platform-orb--warm {
+  opacity: 0.75;
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--brand-creative) 45%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+[data-theme="inspire"] .platform-orb--neutral {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.75) 0%,
+    color-mix(in srgb, var(--surface-muted) 40%, transparent) 45%,
+    transparent 72%
+  );
+  opacity: 0.5;
+}
+
+[data-theme="inspire"] .platform-ambient::after {
+  opacity: var(--ambient-overlay-opacity, 0.12);
+}
+
+[data-theme="inspire"] .home-shell {
+  background: var(--ambient-linear);
+}
+
+[data-theme="inspire"] .home-greeting {
+  text-shadow: 0 2px 24px rgba(10, 35, 66, 0.4);
+}
+
+[data-theme="inspire"] .home-lead {
+  text-shadow: 0 1px 18px rgba(10, 35, 66, 0.32);
+}
+
+[data-theme="inspire"] .home-footer p {
+  text-shadow: none;
+  font-weight: 500;
+}
+
+[data-theme="inspire"] .home-header {
+  border-bottom-width: 0;
+  box-shadow: var(--home-header-shadow);
+}
+
+[data-theme="inspire"] .home-header .platform-brand-agent {
+  color: var(--home-brand-agent-fg);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="inspire"] .home-header .platform-brand-team {
+  color: var(--home-brand-team-fg);
+  font-weight: 700;
+  text-shadow:
+    0 1px 2px rgba(255, 255, 255, 0.85),
+    0 1px 4px rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="inspire"] .home-header-actions .home-header-icon-btn {
+  color: var(--home-header-actions-fg);
+}
+
+[data-theme="inspire"] .home-header-actions .home-header-icon-btn:hover {
+  background: rgba(10, 35, 66, 0.08);
+  color: var(--brand-creative);
+}
+
+[data-theme="inspire"] .home-header-actions .user-account-icon,
+[data-theme="inspire"] .home-header-actions .user-account-name-minimal {
+  color: var(--home-header-actions-fg);
+}
+
+[data-theme="inspire"]
+  .home-header-actions
+  .user-account-menu.minimal
+  .user-account-trigger:hover {
+  background: rgba(10, 35, 66, 0.06);
+}
+
+[data-theme="inspire"] .home-agent-card {
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 8px 28px rgba(10, 35, 66, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.85) inset;
+}
+
+[data-theme="inspire"] .home-agent-card:hover {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+[data-theme="inspire"] .home-agent-card-desc {
+  color: var(--home-agent-card-desc-fg);
+  font-weight: 500;
+}

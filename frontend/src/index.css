@@ -1,6 +1,7 @@
 @import "./styles/platform-ambient.css";
 @import "./styles/themes/asc.css";
 @import "./styles/themes/arql.css";
+@import "./styles/themes/inspire.css";
 
 :root {
   font-family: var(--font-body);

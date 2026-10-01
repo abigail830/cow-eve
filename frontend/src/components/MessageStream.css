@@ -37,6 +37,44 @@
   line-height: var(--chat-line-height);
 }
 
+.msg-bubble.user .markdown-content {
+  color: inherit;
+}
+
+.msg-bubble.user .markdown-content p,
+.msg-bubble.user .markdown-content li,
+.msg-bubble.user .markdown-content h1,
+.msg-bubble.user .markdown-content h2,
+.msg-bubble.user .markdown-content h3,
+.msg-bubble.user .markdown-content h4 {
+  color: inherit;
+}
+
+.msg-bubble.user .markdown-content a {
+  color: var(--chat-user-bubble-link-fg, var(--accent));
+}
+
+.msg-bubble.user .markdown-content blockquote {
+  color: inherit;
+  border-left-color: color-mix(in srgb, currentColor 35%, transparent);
+  opacity: 0.95;
+}
+
+.msg-bubble.user .markdown-content code {
+  color: inherit;
+  background: color-mix(in srgb, var(--chat-user-bubble-fg) 14%, transparent);
+  border-color: color-mix(in srgb, var(--chat-user-bubble-fg) 28%, transparent);
+}
+
+.msg-bubble.user .markdown-content pre {
+  background: color-mix(in srgb, var(--chat-user-bubble-fg) 10%, transparent);
+  border-color: color-mix(in srgb, var(--chat-user-bubble-fg) 22%, transparent);
+}
+
+.msg-bubble.user .markdown-content pre code {
+  color: inherit;
+}
+
 .msg-artifact {
   width: 100%;
 }
