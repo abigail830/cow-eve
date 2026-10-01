@@ -1,11 +1,27 @@
 import type { ArtifactSpec } from "../../../../packages/artifact-spec/src/index.js";
 import { buildContentStudioArtifactSpec } from "./artifact-builder.service.js";
+import { buildChatArtifactSpec } from "./artifact-spec.service.js";
 import {
   getChatArtifactFormat,
   loadChatArtifactPayload,
   loadSlidePreviewPayload,
 } from "../../infrastructure/artifact/local-artifact.store.js";
+import {
+  getArtifactMeta,
+  listArtifactMetasForChat,
+} from "../../infrastructure/artifact/artifact-storage.js";
 import { drizzleChatRepository } from "../../infrastructure/persistence/chat/drizzle-chat.repository.js";
+
+export type AgentArtifactListItem = {
+  chatId: string;
+  chatTitle: string | null;
+  artifactId: string;
+  filename: string;
+  title: string;
+  kind: string;
+  format: string;
+  updatedAt: string | null;
+};
 
 export async function publishSandboxArtifact(input: {
   userId: string;
@@ -53,6 +69,61 @@ export async function getArtifactDownloadForUser(input: {
     chatId: chat.id,
     artifactId: input.artifactId,
     variant: input.variant,
+  });
+}
+
+export async function listAgentArtifactsForUser(input: {
+  userId: string;
+  agentId: string;
+}): Promise<AgentArtifactListItem[]> {
+  const chats = await drizzleChatRepository.listChats({
+    userId: input.userId,
+    agentId: input.agentId,
+  });
+  const items: AgentArtifactListItem[] = [];
+
+  for (const chat of chats) {
+    const metas = await listArtifactMetasForChat(chat.id);
+    for (const entry of metas) {
+      const raw = await getArtifactMeta(chat.id, entry.artifactId);
+      const filename =
+        typeof raw?.filename === "string" ? raw.filename : entry.artifactId;
+      const kind = typeof raw?.kind === "string" ? raw.kind : "content_document";
+      const format = typeof raw?.format === "string" ? raw.format : "markdown";
+      items.push({
+        chatId: chat.id,
+        chatTitle: chat.title ?? null,
+        artifactId: entry.artifactId,
+        filename,
+        title: filename,
+        kind,
+        format,
+        updatedAt: entry.updatedAt,
+      });
+    }
+  }
+
+  items.sort((a, b) => {
+    const ta = a.updatedAt ? Date.parse(a.updatedAt) : 0;
+    const tb = b.updatedAt ? Date.parse(b.updatedAt) : 0;
+    return tb - ta;
+  });
+  return items;
+}
+
+export async function getArtifactSpecForUser(input: {
+  userId: string;
+  chatId: string;
+  artifactId: string;
+}): Promise<ArtifactSpec | null> {
+  const chat = await drizzleChatRepository.getChatForUser({
+    userId: input.userId,
+    chatId: input.chatId,
+  });
+  if (!chat) return null;
+  return buildChatArtifactSpec({
+    chatId: chat.id,
+    artifactId: input.artifactId,
   });
 }
 

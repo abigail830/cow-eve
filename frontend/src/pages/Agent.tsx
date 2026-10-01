@@ -10,6 +10,7 @@ import { fetchAgents, type AgentInfo } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { AgentChat } from "../components/AgentChat";
 import { AgentNav, type AgentNavView } from "../components/AgentNav";
+import { ArtifactsPanel } from "../components/ArtifactsPanel";
 import { IntegrationsPanel } from "../components/IntegrationsPanel";
 import { WorkspacePanel } from "../components/WorkspacePanel";
 import {
@@ -40,7 +41,9 @@ export function AgentPage() {
       ? "workspace"
       : viewParam === "integrations"
         ? "integrations"
-        : "work";
+        : viewParam === "artifacts"
+          ? "artifacts"
+          : "work";
 
   const setView = useCallback(
     (next: AgentNavView) => {
@@ -216,6 +219,8 @@ export function AgentPage() {
           <div className="agent-load-error">Loading agent…</div>
         ) : view === "integrations" ? (
           <IntegrationsPanel agentId={agent.id} />
+        ) : view === "artifacts" ? (
+          <ArtifactsPanel agentId={agent.id} />
         ) : view === "workspace" ? (
           workspaceError ? (
             <div className="agent-load-error">{workspaceError}</div>

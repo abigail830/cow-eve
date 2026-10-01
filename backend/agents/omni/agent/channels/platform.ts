@@ -12,6 +12,8 @@ import {
   deleteChatAttachmentForUser,
   getArtifactDownloadForUser,
   getArtifactPreviewForUser,
+  getArtifactSpecForUser,
+  listAgentArtifactsForUser,
   getChatAttachmentDownloadForUser,
   getChatForUser,
   listChatAttachmentsForUser,
@@ -151,6 +153,8 @@ export default defineChannel({
     preflight("/api/memory"),
     preflight("/api/schedules"),
     preflight("/api/schedules/:id"),
+    preflight("/api/agents/:agentId/artifacts"),
+    preflight("/api/chats/:id/artifacts/:artifactId/spec"),
     preflight("/api/chats/:id/artifacts/:artifactId"),
     preflight("/api/chats/:id/artifacts/:artifactId/preview"),
     preflight("/api/chats/:id/artifacts/:artifactId/preview/:filePath*"),
@@ -1250,6 +1254,53 @@ export default defineChannel({
         return json({ ok: false, error: "Attachment not found" }, 404, request);
       }
       return json({ ok: true }, 200, request);
+    }),
+
+    GET("/api/agents/:agentId/artifacts", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+      try {
+        const artifacts = await listAgentArtifactsForUser({
+          userId: auth.principalId,
+          agentId: params.agentId,
+        });
+        return json({ ok: true, artifacts }, 200, request);
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error:
+              err instanceof Error ? err.message : "Failed to list artifacts",
+          },
+          500,
+          request,
+        );
+      }
+    }),
+
+    GET("/api/chats/:id/artifacts/:artifactId/spec", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      const spec = await getArtifactSpecForUser({
+        userId: auth.principalId,
+        chatId: params.id,
+        artifactId: params.artifactId,
+      });
+      if (!spec) {
+        return json({ ok: false, error: "Artifact not found" }, 404, request);
+      }
+      return json({ ok: true, spec }, 200, request);
     }),
 
     GET("/api/chats/:id/artifacts/:artifactId", async (request, { params }) => {

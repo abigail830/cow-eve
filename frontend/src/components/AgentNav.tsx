@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FolderOpen,
-  MessageSquare,
+  BotMessageSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
   Plug,
   Plus,
+  Boxes,
   Trash2,
 } from "lucide-react";
 import type { AgentInfo } from "../lib/api";
@@ -16,7 +17,7 @@ import { StreamingIndicator } from "./StreamingIndicator";
 import { UserAccountMenu } from "./UserAccountMenu";
 import "./AgentNav.css";
 
-export type AgentNavView = "work" | "workspace" | "integrations";
+export type AgentNavView = "work" | "workspace" | "integrations" | "artifacts";
 
 type Props = {
   agent: AgentInfo;
@@ -97,7 +98,7 @@ export function AgentNav({
           title="Work"
           onClick={() => onViewChange("work")}
         >
-          <MessageSquare size={18} strokeWidth={2} aria-hidden />
+          <BotMessageSquare size={18} strokeWidth={2} aria-hidden />
           {!collapsed ? <span>Work</span> : null}
         </button>
 
@@ -113,6 +114,18 @@ export function AgentNav({
         >
           <Plug size={18} strokeWidth={2} aria-hidden />
           {!collapsed ? <span>Integrations</span> : null}
+        </button>
+
+        <button
+          type="button"
+          className={
+            view === "artifacts" ? "agent-nav-item active" : "agent-nav-item"
+          }
+          title="Artifacts"
+          onClick={() => onViewChange("artifacts")}
+        >
+          <Boxes size={18} strokeWidth={2} aria-hidden />
+          {!collapsed ? <span>Artifacts</span> : null}
         </button>
 
         <div className="agent-nav-hub">

@@ -85,8 +85,11 @@ export type {
 export {
   getArtifactDownloadForUser,
   getArtifactPreviewForUser,
+  getArtifactSpecForUser,
+  listAgentArtifactsForUser,
   publishSandboxArtifact,
 } from "../application/artifact/artifact.use-case";
+export type { AgentArtifactListItem } from "../application/artifact/artifact.use-case";
 export { contentDispositionAttachment } from "../infrastructure/artifact/local-artifact.store";
 
 // Chat attachments

@@ -8,7 +8,7 @@ import {
   type DragEvent,
   type FormEvent,
 } from "react";
-import { ArrowUp, FolderInput, Paperclip, Square } from "lucide-react";
+import { ArrowUp, FolderOpen, Paperclip, Square } from "lucide-react";
 import { prepareAttachmentsFromFiles } from "../lib/attachmentCompress";
 import {
   ATTACHMENT_ACCEPT,
@@ -921,7 +921,7 @@ export function Composer({
               disabled={inputLocked}
               onClick={() => setWorkspaceImportOpen(true)}
             >
-              <FolderInput size={18} strokeWidth={2} />
+              <FolderOpen size={18} strokeWidth={2} />
             </button>
           </div>
           <div className="composer-right">
