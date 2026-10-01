@@ -172,7 +172,8 @@ export async function getChatArtifactFormat(
     fmt === "markdown" ||
     fmt === "docx" ||
     fmt === "pptx" ||
-    fmt === "svg"
+    fmt === "svg" ||
+    fmt === "png"
   ) {
     return fmt;
   }

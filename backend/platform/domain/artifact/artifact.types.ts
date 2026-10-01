@@ -12,7 +12,8 @@ export type ChatArtifactFormat =
   | "markdown"
   | "docx"
   | "pptx"
-  | "svg";
+  | "svg"
+  | "png";
 
 export type ChatArtifactMeta = {
   kind: string;

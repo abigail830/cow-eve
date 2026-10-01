@@ -17,6 +17,7 @@ export const artifactFormatSchema = z.enum([
   "html",
   "pdf",
   "pptx",
+  "png",
 ]);
 
 export const artifactSpecSchema = z.object({

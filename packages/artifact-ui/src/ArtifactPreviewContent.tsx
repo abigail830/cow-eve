@@ -1,9 +1,14 @@
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import {
   isMarkdownPreviewable,
+  isPlantUmlArtifact,
   isPptArtifact,
+  isRasterImageArtifact,
   isWordArtifact,
+  plantUmlSourceFromSpec,
 } from "./artifactKinds";
+import { PlantumlArtifactPreview } from "./PlantumlArtifactPreview";
+import { RasterImagePreview } from "./RasterImagePreview";
 import { resolveArtifactUrls } from "./api";
 import { ArtifactMarkdownPreview } from "./ArtifactMarkdownPreview";
 import { HtmlPreviewFrame } from "./HtmlPreviewFrame";
@@ -29,6 +34,17 @@ export function ArtifactPreviewContent({ spec, apiBase, token, chatId }: Props) 
     return (
       <OoxmlPreview kind="pptx" url={downloadUrl} token={token} title={spec.title} />
     );
+  }
+
+  if (isRasterImageArtifact(spec) && downloadUrl) {
+    return (
+      <RasterImagePreview url={downloadUrl} token={token} title={spec.title} />
+    );
+  }
+
+  const plantUmlSource = plantUmlSourceFromSpec(spec);
+  if (isPlantUmlArtifact(spec) && plantUmlSource) {
+    return <PlantumlArtifactPreview source={plantUmlSource} />;
   }
 
   if (isMarkdownPreviewable(spec) && spec.content) {

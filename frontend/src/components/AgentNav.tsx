@@ -105,6 +105,18 @@ export function AgentNav({
         <button
           type="button"
           className={
+            view === "artifacts" ? "agent-nav-item active" : "agent-nav-item"
+          }
+          title="Artifacts"
+          onClick={() => onViewChange("artifacts")}
+        >
+          <Boxes size={18} strokeWidth={2} aria-hidden />
+          {!collapsed ? <span>Artifacts</span> : null}
+        </button>
+
+        <button
+          type="button"
+          className={
             view === "integrations"
               ? "agent-nav-item active"
               : "agent-nav-item"
@@ -114,18 +126,6 @@ export function AgentNav({
         >
           <Plug size={18} strokeWidth={2} aria-hidden />
           {!collapsed ? <span>Integrations</span> : null}
-        </button>
-
-        <button
-          type="button"
-          className={
-            view === "artifacts" ? "agent-nav-item active" : "agent-nav-item"
-          }
-          title="Artifacts"
-          onClick={() => onViewChange("artifacts")}
-        >
-          <Boxes size={18} strokeWidth={2} aria-hidden />
-          {!collapsed ? <span>Artifacts</span> : null}
         </button>
 
         <div className="agent-nav-hub">

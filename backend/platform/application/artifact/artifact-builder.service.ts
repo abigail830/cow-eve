@@ -21,7 +21,23 @@ function formatForPath(sandboxPath: string): { kind: ArtifactKind; format: Artif
   if (suffix === ".pptx") return { kind: "content_document", format: "pptx" };
   if (suffix === ".html") return { kind: "slide_deck", format: "html" };
   if (suffix === ".md") return { kind: "content_document", format: "markdown" };
+  if (suffix === ".puml" || suffix === ".plantuml") {
+    return { kind: "content_document", format: "markdown" };
+  }
+  if (
+    suffix === ".png" ||
+    suffix === ".jpg" ||
+    suffix === ".jpeg" ||
+    suffix === ".gif" ||
+    suffix === ".webp"
+  ) {
+    return { kind: "content_document", format: "png" };
+  }
   return { kind: "content_document", format: "markdown" };
+}
+
+function isTextPreviewFormat(format: ArtifactFormat): boolean {
+  return format === "markdown";
 }
 
 export async function buildContentStudioArtifactSpec(input: {
@@ -58,7 +74,7 @@ export async function buildContentStudioArtifactSpec(input: {
       filename,
       fileFormat: format as ChatArtifactFormat,
     });
-    if (format === "markdown") {
+    if (isTextPreviewFormat(format) || /\.(?:puml|plantuml)$/i.test(filename)) {
       const mdText = new TextDecoder().decode(input.fileBytes);
       previewTruncated = mdText.length > PREVIEW_CHAR_LIMIT;
       previewContent = previewTruncated ? "" : mdText;

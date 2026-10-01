@@ -351,6 +351,37 @@
   height: auto;
 }
 
+.artifact-plantuml-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.artifact-plantuml-diagram {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.artifact-plantuml-source {
+  margin: 0;
+  padding: 12px;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  overflow: auto;
+  max-height: 240px;
+  border-radius: 8px;
+  background: #f6f6f6;
+  border: 1px solid #ececec;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .artifact-preview-status {
   margin: 0;
   padding: 1rem;

@@ -1,4 +1,10 @@
 import type { ArtifactSpec } from "@fde/artifact-spec";
+import {
+  extractPlantUmlSource,
+  isLikelyBinaryText,
+  isPlantUmlFilename,
+  isRasterImageFilename,
+} from "./plantumlSource";
 
 export type ArtifactCardType =
   | "diagram"
@@ -28,6 +34,24 @@ function contentFilename(spec: ArtifactSpec): string {
   return (spec.filename || "").toLowerCase();
 }
 
+export function isPlantUmlArtifact(spec: ArtifactSpec): boolean {
+  if (isPlantUmlFilename(spec.filename || "")) return true;
+  return Boolean(extractPlantUmlSource(spec.content));
+}
+
+export function isRasterImageArtifact(spec: ArtifactSpec): boolean {
+  const format = contentFormat(spec);
+  if (format === "png") return true;
+  return isRasterImageFilename(spec.filename || "");
+}
+
+export function plantUmlSourceFromSpec(spec: ArtifactSpec): string | null {
+  if (isPlantUmlFilename(spec.filename || "")) {
+    return spec.content?.trim() || null;
+  }
+  return extractPlantUmlSource(spec.content);
+}
+
 export function isWordArtifact(spec: ArtifactSpec): boolean {
   const format = contentFormat(spec);
   const name = contentFilename(spec);
@@ -53,6 +77,9 @@ export function isAudioTranscriptArtifact(spec: ArtifactSpec): boolean {
 
 export function isMarkdownPreviewable(spec: ArtifactSpec): boolean {
   if (!isContentDocumentArtifact(spec)) return false;
+  if (isPlantUmlArtifact(spec)) return false;
+  if (isRasterImageArtifact(spec)) return false;
+  if (spec.content && isLikelyBinaryText(spec.content)) return false;
   const format = contentFormat(spec);
   const name = contentFilename(spec);
   return format === "markdown" || format === "md" || name.endsWith(".md");
@@ -61,6 +88,8 @@ export function isMarkdownPreviewable(spec: ArtifactSpec): boolean {
 /** Route spec to the dedicated inline card variant. */
 export function resolveArtifactCardType(spec: ArtifactSpec): ArtifactCardType {
   if (isDiagramArtifact(spec)) return "diagram";
+  if (isPlantUmlArtifact(spec)) return "diagram";
+  if (isRasterImageArtifact(spec)) return "diagram";
   if (isSlideDeckArtifact(spec)) return "html";
   if (isWordArtifact(spec)) return "word";
   if (isPptArtifact(spec)) return "ppt";
@@ -71,6 +100,10 @@ export function resolveArtifactCardType(spec: ArtifactSpec): ArtifactCardType {
 
 export function canPreviewArtifact(spec: ArtifactSpec): boolean {
   if (isSlideDeckArtifact(spec) && spec.preview_url) return true;
+  if (isRasterImageArtifact(spec)) return Boolean(spec.download_url?.trim());
+  if (isPlantUmlArtifact(spec)) {
+    return Boolean(plantUmlSourceFromSpec(spec) || spec.download_url);
+  }
   if (isDiagramArtifact(spec)) return Boolean(spec.content?.trim() || spec.download_url);
   if (isMarkdownPreviewable(spec)) {
     return Boolean(spec.content?.trim() || spec.download_url?.trim());
@@ -89,11 +122,13 @@ const FORMAT_LABELS: Record<string, string> = {
   pptx: "PowerPoint",
   pdf: "PDF",
   svg: "SVG",
+  png: "PNG",
 };
 
 export function artifactCardSubtitle(spec: ArtifactSpec): string {
   const formatLabel = FORMAT_LABELS[spec.format] ?? spec.format.toUpperCase();
   if (isSlideDeckArtifact(spec)) return `Slides · ${formatLabel}`;
+  if (isPlantUmlArtifact(spec)) return "Diagram · PlantUML";
   if (isDiagramArtifact(spec)) return `Diagram · ${formatLabel}`;
   if (isContentDocumentArtifact(spec)) return `Document · ${formatLabel}`;
   return formatLabel;

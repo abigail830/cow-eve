@@ -35,7 +35,8 @@ function asArtifactFormat(format: string | undefined): ArtifactFormat {
     format === "slidev" ||
     format === "html" ||
     format === "pdf" ||
-    format === "pptx"
+    format === "pptx" ||
+    format === "png"
   ) {
     return format;
   }
@@ -100,8 +101,15 @@ export async function buildChatArtifactSpec(input: {
       previewTruncated = htmlText.length > PREVIEW_CHAR_LIMIT;
       if (!previewTruncated) content = htmlText;
     }
-  } else if (format === "markdown") {
-    previewUrl = artifactPreviewPath(input.chatId, input.artifactId);
+  } else if (format === "png") {
+    /* Raster deliverable — preview via download URL, not inline text. */
+  } else if (
+    format === "markdown" ||
+    /\.(?:puml|plantuml)$/i.test(meta.filename)
+  ) {
+    if (format === "markdown" && !/\.(?:puml|plantuml)$/i.test(meta.filename)) {
+      previewUrl = artifactPreviewPath(input.chatId, input.artifactId);
+    }
     const rawBytes = await getArtifactBytes(input.chatId, meta.source_object);
     if (rawBytes) {
       const mdText = new TextDecoder().decode(rawBytes);

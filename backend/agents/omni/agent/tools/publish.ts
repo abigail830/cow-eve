@@ -5,7 +5,8 @@ import { publishSandboxArtifact } from "#platform/composition/public-api.js";
 export default defineTool({
   description:
     "Publish a final deliverable from the sandbox to the chat UI as a downloadable artifact. " +
-    "Call after the file is fully written (docx, pptx, html). " +
+    "Call after the file is fully written (docx, pptx, html, puml/plantuml, png). " +
+    "For PlantUML requests, publish the `.puml` source file so the UI can render the diagram. " +
     "Do not publish intermediate scratch files unless the user asked.",
   inputSchema: z.object({
     path: z
