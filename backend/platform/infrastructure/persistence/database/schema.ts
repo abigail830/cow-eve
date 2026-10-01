@@ -22,6 +22,9 @@ export const chats = pgTable(
     /** Eve session stream cursor — equals persisted event count when storage is complete. */
     eveStreamIndex: integer("eve_stream_index").notNull().default(0),
     title: text("title"),
+    /** null = interim (e.g. titleFromMessage); llm | user */
+    titleSource: text("title_source"),
+    titleGeneratedAt: timestamp("title_generated_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

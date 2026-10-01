@@ -103,26 +103,30 @@ ensure_env_files() {
   fi
 }
 
-# Read DATABASE_URL from the environment or backend/.env (without sourcing secrets).
+# Read DATABASE_URL only — never `source` backend/.env (other lines may break bash).
 read_database_url() {
   if [[ -n "${DATABASE_URL:-}" ]]; then
-    echo "${DATABASE_URL}"
+    printf '%s' "${DATABASE_URL}"
     return 0
   fi
   local env_file="${ROOT_DIR}/backend/.env"
-  if [[ -f "${env_file}" ]]; then
-    local line
-    line="$(grep -E '^[[:space:]]*DATABASE_URL=' "${env_file}" | tail -n 1 || true)"
-    if [[ -n "${line}" ]]; then
-      line="${line#*=}"
-      line="${line%\"}"
-      line="${line#\"}"
-      line="${line%\'}"
-      line="${line#\'}"
-      echo "${line}"
-      return 0
+  [[ -f "${env_file}" ]] || return 1
+
+  local line val
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    [[ "${line}" =~ ^[[:space:]]*# ]] && continue
+    [[ "${line}" =~ ^[[:space:]]*DATABASE_URL[[:space:]]*= ]] || continue
+    val="${line#*=}"
+    val="${val#"${val%%[![:space:]]*}"}"
+    val="${val%"${val##*[![:space:]]}"}"
+    if [[ ${#val} -ge 2 && ${val:0:1} == '"' && ${val: -1} == '"' ]]; then
+      val="${val:1:${#val}-2}"
+    elif [[ ${#val} -ge 2 && ${val:0:1} == "'" && ${val: -1} == "'" ]]; then
+      val="${val:1:${#val}-2}"
     fi
-  fi
+    printf '%s' "${val}"
+    return 0
+  done <"${env_file}"
   return 1
 }
 

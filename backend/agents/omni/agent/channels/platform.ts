@@ -32,6 +32,7 @@ import {
   resolveCorsOrigin,
   saveModelCatalog,
   deleteChatForUser,
+  renameChatTitleForUser,
   createScheduleForUser,
   deleteScheduleForUser,
   getScheduleForUser,
@@ -331,6 +332,50 @@ export default defineChannel({
           {
             ok: false,
             error: err instanceof Error ? err.message : "Failed to delete chat",
+          },
+          500,
+          request,
+        );
+      }
+    }),
+
+    PUT("/api/chats/:id", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+      let body: { title?: string };
+      try {
+        body = (await request.json()) as { title?: string };
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400, request);
+      }
+      const title = body.title?.trim() ?? "";
+      if (!title) {
+        return json({ ok: false, error: "Title is required" }, 400, request);
+      }
+      try {
+        const updated = await renameChatTitleForUser({
+          userId: auth.principalId,
+          chatId: params.id,
+          title,
+        });
+        if (!updated) {
+          return json({ ok: false, error: "Chat not found" }, 404, request);
+        }
+        return json({ ok: true, title }, 200, request);
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error: err instanceof Error ? err.message : "Failed to update chat",
           },
           500,
           request,

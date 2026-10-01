@@ -21,6 +21,8 @@ function toDomainChat(row: ChatRow): Chat {
     eveSessionId: row.eveSessionId,
     eveStreamIndex: row.eveStreamIndex,
     title: row.title,
+    titleSource: row.titleSource ?? null,
+    titleGeneratedAt: row.titleGeneratedAt ?? null,
     deletedAt: row.deletedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -245,6 +247,82 @@ export class DrizzleChatRepository implements ChatRepository {
         emittedAt: event.emittedAt,
       })),
     };
+  }
+
+  async getChatMetaById(chatId: string): Promise<Chat | null> {
+    const db = getDb();
+    if (!db) return null;
+    const chat = await db.query.chats.findFirst({
+      where: and(eq(chats.id, chatId), isNull(chats.deletedAt)),
+    });
+    return chat ? toDomainChat(chat) : null;
+  }
+
+  async listChatEvents(chatId: string): Promise<ChatWithEvents["events"]> {
+    const db = getDb();
+    if (!db) return [];
+    const events = await db
+      .select()
+      .from(chatEvents)
+      .where(eq(chatEvents.chatId, chatId))
+      .orderBy(chatEvents.emittedAt);
+    return events.map((event) => ({
+      id: event.id,
+      chatId: event.chatId,
+      type: event.type,
+      payload: event.payload,
+      emittedAt: event.emittedAt,
+    }));
+  }
+
+  async applyLlmChatTitle(chatId: string, title: string): Promise<boolean> {
+    const db = getDb();
+    if (!db) return false;
+    const now = new Date();
+    const [row] = await db
+      .update(chats)
+      .set({
+        title,
+        titleSource: "llm",
+        titleGeneratedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(chats.id, chatId),
+          isNull(chats.deletedAt),
+          sql`${chats.titleSource} is distinct from 'user'`,
+          sql`${chats.titleSource} is distinct from 'llm'`,
+        ),
+      )
+      .returning({ id: chats.id });
+    return Boolean(row);
+  }
+
+  async setUserChatTitle(input: {
+    userId: string;
+    chatId: string;
+    title: string;
+  }): Promise<boolean> {
+    const db = getDb();
+    if (!db) return false;
+    const now = new Date();
+    const [row] = await db
+      .update(chats)
+      .set({
+        title: input.title,
+        titleSource: "user",
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(chats.id, input.chatId),
+          eq(chats.userId, input.userId),
+          isNull(chats.deletedAt),
+        ),
+      )
+      .returning({ id: chats.id });
+    return Boolean(row);
   }
 
   async softDeleteChat(input: {

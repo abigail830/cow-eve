@@ -125,6 +125,8 @@ export {
   buildTurnAttachmentBlock,
 } from "../application/doc-retrieval/manifest-hydrate";
 export { resolveChatIdForEveSession } from "../application/chat/chat-session.use-case";
+export { scheduleChatTitleOnce } from "../application/chat/chat-title-scheduler";
+export { renameChatTitleForUser } from "../application/chat/chat-title.use-case";
 export {
   classifyAttachment,
   type AttachmentKind,

@@ -47,7 +47,9 @@ ensure_env_files
 
 case "${TARGET}" in
   all|backend|omni)
-    run_db_migrate
+    if [[ "${COW_EVE_SKIP_DB_MIGRATE:-}" != "1" ]]; then
+      run_db_migrate
+    fi
     ;;
 esac
 

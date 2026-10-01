@@ -71,6 +71,13 @@
       "when": 1789798000000,
       "tag": "0010_audio_capture_nullable_output",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789799000000,
+      "tag": "0011_chat_title_source",
+      "breakpoints": true
     }
   ]
 }
