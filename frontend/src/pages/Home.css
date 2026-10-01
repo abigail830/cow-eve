@@ -1,0 +1,203 @@
+.home-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.home-header {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: var(--glass-surface-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border-soft);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 4px 24px rgba(30, 45, 80, 0.04);
+}
+
+.home-main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 72px 24px 32px;
+  width: 100%;
+}
+
+.home-hero {
+  text-align: center;
+  margin-bottom: 48px;
+  max-width: 640px;
+}
+
+.home-greeting {
+  margin: 0 0 10px;
+  font-family: var(--font-heading);
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--color-ink);
+  text-shadow: 0 1px 24px rgba(255, 255, 255, 0.85);
+}
+
+.home-lead {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  text-shadow: 0 1px 16px rgba(255, 255, 255, 0.9);
+}
+
+.home-error {
+  color: var(--color-error);
+  text-align: center;
+}
+
+.home-muted {
+  color: #888;
+  text-align: center;
+}
+
+.home-agent-row-wrap {
+  width: 100%;
+  max-width: 1200px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.home-agent-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  min-width: min-content;
+  padding: 4px 8px;
+}
+
+.home-agent-card {
+  flex: 0 0 auto;
+  width: 168px;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 18px 22px;
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  background: var(--glass-surface-raised);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  cursor: pointer;
+  text-align: center;
+  box-shadow: var(--glass-shadow), var(--glass-highlight);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    background 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.home-agent-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.68);
+  border-color: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
+}
+
+.home-agent-card:active {
+  transform: translateY(-2px);
+}
+
+.home-agent-card-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow:
+    0 4px 16px rgba(30, 45, 80, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.home-agent-card-avatar img {
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+}
+
+.home-agent-card-name {
+  font-family: var(--font-heading);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+
+.home-agent-card-desc {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #8f8f8f;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.home-footer {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  padding: 24px 16px 32px;
+  text-align: center;
+}
+
+.home-footer p {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #b0b0b0;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 12px rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 640px) {
+  .home-header {
+    padding: 0 16px;
+  }
+
+  .home-main {
+    padding-top: 48px;
+  }
+
+  .home-agent-row {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    padding-inline: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-agent-card {
+    transition: none;
+  }
+}

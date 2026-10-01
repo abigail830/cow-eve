@@ -1,0 +1,28 @@
+.agent-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.agent-nav-loading {
+  width: 260px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-right: 1px solid #e8e8e8;
+}
+
+.agent-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+.agent-load-error {
+  padding: 48px 24px;
+  color: var(--color-error);
+  text-align: center;
+}

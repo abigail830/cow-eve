@@ -1,39 +1,49 @@
 import { defineDynamic } from "eve";
 import { defineInstructions } from "eve/instructions";
 import {
-  buildChatLibrary,
   buildHydrateTextForEntries,
-  listChatAttachmentsForSession,
-  type ChatAttachmentIndexEntry,
+  buildSessionDocumentLibrary,
   classifyAttachment,
+  listWorkspaceFilesForDocumentIndex,
   PARSE_READY_STATUSES,
-  parsedArtifactInManifest,
+  type DocumentIndexEntry,
 } from "#platform/composition/public-api.js";
 import {
   extractLatestUserText,
   filenamesNeedingRehydration,
   parseMentionedFilenames,
   parseSendAttachmentIdsFromMessages,
+  parseWorkspaceFileIdsFromMessages,
   readDynamicMessages,
 } from "../lib/attachment-rehydrate.js";
 import { resolveChatIdForSession } from "../lib/resolve-chat-id.js";
 
-function isImageAttachment(filename: string, mediaType: string): boolean {
+function isImageEntry(entry: Pick<DocumentIndexEntry, "filename" | "mimeType">): boolean {
   try {
-    return classifyAttachment({ filename, mimeType: mediaType }) === "image";
+    return classifyAttachment({ filename: entry.filename, mimeType: entry.mimeType }) === "image";
   } catch {
     return false;
   }
 }
 
-function isParsedDocumentReady(
-  entry: ChatAttachmentIndexEntry,
-  manifest: Record<string, unknown> | null | undefined,
-): boolean {
-  return (
-    PARSE_READY_STATUSES.has(entry.parseStatus) &&
-    parsedArtifactInManifest(manifest ?? null, "content_md")
-  );
+function entriesForMentionedFilenames(
+  library: Map<string, DocumentIndexEntry>,
+  mentioned: readonly string[],
+): DocumentIndexEntry[] {
+  const keys = new Set(mentioned.map((n) => n.toLowerCase()));
+  const out: DocumentIndexEntry[] = [];
+  const seen = new Set<string>();
+  for (const entry of library.values()) {
+    if (seen.has(entry.refId)) continue;
+    if (!keys.has(entry.filename.toLowerCase())) continue;
+    seen.add(entry.refId);
+    out.push(entry);
+  }
+  return out;
+}
+
+function isParsedDocumentReady(entry: DocumentIndexEntry): boolean {
+  return PARSE_READY_STATUSES.has(entry.parseStatus);
 }
 
 export default defineDynamic({
@@ -49,78 +59,104 @@ export default defineDynamic({
       const userText = extractLatestUserText(messages);
       const mentioned = parseMentionedFilenames(userText);
       const sendAttachmentIds = parseSendAttachmentIdsFromMessages(messages);
-      if (mentioned.length === 0 && sendAttachmentIds.length === 0) return null;
+      const workspaceFileIds = parseWorkspaceFileIdsFromMessages(messages);
+      if (
+        mentioned.length === 0 &&
+        sendAttachmentIds.length === 0 &&
+        workspaceFileIds.length === 0
+      ) {
+        return null;
+      }
 
       const chatId = await resolveChatIdForSession({
         userId,
         eveSessionId: ctx.session.id,
       });
 
+      const lines: string[] = [];
+
+      if (workspaceFileIds.length > 0) {
+        lines.push(
+          "Workspace files referenced this thread (use ws:<uuid> as attachment_id):",
+          ...workspaceFileIds.map((id) => `- ws:${id}`),
+          "- Do not assume file bodies are inline; use attachment_read / attachment_grep.",
+        );
+      }
+
       const needsRehydrate = filenamesNeedingRehydration(messages, mentioned);
       const alreadyAccessible = mentioned.filter(
         (name) => !needsRehydrate.includes(name),
       );
 
-      const attachments = await listChatAttachmentsForSession({
-        userId,
-        eveSessionId: ctx.session.id,
-      });
-
-      const mentionKeys = new Set(mentioned.map((n) => n.toLowerCase()));
-      const sendIdSet = new Set(sendAttachmentIds);
-      const mentionedRows = attachments.filter(
-        (item) =>
-          mentionKeys.has(item.filename.toLowerCase()) || sendIdSet.has(item.id),
-      );
-
-      const hydrateEntries: ChatAttachmentIndexEntry[] = [];
       if (chatId) {
-        const library = await buildChatLibrary(chatId);
-        for (const row of mentionedRows) {
-          if (isImageAttachment(row.filename, row.mediaType)) continue;
-          const entry = library.get(row.id);
-          if (entry && isParsedDocumentReady(entry, row.parsedArtifactManifest)) {
-            hydrateEntries.push(entry);
+        const library = await buildSessionDocumentLibrary({
+          chatId,
+          userId,
+          workspaceFileIds,
+        });
+
+        const mentionedEntries = entriesForMentionedFilenames(library, mentioned);
+        const hydrateEntries = mentionedEntries.filter(
+          (entry) => !isImageEntry(entry) && isParsedDocumentReady(entry),
+        );
+
+        if (hydrateEntries.length > 0) {
+          const chatHydrate = hydrateEntries.filter((e) => e.source === "chat");
+          if (chatHydrate.length > 0) {
+            const hydrateText = await buildHydrateTextForEntries(
+              chatId,
+              chatHydrate,
+            );
+            if (hydrateText) lines.push(hydrateText);
           }
+        }
+
+        const imageRehydrate = mentionedEntries.filter(
+          (entry) =>
+            isImageEntry(entry) &&
+            needsRehydrate.some(
+              (name) => name.toLowerCase() === entry.filename.toLowerCase(),
+            ),
+        );
+        if (imageRehydrate.length > 0) {
+          lines.push(
+            "",
+            "Images @mentioned that need read_chat_attachment (not in recent inline context):",
+            ...imageRehydrate.map(
+              (entry) =>
+                `- ${entry.filename} (${entry.source}, attachment_id=${entry.refId})`,
+            ),
+          );
+        }
+
+        const docPending = mentionedEntries.filter(
+          (entry) => !isImageEntry(entry) && !PARSE_READY_STATUSES.has(entry.parseStatus),
+        );
+        if (docPending.length > 0) {
+          lines.push(
+            "",
+            "These documents are still parsing — wait or tell the user to retry:",
+            ...docPending.map(
+              (entry) =>
+                `- ${entry.filename} (source=${entry.source}, parse_status=${entry.parseStatus})`,
+            ),
+          );
         }
       }
 
-      const lines: string[] = [];
-
-      if (hydrateEntries.length > 0 && chatId) {
-        const hydrateText = await buildHydrateTextForEntries(
-          chatId,
-          hydrateEntries,
-        );
-        if (hydrateText) lines.push(hydrateText);
-      }
-
-      const imageRehydrate = needsRehydrate.filter((name) => {
-        const row = mentionedRows.find(
-          (item) => item.filename.toLowerCase() === name.toLowerCase(),
-        );
-        return row && isImageAttachment(row.filename, row.mediaType);
+      const wsPending = await listWorkspaceFilesForDocumentIndex({
+        userId,
+        fileIds: workspaceFileIds,
       });
-
-      if (imageRehydrate.length > 0) {
+      const pendingWs = wsPending.filter(
+        (row) => !PARSE_READY_STATUSES.has(row.parseStatus),
+      );
+      if (pendingWs.length > 0) {
         lines.push(
           "",
-          "Images @mentioned that need read_chat_attachment (not in recent inline context):",
-          ...imageRehydrate.map((name) => `- ${name}`),
-        );
-      }
-
-      const docPending = mentionedRows.filter((row) => {
-        if (isImageAttachment(row.filename, row.mediaType)) return false;
-        return !PARSE_READY_STATUSES.has(row.parseStatus);
-      });
-      if (docPending.length > 0) {
-        lines.push(
-          "",
-          "These attachments are still parsing — wait or tell the user to retry:",
-          ...docPending.map(
-            (row) =>
-              `- ${row.filename} (parse_status=${row.parseStatus})`,
+          "Workspace imports still parsing:",
+          ...pendingWs.map(
+            (row) => `- ${row.filename} (ws:${row.id}, parse_status=${row.parseStatus})`,
           ),
         );
       }
@@ -138,6 +174,7 @@ export default defineDynamic({
       lines.unshift(
         "Chat attachment guidance (aligned with agent-platform doc retrieval):",
         "- Parsed PDF/sheet/text/audio: use attachment_grep / attachment_read with attachment_id.",
+        "- Workspace imports: attachment_id is ws:<workspace_file_uuid>.",
         "- Figure placeholders (figure:fN): use attachment_read_figure.",
         "- Images: inline vision when bytes are in context; otherwise read_chat_attachment.",
       );

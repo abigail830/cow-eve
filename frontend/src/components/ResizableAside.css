@@ -36,7 +36,16 @@
 
 .resizable-aside-handle:hover::after,
 .resizable-aside-handle:active::after {
-  background: #f27a2a;
+  background: var(--accent);
+}
+
+.resizable-aside-handle-plain::after {
+  background: transparent;
+}
+
+.resizable-aside-handle-plain:hover::after,
+.resizable-aside-handle-plain:active::after {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .resizable-aside-content {

@@ -24,7 +24,8 @@
 }
 
 .app-brand img {
-  border-radius: 8px;
+  object-fit: contain;
+  object-position: center;
 }
 
 .app-brand-name {

@@ -22,7 +22,10 @@ import {
   attachmentIdsFromMessageParts,
   collapseUserClientContextMessages,
   userVisibleTextFromParts,
+  workspaceFileIdsFromMessageParts,
 } from "../lib/userMessageAttachments";
+import type { WorkspaceFilePublic } from "../lib/workspace";
+import { workspaceFileAsAttachmentRow } from "../lib/workspaceParse";
 import type { AudioCapturePublic } from "../lib/audioCapture";
 import {
   buildChatTimeline,
@@ -51,6 +54,7 @@ type Props = {
   audioCaptures?: readonly AudioCapturePublic[];
   onRetryAudioCapture?: (chatId: string, captureId: string) => void | Promise<void>;
   onOpenAttachmentPipeline?: (attachment: ChatAttachmentPublic) => void;
+  workspaceFilesById?: ReadonlyMap<string, WorkspaceFilePublic>;
 };
 
 function StepChevron() {
@@ -170,10 +174,14 @@ function UserAttachmentChip({
   filename,
   sizeBytes,
   libraryRow,
+  sourceLabel,
+  stale,
 }: {
   filename: string;
   sizeBytes?: number;
   libraryRow?: ChatAttachmentPublic;
+  sourceLabel?: string;
+  stale?: boolean;
 }) {
   const showParse =
     libraryRow != null && !parseNotRequired(libraryRow);
@@ -194,6 +202,12 @@ function UserAttachmentChip({
     >
       <FileText size={14} strokeWidth={2} aria-hidden />
       <span className="msg-user-attachment-name">{filename}</span>
+      {sourceLabel ? (
+        <span className="msg-user-attachment-source">{sourceLabel}</span>
+      ) : null}
+      {stale ? (
+        <span className="msg-user-attachment-stale">Unavailable</span>
+      ) : null}
       {sizeBytes != null ? (
         <span className="msg-file-size">{formatBytes(sizeBytes)}</span>
       ) : null}
@@ -230,6 +244,7 @@ export function MessageStream({
   audioCaptures = [],
   onRetryAudioCapture,
   onOpenAttachmentPipeline,
+  workspaceFilesById,
 }: Props) {
   const [libraryAttachments, setLibraryAttachments] = useState<
     ChatAttachmentPublic[]
@@ -367,6 +382,7 @@ export function MessageStream({
 
         const msg = row.message;
         const extraAttachmentIds = row.extraAttachmentIds;
+        const extraWorkspaceFileIds = row.extraWorkspaceFileIds;
         const isLastAssistant =
           streamingOnAssistant && index === lastTimelineMessageIndex;
 
@@ -376,6 +392,16 @@ export function MessageStream({
             ...attachmentIdsFromMessageParts(msg.parts),
             ...extraAttachmentIds,
           ];
+          const workspaceContextIds = [
+            ...workspaceFileIdsFromMessageParts(msg.parts),
+            ...extraWorkspaceFileIds,
+          ];
+          const seenWs = new Set<string>();
+          const uniqueWorkspaceIds = workspaceContextIds.filter((id) => {
+            if (seenWs.has(id)) return false;
+            seenWs.add(id);
+            return true;
+          });
           const seenFileLabels = new Set(
             fileParts.map((p) =>
               p.type === "file" ? (p.filename ?? "").toLowerCase() : "",
@@ -395,10 +421,23 @@ export function MessageStream({
           );
 
           const visibleText = userVisibleTextFromParts(msg.parts);
+          const workspaceChips = uniqueWorkspaceIds.map((id) => {
+            const file = workspaceFilesById?.get(id);
+            const row = file ? workspaceFileAsAttachmentRow(file) : undefined;
+            return {
+              id,
+              filename: file?.filename ?? `Workspace file ${id.slice(0, 8)}…`,
+              sizeBytes: file?.sizeBytes,
+              libraryRow: row,
+              stale: !file,
+            };
+          });
+
           const showAttachments =
             fileParts.length > 0 ||
             contextChips.length > 0 ||
-            hintChips.length > 0;
+            hintChips.length > 0 ||
+            workspaceChips.length > 0;
 
           return (
             <div key={msg.id} className="msg-row user">
@@ -430,6 +469,16 @@ export function MessageStream({
                         filename={row.filename}
                         sizeBytes={row.sizeBytes}
                         libraryRow={row}
+                      />
+                    ))}
+                    {workspaceChips.map((row) => (
+                      <UserAttachmentChip
+                        key={`ws-${row.id}`}
+                        filename={row.filename}
+                        sizeBytes={row.sizeBytes}
+                        libraryRow={row.libraryRow}
+                        sourceLabel="Workspace"
+                        stale={row.stale}
                       />
                     ))}
                   </div>

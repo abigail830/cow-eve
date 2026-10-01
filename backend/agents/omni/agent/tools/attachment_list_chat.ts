@@ -1,13 +1,12 @@
 import { defineTool, toolOutput } from "eve/tools";
 import { z } from "zod";
-import {
-  classifyAttachment,
-  listChatAttachmentsForSession,
-} from "#platform/composition/public-api.js";
+import { listSessionDocumentsForAgent } from "#platform/composition/public-api.js";
+import { collectSessionDocumentIds } from "../lib/session-document-ids.js";
+import { resolveChatIdForSession } from "../lib/resolve-chat-id.js";
 
 export default defineTool({
   description:
-    "List attachments in this chat (including pending parse). Use attachment_id with read/grep tools when parse_status is ready.",
+    "List documents available in this chat: chat attachments and imported workspace files (pending or ready). Use attachment_id (UUID or ws:<uuid>) with read/grep when parse_status is ready.",
   inputSchema: z.object({}),
   async execute(_input, ctx) {
     const userId =
@@ -18,28 +17,19 @@ export default defineTool({
       return { status: "error" as const, message: "Authentication required." };
     }
 
-    const rows = await listChatAttachmentsForSession({
+    const chatId = await resolveChatIdForSession({
       userId,
       eveSessionId: ctx.session.id,
     });
+    if (!chatId) {
+      return { status: "error" as const, message: "Chat not found for session." };
+    }
 
-    const attachments = rows.map((row) => {
-      let kind = "file";
-      try {
-        kind = classifyAttachment({
-          filename: row.filename,
-          mimeType: row.mediaType,
-        });
-      } catch {
-        /* keep default */
-      }
-      return {
-        attachment_id: row.id,
-        filename: row.filename,
-        kind,
-        parse_status: row.parseStatus,
-        size_bytes: row.sizeBytes,
-      };
+    const { workspaceFileIds } = collectSessionDocumentIds(ctx);
+    const attachments = await listSessionDocumentsForAgent({
+      userId,
+      eveSessionId: ctx.session.id,
+      workspaceFileIds,
     });
 
     return { status: "ok" as const, count: attachments.length, attachments };
@@ -47,12 +37,14 @@ export default defineTool({
   toModelOutput(output) {
     if (output.status === "error") return toolOutput.text(output.message);
     if (output.count === 0) {
-      return toolOutput.text("No attachments in this chat.");
+      return toolOutput.text("No documents in this chat session.");
     }
     const lines = output.attachments.map(
       (a) =>
-        `- ${a.filename} (attachment_id=${a.attachment_id}, ${a.kind}, parse_status=${a.parse_status})`,
+        `- ${a.filename} (attachment_id=${a.attachment_id}, source=${a.source}, parse_status=${a.parse_status})`,
     );
-    return toolOutput.text(`Chat attachments (${output.count}):\n${lines.join("\n")}`);
+    return toolOutput.text(
+      `Session documents (${output.count}):\n${lines.join("\n")}`,
+    );
   },
 });

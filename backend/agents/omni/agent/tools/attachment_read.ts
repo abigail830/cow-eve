@@ -1,20 +1,21 @@
 import { defineTool, toolOutput } from "eve/tools";
 import { z } from "zod";
 import {
-  assertLibraryAccess,
-  buildChatLibrary,
+  assertDocumentLibraryAccess,
+  buildSessionDocumentLibrary,
   DocRetrievalError,
-  loadContentMd,
-  loadMetaForAttachment,
+  loadDocumentContentMd,
+  loadDocumentMeta,
   readContentSlice,
 } from "#platform/composition/public-api.js";
+import { collectSessionDocumentIds } from "../lib/session-document-ids.js";
 import { resolveChatIdForSession } from "../lib/resolve-chat-id.js";
 
 export default defineTool({
   description:
-    "Read a slice of parsed attachment content.md by line range, page, or section_id.",
+    "Read a slice of parsed document content.md by line range, page, or section_id. attachment_id may be a chat attachment UUID or ws:<workspace-file-uuid>.",
   inputSchema: z.object({
-    attachment_id: z.string().uuid(),
+    attachment_id: z.string().min(1),
     line_start: z.number().int().optional(),
     line_end: z.number().int().optional(),
     page: z.number().int().optional(),
@@ -51,10 +52,15 @@ export default defineTool({
     }
 
     try {
-      const library = await buildChatLibrary(chatId);
-      const entry = assertLibraryAccess(library, input.attachment_id);
-      const content = await loadContentMd(chatId, input.attachment_id);
-      const meta = await loadMetaForAttachment(chatId, input.attachment_id);
+      const { workspaceFileIds } = collectSessionDocumentIds(ctx);
+      const library = await buildSessionDocumentLibrary({
+        chatId,
+        userId,
+        workspaceFileIds,
+      });
+      const entry = assertDocumentLibraryAccess(library, input.attachment_id);
+      const content = await loadDocumentContentMd(entry);
+      const meta = await loadDocumentMeta(entry);
       const slice = readContentSlice(content, meta, {
         lineStart: input.line_start ?? null,
         lineEnd: input.line_end ?? null,
@@ -63,7 +69,7 @@ export default defineTool({
       });
       return {
         status: "ok" as const,
-        attachment_id: input.attachment_id,
+        attachment_id: entry.refId,
         filename: entry.filename,
         line_start: Number(slice.line_start),
         line_end: Number(slice.line_end),
@@ -77,6 +83,9 @@ export default defineTool({
     } catch (err) {
       if (err instanceof DocRetrievalError) {
         return { status: "error" as const, code: err.code, message: err.message };
+      }
+      if (err instanceof Error) {
+        return { status: "error" as const, message: err.message };
       }
       throw err;
     }

@@ -1,0 +1,63 @@
+.platform-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Preserve original cow asset — no circular crop or cover stretch */
+.platform-brand img {
+  flex-shrink: 0;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 0;
+}
+
+.platform-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.platform-brand-wordmark {
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.platform-brand-agent {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.platform-brand-team {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.platform-brand-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  line-height: 1.1;
+}
+
+.platform-brand-subtitle {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.platform-brand.compact .platform-brand-title,
+.platform-brand.compact .platform-brand-wordmark {
+  font-size: 0.6875rem;
+}
+
+.platform-brand.header img {
+  filter: drop-shadow(0 1px 2px rgba(15, 21, 20, 0.08));
+}

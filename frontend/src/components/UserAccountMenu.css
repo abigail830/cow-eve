@@ -1,0 +1,146 @@
+.user-account-menu {
+  position: relative;
+}
+
+.user-account-menu.minimal .user-account-trigger {
+  gap: 8px;
+  padding: 6px 8px;
+}
+
+.user-account-menu.minimal .user-account-trigger:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.user-account-icon {
+  color: #666;
+  flex-shrink: 0;
+}
+
+.user-account-name-minimal {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+}
+
+.user-account-menu.minimal .user-account-dropdown {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+.user-account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 10px;
+  text-align: left;
+  max-width: 100%;
+}
+
+.user-account-trigger:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.user-account-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.user-account-menu.compact .user-account-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.user-account-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-account-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-account-email {
+  font-size: 0.6875rem;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-account-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  z-index: 50;
+}
+
+.user-account-menu:not(.compact) .user-account-dropdown {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
+
+.user-account-dropdown-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  font-size: 0.8125rem;
+}
+
+.user-account-dropdown-meta strong {
+  font-weight: 600;
+}
+
+.user-account-dropdown-meta span {
+  color: #888;
+  font-size: 0.75rem;
+}
+
+.user-account-dropdown-divider {
+  height: 1px;
+  background: #eee;
+  margin: 4px 0;
+}
+
+.user-account-dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.user-account-dropdown-item:hover {
+  background: var(--paper-cover, #f5f5f5);
+}

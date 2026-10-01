@@ -44,6 +44,7 @@ import {
   defaultModelSettings,
   type ModelCatalogUpdate,
 } from "../../../../platform/composition/public-api";
+import { registerWorkspaceRoutes } from "../lib/workspace-routes.js";
 import {
   handleParseArtifactsBatch,
   handleParseFigureGet,
@@ -162,6 +163,14 @@ export default defineChannel({
     preflight("/api/chats/:id/audio-captures/:captureId/retry"),
     preflight("/api/chats/:id/audio-captures/:captureId/transcript"),
     preflight("/internal/parse/v1/webhook"),
+    preflight("/api/workspace/batch-file-lookup"),
+    preflight("/api/workspace/folders"),
+    preflight("/api/workspace/folders/:id"),
+    preflight("/api/workspace/folders/:id/files"),
+    preflight("/api/workspace/files/:id/preview"),
+    preflight("/api/workspace/files/:id/preview-bundle"),
+    preflight("/api/workspace/files/:id/download"),
+    preflight("/api/workspace/files/:id/figures/:figureId"),
 
     POST("/api/auth/login", async (request) => {
       let body: { email?: string; password?: string };
@@ -1460,6 +1469,14 @@ export default defineChannel({
           "Cache-Control": "private, no-store",
         },
       });
+    }),
+
+    ...registerWorkspaceRoutes({
+      json,
+      requireUser: async (request) => {
+        const auth = await requireUser(request);
+        return auth ? { principalId: auth.principalId } : null;
+      },
     }),
   ],
 });

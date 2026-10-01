@@ -23,7 +23,7 @@
 }
 
 .composer-staged-chip-clickable:hover {
-  border-color: #f27a2a;
+  border-color: var(--accent);
   background: #fff3eb;
 }
 

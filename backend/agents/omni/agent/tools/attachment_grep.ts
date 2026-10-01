@@ -1,19 +1,20 @@
 import { defineTool, toolOutput } from "eve/tools";
 import { z } from "zod";
 import {
-  assertLibraryAccess,
-  buildChatLibrary,
+  assertDocumentLibraryAccess,
+  buildSessionDocumentLibrary,
   DocRetrievalError,
   grepContent,
-  loadContentMd,
+  loadDocumentContentMd,
 } from "#platform/composition/public-api.js";
+import { collectSessionDocumentIds } from "../lib/session-document-ids.js";
 import { resolveChatIdForSession } from "../lib/resolve-chat-id.js";
 
 export default defineTool({
   description:
-    "Search parsed attachment content.md by regex or plain text. Use when attachment_id is known.",
+    "Search parsed document content.md by regex or plain text. attachment_id may be UUID or ws:<uuid>.",
   inputSchema: z.object({
-    attachment_id: z.string().uuid(),
+    attachment_id: z.string().min(1),
     pattern: z.string().min(1),
     ignore_case: z.boolean().optional().default(true),
     head_limit: z.number().int().min(1).max(50).optional().default(50),
@@ -34,16 +35,21 @@ export default defineTool({
     }
 
     try {
-      const library = await buildChatLibrary(chatId);
-      const entry = assertLibraryAccess(library, input.attachment_id);
-      const content = await loadContentMd(chatId, input.attachment_id);
+      const { workspaceFileIds } = collectSessionDocumentIds(ctx);
+      const library = await buildSessionDocumentLibrary({
+        chatId,
+        userId,
+        workspaceFileIds,
+      });
+      const entry = assertDocumentLibraryAccess(library, input.attachment_id);
+      const content = await loadDocumentContentMd(entry);
       const matches = grepContent(content, input.pattern, {
         ignoreCase: input.ignore_case,
         headLimit: input.head_limit,
       });
       return {
         status: "ok" as const,
-        attachment_id: input.attachment_id,
+        attachment_id: entry.refId,
         filename: entry.filename,
         match_count: matches.length,
         matches,
@@ -51,6 +57,9 @@ export default defineTool({
     } catch (err) {
       if (err instanceof DocRetrievalError) {
         return { status: "error" as const, code: err.code, message: err.message };
+      }
+      if (err instanceof Error) {
+        return { status: "error" as const, message: err.message };
       }
       throw err;
     }

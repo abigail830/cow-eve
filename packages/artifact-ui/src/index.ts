@@ -13,6 +13,14 @@ export { DiagramArtifactCard } from "./DiagramArtifactCard";
 export { ContentDocumentArtifactCard } from "./ContentDocumentArtifactCard";
 export { ArtifactPreviewPanel } from "./ArtifactPreviewPanel";
 export { ArtifactPreviewContent } from "./ArtifactPreviewContent";
+export { ParsedDocumentMarkdownPreview } from "./ParsedDocumentMarkdownPreview";
+export { DocumentPreviewPanel } from "./DocumentPreviewPanel";
+export type { DocumentPreviewTab, ParsedMarkdownView } from "./DocumentPreviewPanel";
+export type {
+  DocumentPreviewBundle,
+  DocumentPreviewKind,
+} from "./documentPreviewKinds";
+export { classifyDocumentPreviewKind, officePreviewKind } from "./documentPreviewKinds";
 export { resolveArtifactToolPart } from "./resolveToolRenderer";
 export {
   downloadArtifactFile,

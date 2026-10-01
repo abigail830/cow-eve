@@ -1,6 +1,10 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { parsedArtifactInManifest } from "../../domain/docstore/parsed-manifest.js";
 import { ParseStatus } from "../../domain/parse/parse-status.js";
+import {
+  applyParseWebhookForRun,
+} from "../document/parse-document-router.js";
+import { scheduleDocumentGist } from "../attachment/document-gist-scheduler.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import {
   getParseJobRunByJobId,
@@ -86,28 +90,14 @@ export async function applyParseWebhook(input: {
   webhookSecret: string;
   payload: Record<string, unknown>;
 }): Promise<void> {
+  const run = await getParseJobRunByJobId(input.jobId);
+  if (!run) return;
+
   const attachmentId = String(
     input.payload.attachment_id ??
       (input.payload.source as { source_id?: string })?.source_id ??
-      "",
+      run.attachmentId,
   );
-  if (!attachmentId) {
-    const run = await getParseJobRunByJobId(input.jobId);
-    if (!run) return;
-    const parseStatus = mapParseStatus(input.payload);
-    await drizzleChatAttachmentRepository.applyParseWebhook(run.attachmentId, {
-      status: parseStatus,
-      stageSnapshot: stageSnapshotFromPayload(input.payload),
-    });
-    await updateParseJobRunStatus(input.jobId, parseStatus);
-    if (parseStatus === ParseStatus.READY) {
-      const { scheduleAttachmentGist } = await import(
-        "../attachment/gist-scheduler.js"
-      );
-      scheduleAttachmentGist(run.attachmentId);
-    }
-    return;
-  }
 
   const parseStatus = mapParseStatus(input.payload);
   const stageSnapshot = stageSnapshotFromPayload(input.payload);
@@ -116,14 +106,14 @@ export async function applyParseWebhook(input: {
       ? (input.payload.error as { code?: string; message?: string })
       : null;
 
-  await drizzleChatAttachmentRepository.applyParseWebhook(attachmentId, {
+  await applyParseWebhookForRun(run, {
     status: parseStatus,
     stageSnapshot,
     errorCode: error?.code ?? null,
     errorMessage: error?.message ?? null,
   });
 
-  if (parseStatus === ParseStatus.READY) {
+  if (parseStatus === ParseStatus.READY && run.sourceKind === "chat_attachment") {
     const row = await drizzleChatAttachmentRepository.getByIdOnly(attachmentId);
     if (
       row &&
@@ -136,14 +126,7 @@ export async function applyParseWebhook(input: {
   await updateParseJobRunStatus(input.jobId, parseStatus);
 
   if (parseStatus === ParseStatus.READY) {
-    const { scheduleAttachmentGist } = await import(
-      "../attachment/gist-scheduler.js"
-    );
-    const id =
-      attachmentId ||
-      (await getParseJobRunByJobId(input.jobId))?.attachmentId ||
-      "";
-    if (id) scheduleAttachmentGist(id);
+    scheduleDocumentGist(run.sourceKind, attachmentId);
   }
 }
 

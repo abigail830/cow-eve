@@ -120,7 +120,7 @@ export async function mintAsrFileUrls(input: {
       attachment_id: attachmentId,
       url: await resolveAsrMintUrl({
         jobId: input.jobId,
-        chatId: run.chatId,
+        chatId: run.chatId ?? run.scopeId,
         attachmentId,
         webhookSecret: run.webhookSecret,
       }),
@@ -159,12 +159,13 @@ export async function readAsrFileForSignedUrl(input: {
   const payload = run.jobPayloadJson as Record<string, unknown>;
   if (!capturePartIds(payload).has(input.attachmentId)) return null;
 
+  const chatId = run.chatId ?? run.scopeId;
   const attachment = await drizzleChatAttachmentRepository.getById({
-    chatId: run.chatId,
+    chatId,
     attachmentId: input.attachmentId,
   });
   if (!attachment) return null;
-  const bytes = await getAttachmentBytes(run.chatId, attachment.storageKey);
+  const bytes = await getAttachmentBytes(run.scopeId, attachment.storageKey);
   if (!bytes?.byteLength) return null;
   return { bytes, mediaType: attachment.mediaType };
 }

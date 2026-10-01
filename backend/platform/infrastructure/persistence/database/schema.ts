@@ -113,16 +113,68 @@ export const chatAttachments = pgTable(
   ],
 );
 
+export const workspaceFolders = pgTable(
+  "workspace_folders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id").notNull(),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("workspace_folders_user_name_idx").on(table.userId, table.name),
+  ],
+);
+
+export const workspaceFiles = pgTable(
+  "workspace_files",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id").notNull(),
+    folderId: uuid("folder_id")
+      .notNull()
+      .references(() => workspaceFolders.id, { onDelete: "cascade" }),
+    filename: text("filename").notNull(),
+    mediaType: text("media_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    storageKey: text("storage_key").notNull(),
+    contentHash: text("content_hash"),
+    parseStatus: text("parse_status").notNull().default("ready"),
+    parsePipelineId: text("parse_pipeline_id"),
+    parseJobId: text("parse_job_id"),
+    parseErrorCode: text("parse_error_code"),
+    parseErrorMessage: text("parse_error_message"),
+    parseStageSnapshot: jsonb("parse_stage_snapshot"),
+    parsedArtifactManifest: jsonb("parsed_artifact_manifest"),
+    gist: text("gist"),
+    gistContentSha256: text("gist_content_sha256"),
+    gistGeneratedAt: timestamp("gist_generated_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("workspace_files_folder_filename_idx").on(
+      table.folderId,
+      table.filename,
+    ),
+    index("workspace_files_user_idx").on(table.userId),
+  ],
+);
+
 export const parseJobRuns = pgTable(
   "parse_job_runs",
   {
     jobId: text("job_id").primaryKey(),
-    attachmentId: uuid("attachment_id")
-      .notNull()
-      .references(() => chatAttachments.id, { onDelete: "cascade" }),
-    chatId: uuid("chat_id")
-      .notNull()
-      .references(() => chats.id, { onDelete: "cascade" }),
+    attachmentId: uuid("attachment_id").notNull(),
+    sourceKind: text("source_kind").notNull().default("chat_attachment"),
+    scopeId: text("scope_id").notNull(),
+    chatId: uuid("chat_id").references(() => chats.id, { onDelete: "cascade" }),
     runTokenHash: text("run_token_hash").notNull(),
     webhookSecret: text("webhook_secret").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -183,6 +235,8 @@ export const audioCaptureParts = pgTable(
 export type ChatRow = typeof chats.$inferSelect;
 export type ChatEventRow = typeof chatEvents.$inferSelect;
 export type ChatAttachmentRow = typeof chatAttachments.$inferSelect;
+export type WorkspaceFolderRow = typeof workspaceFolders.$inferSelect;
+export type WorkspaceFileRow = typeof workspaceFiles.$inferSelect;
 export type ParseJobRunRow = typeof parseJobRuns.$inferSelect;
 export type AudioCaptureRow = typeof audioCaptures.$inferSelect;
 export type AudioCapturePartRow = typeof audioCaptureParts.$inferSelect;

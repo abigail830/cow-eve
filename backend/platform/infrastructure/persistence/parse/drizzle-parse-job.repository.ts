@@ -1,10 +1,13 @@
 import { and, desc, eq } from "drizzle-orm";
+import type { DocumentSourceKind } from "../../../domain/document/document-scope.js";
 import { getDb, parseJobRuns } from "../database";
 
 export type ParseJobRun = {
   jobId: string;
   attachmentId: string;
-  chatId: string;
+  sourceKind: DocumentSourceKind;
+  scopeId: string;
+  chatId: string | null;
   runTokenHash: string;
   webhookSecret: string;
   expiresAt: Date;
@@ -12,10 +15,28 @@ export type ParseJobRun = {
   status: string;
 };
 
+function toRun(row: typeof parseJobRuns.$inferSelect): ParseJobRun {
+  return {
+    jobId: row.jobId,
+    attachmentId: row.attachmentId,
+    sourceKind:
+      row.sourceKind === "workspace_file" ? "workspace_file" : "chat_attachment",
+    scopeId: row.scopeId,
+    chatId: row.chatId ?? null,
+    runTokenHash: row.runTokenHash,
+    webhookSecret: row.webhookSecret,
+    expiresAt: row.expiresAt,
+    jobPayloadJson: row.jobPayloadJson as Record<string, unknown>,
+    status: row.status,
+  };
+}
+
 export async function createParseJobRun(input: {
   jobId: string;
   attachmentId: string;
-  chatId: string;
+  sourceKind: DocumentSourceKind;
+  scopeId: string;
+  chatId?: string | null;
   runTokenHash: string;
   webhookSecret: string;
   expiresAt: Date;
@@ -25,7 +46,9 @@ export async function createParseJobRun(input: {
   await db.insert(parseJobRuns).values({
     jobId: input.jobId,
     attachmentId: input.attachmentId,
-    chatId: input.chatId,
+    sourceKind: input.sourceKind,
+    scopeId: input.scopeId,
+    chatId: input.chatId ?? null,
     runTokenHash: input.runTokenHash,
     webhookSecret: input.webhookSecret,
     expiresAt: input.expiresAt,
@@ -44,16 +67,7 @@ export async function getParseJobRunByToken(
   });
   if (!row || row.runTokenHash !== tokenHash) return null;
   if (row.expiresAt.getTime() < Date.now()) return null;
-  return {
-    jobId: row.jobId,
-    attachmentId: row.attachmentId,
-    chatId: row.chatId,
-    runTokenHash: row.runTokenHash,
-    webhookSecret: row.webhookSecret,
-    expiresAt: row.expiresAt,
-    jobPayloadJson: row.jobPayloadJson as Record<string, unknown>,
-    status: row.status,
-  };
+  return toRun(row);
 }
 
 export async function updateParseJobRunStatus(
@@ -85,16 +99,7 @@ export async function getParseJobRunForAttachmentToken(
     .limit(1);
   const row = rows[0];
   if (!row || row.expiresAt.getTime() < Date.now()) return null;
-  return {
-    jobId: row.jobId,
-    attachmentId: row.attachmentId,
-    chatId: row.chatId,
-    runTokenHash: row.runTokenHash,
-    webhookSecret: row.webhookSecret,
-    expiresAt: row.expiresAt,
-    jobPayloadJson: row.jobPayloadJson as Record<string, unknown>,
-    status: row.status,
-  };
+  return toRun(row);
 }
 
 export async function getParseJobRunByJobId(
@@ -105,16 +110,7 @@ export async function getParseJobRunByJobId(
     where: eq(parseJobRuns.jobId, jobId),
   });
   if (!row) return null;
-  return {
-    jobId: row.jobId,
-    attachmentId: row.attachmentId,
-    chatId: row.chatId,
-    runTokenHash: row.runTokenHash,
-    webhookSecret: row.webhookSecret,
-    expiresAt: row.expiresAt,
-    jobPayloadJson: row.jobPayloadJson as Record<string, unknown>,
-    status: row.status,
-  };
+  return toRun(row);
 }
 
 function requireDb() {

@@ -14,6 +14,8 @@ type Props = {
   maxWidthRatio?: number;
   className?: string;
   hidden?: boolean;
+  /** When false, hide the default divider line (handle stays draggable). */
+  showHandleDivider?: boolean;
 };
 
 export function ResizableAside({
@@ -23,6 +25,7 @@ export function ResizableAside({
   maxWidthRatio = 0.75,
   className = "",
   hidden,
+  showHandleDivider = true,
 }: Props) {
   const [width, setWidth] = useState(defaultWidth);
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -67,7 +70,7 @@ export function ResizableAside({
       aria-hidden={hidden}
     >
       <div
-        className="resizable-aside-handle"
+        className={`resizable-aside-handle${showHandleDivider ? "" : " resizable-aside-handle-plain"}`}
         role="separator"
         aria-orientation="vertical"
         aria-valuenow={width}

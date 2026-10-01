@@ -14,6 +14,8 @@ import {
   saveParsedFigure,
 } from "../../infrastructure/attachment/parsed-artifact-storage.js";
 import { hashRunToken } from "../../infrastructure/parse-pipeline/job-builder.js";
+import { resolveParseableFile } from "../../application/document/parse-document-router.js";
+import { recordParsedArtifactsForRun } from "../../application/document/parse-document-router.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import {
   getParseJobRunForAttachmentToken,
@@ -111,19 +113,16 @@ export async function handleParseOriginalFile(
   if (!run) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
-  const attachment = await drizzleChatAttachmentRepository.getById({
-    chatId: run.chatId,
-    attachmentId,
-  });
-  if (!attachment) {
+  const parseable = await resolveParseableFile(run);
+  if (!parseable || parseable.id !== attachmentId) {
     return Response.json({ error: "not found" }, { status: 404 });
   }
-  const bytes = await getAttachmentBytes(run.chatId, attachment.storageKey);
+  const bytes = await getAttachmentBytes(parseable.scopeId, parseable.storageKey);
   if (!bytes?.byteLength) {
     return Response.json({ error: "original not found" }, { status: 404 });
   }
   return new Response(Buffer.from(bytes), {
-    headers: { "content-type": attachment.mediaType },
+    headers: { "content-type": parseable.mediaType },
   });
 }
 
@@ -176,14 +175,14 @@ export async function handleParseArtifactsBatch(
   ];
 
   await saveParsedArtifact(
-    run.chatId,
+    run.scopeId,
     attachmentId,
     "content_md",
     contentData,
     "text/markdown; charset=utf-8",
   );
   await saveParsedArtifact(
-    run.chatId,
+    run.scopeId,
     attachmentId,
     "meta_json",
     metaData,
@@ -193,7 +192,7 @@ export async function handleParseArtifactsBatch(
   if (pageindexJson instanceof File && pageindexJson.size > 0) {
     const pageData = new Uint8Array(await pageindexJson.arrayBuffer());
     await saveParsedArtifact(
-      run.chatId,
+      run.scopeId,
       attachmentId,
       "pageindex_json",
       pageData,
@@ -206,12 +205,9 @@ export async function handleParseArtifactsBatch(
     });
   }
 
-  const updated = await drizzleChatAttachmentRepository.recordParsedArtifactsBatch(
-    attachmentId,
-    { chatId: run.chatId, artifacts },
-  );
-  if (!updated) {
-    return Response.json({ error: "attachment not found" }, { status: 404 });
+  const ok = await recordParsedArtifactsForRun(run, artifacts);
+  if (!ok) {
+    return Response.json({ error: "file not found" }, { status: 404 });
   }
   return Response.json({
     status: "ok",
@@ -264,7 +260,7 @@ export async function handleParseFigurePut(
     return Response.json({ error: "empty body" }, { status: 400 });
   }
   await saveParsedFigure(
-    run.chatId,
+    run.scopeId,
     attachmentId,
     figureId,
     extension,
@@ -293,7 +289,7 @@ export async function handleParseFigureGet(
   const figureId = normalizeFigureId(figureIdParam);
   for (const extension of ["jpeg", "jpg", "png", "webp", "gif"]) {
     const ext = extension === "jpg" ? "jpeg" : extension;
-    const bytes = await loadParsedFigure(run.chatId, attachmentId, figureId, ext);
+    const bytes = await loadParsedFigure(run.scopeId, attachmentId, figureId, ext);
     if (bytes?.byteLength) {
       const mime =
         ext === "png"

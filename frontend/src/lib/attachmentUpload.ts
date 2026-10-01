@@ -26,6 +26,7 @@ export type MentionAttachmentOption = {
   mediaType: string;
   sizeBytes: number;
   createdAt: string | null;
+  source?: "chat" | "workspace";
 };
 
 type UploadTarget = {
@@ -309,33 +310,57 @@ export function isAudioCaptureTranscriptPlaceholder(
 export function mergeMentionAttachmentOptions(
   library: readonly ChatAttachmentPublic[],
   staged: readonly PreparedAttachment[],
+  workspaceSession: readonly Pick<
+    MentionAttachmentOption,
+    "id" | "filename" | "mediaType" | "sizeBytes" | "createdAt"
+  >[] = [],
 ): MentionAttachmentOption[] {
-  const byFilename = new Map<string, MentionAttachmentOption>();
+  const options: MentionAttachmentOption[] = [];
+  const seenChatIds = new Set<string>();
 
   for (const item of library) {
     if (isAudioCaptureTranscriptPlaceholder(item)) continue;
-    byFilename.set(item.filename.toLowerCase(), {
+    if (seenChatIds.has(item.id)) continue;
+    seenChatIds.add(item.id);
+    options.push({
       id: item.id,
       filename: item.filename,
       mediaType: item.mediaType,
       sizeBytes: item.sizeBytes,
       createdAt: item.createdAt,
+      source: "chat",
     });
   }
 
   for (const item of staged) {
-    const key = item.filename.toLowerCase();
-    if (byFilename.has(key)) continue;
-    byFilename.set(key, {
-      id: item.platformId ?? item.id,
+    const id = item.platformId ?? item.id;
+    if (seenChatIds.has(id)) continue;
+    seenChatIds.add(id);
+    options.push({
+      id,
       filename: item.filename,
       mediaType: item.mediaType,
       sizeBytes: item.sizeBytes,
       createdAt: null,
+      source: "chat",
     });
   }
 
-  return [...byFilename.values()].sort((a, b) => {
+  const seenWorkspaceIds = new Set<string>();
+  for (const item of workspaceSession) {
+    if (seenWorkspaceIds.has(item.id)) continue;
+    seenWorkspaceIds.add(item.id);
+    options.push({
+      id: item.id,
+      filename: item.filename,
+      mediaType: item.mediaType,
+      sizeBytes: item.sizeBytes,
+      createdAt: item.createdAt,
+      source: "workspace",
+    });
+  }
+
+  return options.sort((a, b) => {
     const aTime = a.createdAt ? Date.parse(a.createdAt) : Number.MAX_SAFE_INTEGER;
     const bTime = b.createdAt ? Date.parse(b.createdAt) : Number.MAX_SAFE_INTEGER;
     return bTime - aTime;

@@ -78,6 +78,20 @@
       "when": 1789799000000,
       "tag": "0011_chat_title_source",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789800000000,
+      "tag": "0012_workspace_parse_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789800100000,
+      "tag": "0013_parse_job_runs_attachment_fk",
+      "breakpoints": true
     }
   ]
 }

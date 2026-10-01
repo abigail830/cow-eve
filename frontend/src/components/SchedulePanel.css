@@ -107,7 +107,7 @@
 
 .schedule-panel-form input:focus,
 .schedule-panel-form textarea:focus {
-  outline: 2px solid color-mix(in srgb, #f27a2a 35%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-color: #f5c49a;
 }
 

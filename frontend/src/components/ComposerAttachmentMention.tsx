@@ -12,7 +12,7 @@ type Props = {
   options: readonly MentionAttachmentOption[];
   loading?: boolean;
   onQueryChange: (query: string) => void;
-  onSelect: (filename: string) => void;
+  onSelect: (option: MentionAttachmentOption) => void;
   onKeyDown?: (event: React.KeyboardEvent) => boolean;
   onSelectedIndexChange: (index: number) => void;
 };
@@ -83,7 +83,7 @@ export function ComposerAttachmentMention({
         ) : (
           filtered.map((item, index) => (
             <button
-              key={item.id}
+              key={`${item.source ?? "chat"}-${item.id}`}
               type="button"
               role="option"
               aria-selected={index === selectedIndex}
@@ -95,7 +95,7 @@ export function ComposerAttachmentMention({
               }
               onMouseDown={(e) => {
                 e.preventDefault();
-                onSelect(item.filename);
+                onSelect(item);
               }}
               onMouseEnter={() => onSelectedIndexChange(index)}
             >
@@ -105,6 +105,7 @@ export function ComposerAttachmentMention({
               <span className="composer-mention-line">
                 <span className="composer-mention-name">{item.filename}</span>
                 <span className="composer-mention-meta">
+                  {item.source === "workspace" ? "Workspace · " : null}
                   {formatBytes(item.sizeBytes)} ·{" "}
                   {formatMentionTimestamp(item.createdAt)}
                 </span>

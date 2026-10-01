@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { ChatAttachment } from "../../domain/attachment/chat-attachment.entity.js";
+import type { ParseableFile } from "../../domain/document/parseable-file.js";
 import {
   getParsePipelinePublicBaseUrl,
   getParsePipelineWebhookPath,
@@ -27,7 +28,7 @@ export function runExpiresAt(): Date {
 }
 
 export function buildJobPayload(
-  row: ChatAttachment,
+  row: ParseableFile,
   input: {
     pipelineId: string;
     jobId: string;
@@ -52,7 +53,7 @@ export function buildJobPayload(
   });
   const webhookUrl = `${publicBase.replace(/\/+$/, "")}${getParsePipelineWebhookPath()}`;
   const idempotencyKey = row.contentHash
-    ? `sha256:${row.chatId}:${row.id}:${row.contentHash}`
+    ? `sha256:${row.scopeId}:${row.id}:${row.contentHash}`
     : null;
 
   const payload: Record<string, unknown> = {
@@ -62,9 +63,9 @@ export function buildJobPayload(
     pipeline_id: input.pipelineId,
     storage,
     source: {
-      source_type: "chat_attachment",
+      source_type: row.sourceKind,
       source_id: row.id,
-      tenant_id: row.chatId,
+      tenant_id: row.scopeId,
       filename: row.filename,
       mime_type: row.mediaType,
       size_bytes: row.sizeBytes,

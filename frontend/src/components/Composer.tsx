@@ -8,7 +8,7 @@ import {
   type DragEvent,
   type FormEvent,
 } from "react";
-import { ArrowUp, Paperclip, Square } from "lucide-react";
+import { ArrowUp, FolderInput, Paperclip, Square } from "lucide-react";
 import { prepareAttachmentsFromFiles } from "../lib/attachmentCompress";
 import {
   ATTACHMENT_ACCEPT,
@@ -21,7 +21,11 @@ import {
   insertMentionFilename,
   type MentionState,
 } from "../lib/attachmentMention";
-import { parseAttachmentMentionIds } from "../lib/attachmentMentions";
+import {
+  mergeExplicitMentionIds,
+  parseDocumentMentionIds,
+} from "../lib/documentMentions";
+import type { MentionAttachmentOption } from "../lib/attachmentUpload";
 import {
   ATTACHMENT_PARSE_POLL_MS,
   attachmentNeedsParsePoll,
@@ -38,8 +42,12 @@ import {
   type ChatAttachmentPublic,
 } from "../lib/attachmentUpload";
 import { useComposerAudioDraft } from "./ComposerAudioSection";
+import type { WorkspaceFilePublic } from "../lib/workspace";
+import { workspaceFileAsAttachmentRow } from "../lib/workspaceParse";
 import { ComposerAttachmentMention } from "./ComposerAttachmentMention";
 import { ComposerStagedChips } from "./ComposerStagedChips";
+import { ComposerWorkspaceChips } from "./ComposerWorkspaceChips";
+import { ComposerWorkspaceImportModal } from "./ComposerWorkspaceImportModal";
 import "./Composer.css";
 
 export type ComposerSendPayload = {
@@ -47,6 +55,8 @@ export type ComposerSendPayload = {
   attachments: readonly PreparedAttachment[];
   /** Platform attachment ids referenced this turn (staged + @mentions). */
   attachmentIds: readonly string[];
+  /** Workspace file ids referenced this turn (import chips). */
+  workspaceFileIds: readonly string[];
 };
 
 type Props = {
@@ -70,6 +80,8 @@ type Props = {
   onAudioCaptureActivity?: () => void;
   onCaptureChatLinked?: (chatId: string) => void;
   onCaptureStarted?: (capture: import("../lib/audioCapture").AudioCapturePublic) => void;
+  /** Workspace files referenced earlier in this chat (for @ mentions). */
+  sessionWorkspaceFiles?: readonly WorkspaceFilePublic[];
   onSend: (payload: ComposerSendPayload) => void | Promise<void>;
   onStop: () => void;
 };
@@ -112,10 +124,15 @@ export function Composer({
   onAudioCaptureActivity,
   onCaptureChatLinked,
   onCaptureStarted,
+  sessionWorkspaceFiles = [],
   onSend,
   onStop,
 }: Props) {
   const [text, setText] = useState("");
+  const [workspaceImports, setWorkspaceImports] = useState<
+    WorkspaceFilePublic[]
+  >([]);
+  const [workspaceImportOpen, setWorkspaceImportOpen] = useState(false);
   const [attachments, setAttachments] = useState<PreparedAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [preparingAttachments, setPreparingAttachments] = useState(false);
@@ -136,6 +153,7 @@ export function Composer({
   const isComposingRef = useRef(false);
   const attachmentsRef = useRef(attachments);
   attachmentsRef.current = attachments;
+  const explicitMentionPicksRef = useRef<MentionAttachmentOption[]>([]);
 
   const effectiveChatId =
     chatId ?? attachments.find((item) => item.platformChatId)?.platformChatId ?? null;
@@ -162,9 +180,26 @@ export function Composer({
   const canUpload =
     persistAttachments && !disabled && !resuming && (chatId || eveSessionId);
 
+  const workspaceMentionSource = useMemo(
+    () =>
+      [...sessionWorkspaceFiles, ...workspaceImports].map((file) => ({
+        id: file.id,
+        filename: file.filename,
+        mediaType: file.mediaType,
+        sizeBytes: file.sizeBytes,
+        createdAt: file.createdAt,
+      })),
+    [sessionWorkspaceFiles, workspaceImports],
+  );
+
   const mentionOptions = useMemo(
-    () => mergeMentionAttachmentOptions(libraryAttachments, attachments),
-    [attachments, libraryAttachments],
+    () =>
+      mergeMentionAttachmentOptions(
+        libraryAttachments,
+        attachments,
+        workspaceMentionSource,
+      ),
+    [attachments, libraryAttachments, workspaceMentionSource],
   );
 
   const filteredMentionOptions = useMemo(
@@ -275,10 +310,19 @@ export function Composer({
     if (!persistAttachments) return false;
     if (waitingForUploadSession) return true;
 
-    const mentionIds = parseAttachmentMentionIds(text, libraryAttachments);
-    for (const id of mentionIds) {
+    const mentionSplit = parseDocumentMentionIds(text, mentionOptions);
+    for (const id of mentionSplit.attachmentIds) {
       const row = libraryById.get(id);
       if (!row || !isAttachmentReadyForSend(row)) return true;
+    }
+    for (const id of mentionSplit.workspaceFileIds) {
+      const file = [...sessionWorkspaceFiles, ...workspaceImports].find(
+        (row) => row.id === id,
+      );
+      if (!file) return true;
+      if (!isAttachmentReadyForSend(workspaceFileAsAttachmentRow(file))) {
+        return true;
+      }
     }
 
     if (attachments.length === 0) return false;
@@ -304,8 +348,11 @@ export function Composer({
     libraryAttachments,
     libraryById,
     persistAttachments,
+    mentionOptions,
+    sessionWorkspaceFiles,
     text,
     waitingForUploadSession,
+    workspaceImports,
   ]);
 
   useEffect(() => {
@@ -341,15 +388,19 @@ export function Composer({
   }, [effectiveChatId, eveSessionId, shouldPollParse]);
 
   const selectMention = useCallback(
-    (filename: string) => {
+    (option: MentionAttachmentOption) => {
       const el = textareaRef.current;
       if (!el || !mention) return;
+      explicitMentionPicksRef.current = [
+        ...explicitMentionPicksRef.current.filter((p) => p.id !== option.id),
+        option,
+      ];
       const cursor = el.selectionStart ?? text.length;
       const { nextText, nextCursor } = insertMentionFilename(
         text,
         mention,
         cursor,
-        filename,
+        option.filename,
       );
       setText(nextText);
       setMention(null);
@@ -512,8 +563,18 @@ export function Composer({
     const stagedIds = attachments
       .map((item) => item.platformId)
       .filter((id): id is string => Boolean(id));
-    const mentionIds = parseAttachmentMentionIds(value, libraryAttachments);
-    const attachmentIds = mergeAttachmentIdsForSend(stagedIds, mentionIds);
+    const mentionSplit = mergeExplicitMentionIds(
+      parseDocumentMentionIds(value, mentionOptions),
+      explicitMentionPicksRef.current,
+    );
+    const attachmentIds = mergeAttachmentIdsForSend(
+      stagedIds,
+      mentionSplit.attachmentIds,
+    );
+    const importIds = workspaceImports.map((f) => f.id);
+    const workspaceFileIds = [
+      ...new Set([...importIds, ...mentionSplit.workspaceFileIds]),
+    ];
 
     if (attachmentIds.length > ATTACHMENT_LIMITS.maxFilesPerMessage) {
       setAttachmentError(
@@ -539,6 +600,26 @@ export function Composer({
       }
     }
 
+    for (const fileId of workspaceFileIds) {
+      const file = [...sessionWorkspaceFiles, ...workspaceImports].find(
+        (row) => row.id === fileId,
+      );
+      if (!file) {
+        setAttachmentError("Referenced workspace file was not found.");
+        return;
+      }
+      const row = workspaceFileAsAttachmentRow(file);
+      if (!isAttachmentReadyForSend(row)) {
+        const inProgress = attachmentParseInProgress(row);
+        setAttachmentError(
+          inProgress
+            ? `${file.filename} is still parsing. Wait before sending.`
+            : `${file.filename} could not be parsed. Remove it before sending.`,
+        );
+        return;
+      }
+    }
+
     const docsAwaitingUpload = attachments.filter(
       (item) => !isImageMime(item.mediaType) && !item.platformId,
     );
@@ -549,9 +630,16 @@ export function Composer({
       return;
     }
 
-    await onSend({ text: value, attachments, attachmentIds });
+    await onSend({
+      text: value,
+      attachments,
+      attachmentIds,
+      workspaceFileIds,
+    });
     setText("");
     setAttachments([]);
+    setWorkspaceImports([]);
+    explicitMentionPicksRef.current = [];
     setAttachmentError(null);
     setMention(null);
   }
@@ -650,7 +738,7 @@ export function Composer({
         const picked =
           filteredMentionOptions[mention.selectedIndex] ??
           filteredMentionOptions[0];
-        if (picked) selectMention(picked.filename);
+        if (picked) selectMention(picked);
         return true;
       }
       return false;
@@ -678,7 +766,8 @@ export function Composer({
 
   const hasDraft = text.trim().length > 0;
   const hasSendable =
-    (hasDraft || attachments.length > 0) && !sendBlockedByParse;
+    (hasDraft || attachments.length > 0 || workspaceImports.length > 0) &&
+    !sendBlockedByParse;
   const showStop = busy && !hasDraft && attachments.length === 0 && !resuming;
   const inputLocked = disabled || resuming || preparingAttachments;
   const attachNeedsSession =
@@ -727,6 +816,25 @@ export function Composer({
           canUpload={Boolean(canUpload)}
           onRemove={removeAttachment}
           onChipClick={(row) => setParseDrawerAttachment(row)}
+        />
+        <ComposerWorkspaceChips
+          files={workspaceImports}
+          onRemove={(id) =>
+            setWorkspaceImports((prev) => prev.filter((f) => f.id !== id))
+          }
+        />
+        <ComposerWorkspaceImportModal
+          open={workspaceImportOpen}
+          onClose={() => setWorkspaceImportOpen(false)}
+          alreadyImportedIds={new Set(workspaceImports.map((f) => f.id))}
+          onImport={(picked) => {
+            setWorkspaceImports((prev) => {
+              const byId = new Map(prev.map((f) => [f.id, f]));
+              for (const file of picked) byId.set(file.id, file);
+              return [...byId.values()];
+            });
+            setAttachmentError(null);
+          }}
         />
         {attachmentError ? (
           <p className="composer-attachment-error" role="alert">
@@ -793,6 +901,16 @@ export function Composer({
               onClick={() => fileInputRef.current?.click()}
             >
               <Paperclip size={18} strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              className="composer-icon-btn"
+              title="Import from Workspace"
+              aria-label="Import from Workspace"
+              disabled={inputLocked}
+              onClick={() => setWorkspaceImportOpen(true)}
+            >
+              <FolderInput size={18} strokeWidth={2} />
             </button>
           </div>
           <div className="composer-right">

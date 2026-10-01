@@ -1,0 +1,50 @@
+.composer-workspace-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 8px;
+}
+
+.composer-workspace-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #eef4ff;
+  border: 1px solid #c5d8ff;
+  font-size: 0.75rem;
+}
+
+.composer-workspace-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+.composer-workspace-chip-source {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #fff;
+  color: #446;
+  font-weight: 500;
+}
+
+.composer-workspace-chip-status {
+  color: #666;
+}
+
+.composer-workspace-chip-remove {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #666;
+}
+
+.composer-workspace-chip-remove:hover {
+  color: #111;
+}

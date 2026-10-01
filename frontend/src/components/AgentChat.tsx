@@ -54,7 +54,15 @@ import {
   type PendingSendAttachmentHint,
   type UserMessageAttachmentHint,
 } from "../lib/sentMessageAttachments";
-import { userVisibleTextFromParts } from "../lib/userMessageAttachments";
+import {
+  collapseUserClientContextMessages,
+  userVisibleTextFromParts,
+  workspaceFileIdsFromMessageParts,
+} from "../lib/userMessageAttachments";
+import {
+  lookupWorkspaceFiles,
+  type WorkspaceFilePublic,
+} from "../lib/workspace";
 import { AttachmentParseDrawer } from "./AttachmentParseDrawer";
 import { Composer, type ComposerSendPayload } from "./Composer";
 import { IconButton } from "./IconButton";
@@ -76,20 +84,10 @@ type Props = {
   onStreamingChange?: (streaming: boolean) => void;
 };
 
-function AgentChatLoading({ agent }: { agent: AgentInfo }) {
+function AgentChatLoading(_: { agent: AgentInfo }) {
   return (
     <div className="agent-chat">
       <div className="chat-main-column">
-        <header className="chat-header">
-          <div className="chat-header-left">
-            <span className="chat-header-avatar">
-              <img src={agent.avatar} alt="" />
-            </span>
-            <div className="chat-header-meta">
-              <h2>{agent.displayName}</h2>
-            </div>
-          </div>
-        </header>
         <div className="chat-body">
           <div className="chat-content-column">
             <div className="chat-loading" role="status" aria-live="polite">
@@ -428,6 +426,50 @@ function AgentChatSession({
     },
   });
 
+  const sessionWorkspaceFileIds = useMemo(() => {
+    const display = collapseUserClientContextMessages(data.messages);
+    const ids = new Set<string>();
+    for (const row of display) {
+      for (const id of workspaceFileIdsFromMessageParts(row.message.parts)) {
+        ids.add(id);
+      }
+      for (const id of row.extraWorkspaceFileIds) {
+        ids.add(id);
+      }
+    }
+    return [...ids].sort();
+  }, [data.messages]);
+
+  const sessionWorkspaceIdsKey = sessionWorkspaceFileIds.join("\0");
+
+  const [sessionWorkspaceFiles, setSessionWorkspaceFiles] = useState<
+    WorkspaceFilePublic[]
+  >([]);
+
+  const sessionWorkspaceFilesById = useMemo(() => {
+    const map = new Map<string, WorkspaceFilePublic>();
+    for (const file of sessionWorkspaceFiles) map.set(file.id, file);
+    return map;
+  }, [sessionWorkspaceFiles]);
+
+  useEffect(() => {
+    if (sessionWorkspaceFileIds.length === 0) {
+      setSessionWorkspaceFiles([]);
+      return;
+    }
+    let cancelled = false;
+    void lookupWorkspaceFiles(sessionWorkspaceFileIds)
+      .then((files) => {
+        if (!cancelled) setSessionWorkspaceFiles(files);
+      })
+      .catch(() => {
+        if (!cancelled) setSessionWorkspaceFiles([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionWorkspaceIdsKey]);
+
   // Eve status contract (frontend overview + scaffold agent-chat):
   // - submitted | streaming → active turn: Stop calls cancel(); draft send uses steer
   // - resuming → catch-up only: no Stop, no send
@@ -696,10 +738,16 @@ function AgentChatSession({
           .filter((id): id is string => Boolean(id)),
         payload.attachmentIds ?? [],
       );
+      const workspaceFileIds = payload.workspaceFileIds ?? [];
       const sendOptions = {
         ...(isBusy ? { turnPolicy: "steer" as const } : {}),
-        ...(attachmentIds.length > 0
-          ? { clientContext: { attachmentIds } }
+        ...(attachmentIds.length > 0 || workspaceFileIds.length > 0
+          ? {
+              clientContext: {
+                ...(attachmentIds.length > 0 ? { attachmentIds } : {}),
+                ...(workspaceFileIds.length > 0 ? { workspaceFileIds } : {}),
+              },
+            }
           : {}),
       };
       const libraryBackup =
@@ -790,15 +838,7 @@ function AgentChatSession({
   return (
     <div className="agent-chat">
       <div className="chat-main-column">
-        <header className="chat-header">
-          <div className="chat-header-left">
-            <span className="chat-header-avatar">
-              <img src={agent.avatar} alt="" />
-            </span>
-            <div className="chat-header-meta">
-              <h2>{agent.displayName}</h2>
-            </div>
-          </div>
+        <header className="chat-header chat-header--toolbar">
           <div className="chat-header-actions">
             <IconButton
               bare
@@ -907,6 +947,7 @@ function AgentChatSession({
                     retryCapture(cid, captureId)
                   }
                   onOpenAttachmentPipeline={setParseDrawerAttachment}
+                  workspaceFilesById={sessionWorkspaceFilesById}
                 />
                 {cancelling && isBusy ? (
                   <p className="chat-status" role="status">
@@ -946,6 +987,7 @@ function AgentChatSession({
             onAudioCaptureActivity={() => {
               setAudioCaptureRefreshKey((k) => k + 1);
             }}
+            sessionWorkspaceFiles={sessionWorkspaceFiles}
             onSend={handleSend}
             onStop={requestCancellation}
           />
@@ -964,6 +1006,7 @@ function AgentChatSession({
         <ResizableAside
           defaultWidth={520}
           hidden={!previewArtifact}
+          showHandleDivider={false}
         >
           <ArtifactPreviewPanel
             spec={lastPreviewArtifactRef.current}
@@ -977,7 +1020,7 @@ function AgentChatSession({
       ) : null}
 
       {historyOpen ? (
-        <ResizableAside defaultWidth={320}>
+        <ResizableAside defaultWidth={320} showHandleDivider={false}>
         <aside className="chat-history-panel">
           <div className="chat-history-panel-header">
             <h3>Chat History ({chats.length})</h3>
@@ -1075,7 +1118,7 @@ function AgentChatSession({
       ) : null}
 
       {!previewArtifact && memoryOpen ? (
-        <ResizableAside defaultWidth={360}>
+        <ResizableAside defaultWidth={360} showHandleDivider={false}>
           <MemoryPanel
             agentName={agent.displayName}
             memory={memory}

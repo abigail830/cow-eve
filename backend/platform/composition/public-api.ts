@@ -117,6 +117,45 @@ export {
   DocRetrievalError,
   type ChatAttachmentIndexEntry,
 } from "../application/doc-retrieval/chat-library";
+export {
+  assertDocumentLibraryAccess,
+  buildSessionDocumentLibrary,
+  findSessionDocuments,
+  loadDocumentContentMd,
+  loadDocumentMeta,
+  type DocumentIndexEntry,
+} from "../application/doc-retrieval/session-document-library";
+export {
+  listSessionDocumentsForAgent,
+  type SessionDocumentListItem,
+} from "../application/doc-retrieval/session-document-list.use-case";
+export {
+  listWorkspaceFoldersForUser,
+  createWorkspaceFolderForUser,
+  renameWorkspaceFolderForUser,
+  deleteWorkspaceFolderForUser,
+} from "../application/workspace/workspace-folder.use-case";
+export {
+  listWorkspaceFilesForDocumentIndex,
+} from "../application/workspace/workspace-file-index.use-case";
+export {
+  listWorkspaceFilesForUser,
+  listWorkspaceFilesByIdsForUser,
+  uploadWorkspaceFileForUser,
+  deleteWorkspaceFileForUser,
+  getWorkspaceFilePreviewForUser,
+  getWorkspaceFilePreviewBundleForUser,
+  getWorkspaceFileFigureForUser,
+  getWorkspaceFileDownloadForUser,
+  type WorkspaceFilePublic,
+  type WorkspaceFilePreviewBundle,
+} from "../application/workspace/workspace-file.use-case";
+export { loadDocumentPreviewArtifacts } from "../application/doc-retrieval/document-preview-artifacts.js";
+export type { DocumentPreviewArtifacts } from "../application/doc-retrieval/document-preview-artifacts.js";
+export {
+  hydrateParsedMarkdownForPreview,
+  rewriteParsedMarkdownFigureRefs,
+} from "../application/doc-retrieval/parsed-markdown-figures.js";
 export { grepContent } from "../application/doc-retrieval/grep";
 export { readContentSlice } from "../application/doc-retrieval/read-slice";
 export { readFigurePayload } from "../application/doc-retrieval/read-figure";

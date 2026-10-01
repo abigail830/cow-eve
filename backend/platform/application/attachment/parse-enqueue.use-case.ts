@@ -4,6 +4,14 @@ import {
   type AttachmentKind,
 } from "../../domain/attachment/attachment-kinds.js";
 import type { ChatAttachment } from "../../domain/attachment/chat-attachment.entity.js";
+import {
+  parseableFromChatAttachment,
+  type ParseableFile,
+} from "../../domain/document/parseable-file.js";
+import type { WorkspaceFile } from "../../domain/workspace/workspace-file.entity.js";
+import {
+  parseableFromWorkspaceFile,
+} from "../../domain/document/parseable-file.js";
 import { ParseStatus } from "../../domain/parse/parse-status.js";
 import { getParsePipelineDispatchMode } from "../../infrastructure/config/parse-pipeline.config.js";
 import { dispatchParseGha } from "../../infrastructure/parse-pipeline/dispatch-gha.js";
@@ -18,6 +26,7 @@ import {
   runExpiresAt,
 } from "../../infrastructure/parse-pipeline/job-builder.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
+import { drizzleWorkspaceRepository } from "../../infrastructure/persistence/workspace/drizzle-workspace.repository.js";
 import { createParseJobRun } from "../../infrastructure/persistence/parse/drizzle-parse-job.repository.js";
 
 export function sha256Bytes(bytes: Uint8Array): string {
@@ -45,13 +54,43 @@ export async function finalizeAttachmentParse(
   ) {
     if (row.parsePipelineId === resolution.pipelineId) return row;
   }
-  return enqueueParseJob(row, resolution.pipelineId);
+  await enqueueParseJob(parseableFromChatAttachment(row), resolution.pipelineId);
+  const running = await drizzleChatAttachmentRepository.getByIdOnly(row.id);
+  return running ?? row;
+}
+
+export async function finalizeWorkspaceFileParse(
+  row: WorkspaceFile,
+  kind: AttachmentKind,
+): Promise<WorkspaceFile> {
+  const resolution = resolvePipeline(kind);
+  if (resolution.action === "skip") {
+    const updated = await drizzleWorkspaceRepository.markParseReady(row.id, {
+      skipped: true,
+    });
+    return updated ?? row;
+  }
+  if (resolution.action === "reject") {
+    throw new Error(`Unsupported file type for parse: ${row.mediaType}`);
+  }
+  if (
+    row.parseStatus === ParseStatus.READY ||
+    row.parseStatus === ParseStatus.SKIPPED
+  ) {
+    if (row.parsePipelineId === resolution.pipelineId) return row;
+  }
+  await enqueueParseJob(
+    parseableFromWorkspaceFile(row, row.userId),
+    resolution.pipelineId,
+  );
+  const running = await drizzleWorkspaceRepository.getFileByIdOnly(row.id);
+  return running ?? row;
 }
 
 export async function enqueueParseJob(
-  row: ChatAttachment,
+  row: ParseableFile,
   pipelineId: string,
-): Promise<ChatAttachment> {
+): Promise<void> {
   const jobId = newJobId();
   const webhookSecret = newWebhookSecret();
   const { payload, runToken } = buildJobPayload(row, {
@@ -60,30 +99,52 @@ export async function enqueueParseJob(
     webhookSecret,
   });
 
-  await createParseJobRun({
-    jobId,
-    attachmentId: row.id,
-    chatId: row.chatId,
-    runTokenHash: hashRunToken(runToken),
-    webhookSecret,
-    expiresAt: runExpiresAt(),
-    jobPayloadJson: payload,
-  });
+  try {
+    await createParseJobRun({
+      jobId,
+      attachmentId: row.id,
+      sourceKind: row.sourceKind,
+      scopeId: row.scopeId,
+      chatId: row.chatId,
+      runTokenHash: hashRunToken(runToken),
+      webhookSecret,
+      expiresAt: runExpiresAt(),
+      jobPayloadJson: payload,
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Failed to create parse job run";
+    const fail = {
+      status: ParseStatus.FAILED,
+      errorCode: "PARSE_JOB_PERSIST_FAILED",
+      errorMessage: message,
+    };
+    if (row.sourceKind === "workspace_file") {
+      await drizzleWorkspaceRepository.applyParseWebhook(row.id, fail);
+    } else {
+      await drizzleChatAttachmentRepository.applyParseWebhook(row.id, fail);
+    }
+    return;
+  }
 
-  const updated = await drizzleChatAttachmentRepository.markParsePending(row.id, {
-    pipelineId,
-    jobId,
-  });
-  if (!updated) throw new Error("Failed to mark attachment parse pending");
+  if (row.sourceKind === "workspace_file") {
+    const updated = await drizzleWorkspaceRepository.markParsePending(row.id, {
+      pipelineId,
+      jobId,
+    });
+    if (!updated) throw new Error("Failed to mark workspace file parse pending");
+  } else {
+    const updated = await drizzleChatAttachmentRepository.markParsePending(row.id, {
+      pipelineId,
+      jobId,
+    });
+    if (!updated) throw new Error("Failed to mark attachment parse pending");
+  }
 
   const mode = getParsePipelineDispatchMode();
   try {
     if (mode === "gha") {
-      await dispatchParseGha({
-        jobId,
-        runToken,
-        pipelineId,
-      });
+      await dispatchParseGha({ jobId, runToken, pipelineId });
       scheduleGhaRunWatch(jobId);
     } else if (mode === "inline") {
       throw new Error("PARSE_PIPELINE_DISPATCH=inline is deprecated; use service");
@@ -91,28 +152,35 @@ export async function enqueueParseJob(
       await dispatchParseService(payload);
     }
   } catch (err) {
-    await drizzleChatAttachmentRepository.applyParseWebhook(row.id, {
+    const fail = {
       status: ParseStatus.FAILED,
       errorCode: "DISPATCH_FAILED",
       errorMessage: err instanceof Error ? err.message : "Parse dispatch failed",
-    });
+    };
+    if (row.sourceKind === "workspace_file") {
+      await drizzleWorkspaceRepository.applyParseWebhook(row.id, fail);
+    } else {
+      await drizzleChatAttachmentRepository.applyParseWebhook(row.id, fail);
+    }
     await import("../../infrastructure/persistence/parse/drizzle-parse-job.repository.js").then(
       ({ updateParseJobRunStatus }) => updateParseJobRunStatus(jobId, "failed"),
     );
-    throw err;
+    // Non-fatal: callers (e.g. workspace upload) must still return success after bytes are stored.
   }
 
-  await drizzleChatAttachmentRepository.applyParseWebhook(row.id, {
+  const runningUpdate = {
     status: ParseStatus.RUNNING,
     stageSnapshot: {
       current_stage: "fetch",
       message: "Parse service accepted job — waiting for worker…",
       stages: [],
     },
-  });
-
-  const running = await drizzleChatAttachmentRepository.getByIdOnly(row.id);
-  return running ?? updated;
+  };
+  if (row.sourceKind === "workspace_file") {
+    await drizzleWorkspaceRepository.applyParseWebhook(row.id, runningUpdate);
+  } else {
+    await drizzleChatAttachmentRepository.applyParseWebhook(row.id, runningUpdate);
+  }
 }
 
 export async function retryAttachmentParse(

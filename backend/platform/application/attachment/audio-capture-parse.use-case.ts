@@ -39,6 +39,8 @@ export async function enqueueAudioCaptureParseJob(input: {
   await createParseJobRun({
     jobId,
     attachmentId: input.outputRow.id,
+    sourceKind: "chat_attachment",
+    scopeId: input.outputRow.chatId,
     chatId: input.outputRow.chatId,
     runTokenHash: hashRunToken(runToken),
     webhookSecret,

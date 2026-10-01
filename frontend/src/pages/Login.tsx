@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import { PlatformAmbient } from "../components/PlatformAmbient";
 import { useAuth } from "../lib/auth";
 import "./Login.css";
 
@@ -28,9 +29,10 @@ export function LoginPage() {
   }
 
   return (
-    <div className="login-page">
+    <div className="login-page platform-shell">
+      <PlatformAmbient />
       <form className="login-card" onSubmit={onSubmit}>
-        <img className="login-logo" src="/agents/bodha-brand.png" alt="FDE Desk" />
+        <img className="login-logo" src="/cow.png" alt="" />
         <h1>FDE DESK</h1>
         <p className="login-sub">Sign in with your email and password</p>
 

@@ -215,8 +215,54 @@ export function parseSendAttachmentIdsFromMessages(
       if (!chunk.startsWith(CLIENT_CONTEXT_PREFIX)) continue;
       const jsonPart = chunk.slice(CLIENT_CONTEXT_PREFIX.length).trim();
       try {
-        const payload = JSON.parse(jsonPart) as { attachmentIds?: unknown };
+        const payload = JSON.parse(jsonPart) as {
+          attachmentIds?: unknown;
+          workspaceFileIds?: unknown;
+        };
         const raw = payload.attachmentIds;
+        if (!Array.isArray(raw)) continue;
+        for (const item of raw) {
+          const id = String(item ?? "").trim();
+          if (!id || seen.has(id)) continue;
+          seen.add(id);
+          ids.push(id);
+        }
+      } catch {
+        // ignore malformed client context
+      }
+    }
+  }
+  return ids;
+}
+
+/** Workspace file ids referenced in Client context across the thread. */
+export function parseWorkspaceFileIdsFromMessages(
+  messages: readonly unknown[],
+): string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+
+  for (const message of messages) {
+    if (!message || typeof message !== "object") continue;
+    const record = message as Record<string, unknown>;
+    const chunks: string[] = [];
+    if (typeof record.content === "string") {
+      chunks.push(record.content);
+    } else if (Array.isArray(record.content)) {
+      for (const part of record.content) {
+        if (!part || typeof part !== "object") continue;
+        const piece = part as Record<string, unknown>;
+        if (piece.type === "text" && typeof piece.text === "string") {
+          chunks.push(piece.text);
+        }
+      }
+    }
+    for (const chunk of chunks) {
+      if (!chunk.startsWith(CLIENT_CONTEXT_PREFIX)) continue;
+      const jsonPart = chunk.slice(CLIENT_CONTEXT_PREFIX.length).trim();
+      try {
+        const payload = JSON.parse(jsonPart) as { workspaceFileIds?: unknown };
+        const raw = payload.workspaceFileIds;
         if (!Array.isArray(raw)) continue;
         for (const item of raw) {
           const id = String(item ?? "").trim();

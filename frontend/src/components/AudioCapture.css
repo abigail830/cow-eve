@@ -23,7 +23,7 @@
 
 .composer-audio-toolbar-btn:not(:disabled):hover {
   background: #fff0e6;
-  border-color: #f27a2a;
+  border-color: var(--accent);
 }
 
 .audio-capture-card {
@@ -114,8 +114,8 @@
 }
 
 .audio-capture-actions button.primary {
-  background: #f27a2a;
-  border-color: #f27a2a;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 

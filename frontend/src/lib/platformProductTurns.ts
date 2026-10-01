@@ -98,6 +98,7 @@ export type TimelineMessageRow = {
   type: "message";
   message: EveMessage;
   extraAttachmentIds: string[];
+  extraWorkspaceFileIds: string[];
 };
 
 export type TimelinePlatformAudioRow = {
@@ -228,7 +229,11 @@ function sortKeyForMessageSlot(
 
 /** Interleave Eve messages with platform product turns using stream event order. */
 export function buildChatTimeline(input: {
-  displayMessages: Array<{ message: EveMessage; extraAttachmentIds: string[] }>;
+  displayMessages: Array<{
+    message: EveMessage;
+    extraAttachmentIds: string[];
+    extraWorkspaceFileIds: string[];
+  }>;
   events: readonly MessageStreamEvent[] | undefined;
 }): ChatTimelineRow[] {
   const { displayMessages, events } = input;
@@ -243,6 +248,7 @@ export function buildChatTimeline(input: {
       type: "message",
       message: row.message,
       extraAttachmentIds: row.extraAttachmentIds,
+      extraWorkspaceFileIds: row.extraWorkspaceFileIds,
     }));
   }
 
@@ -289,6 +295,7 @@ export function buildChatTimeline(input: {
         type: "message",
         message: nextMessage.row.message,
         extraAttachmentIds: nextMessage.row.extraAttachmentIds,
+        extraWorkspaceFileIds: nextMessage.row.extraWorkspaceFileIds,
       });
       m += 1;
     } else {

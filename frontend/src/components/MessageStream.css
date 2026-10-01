@@ -189,6 +189,20 @@
   max-width: 100%;
 }
 
+.msg-user-attachment-source {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eef4ff;
+  color: #334;
+}
+
+.msg-user-attachment-stale {
+  font-size: 0.6875rem;
+  color: #c0392b;
+}
+
 .msg-user-attachment-name {
   overflow: hidden;
   text-overflow: ellipsis;
