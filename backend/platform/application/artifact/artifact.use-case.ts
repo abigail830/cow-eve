@@ -6,11 +6,8 @@ import {
   loadChatArtifactPayload,
   loadSlidePreviewPayload,
 } from "../../infrastructure/artifact/local-artifact.store.js";
-import {
-  getArtifactMeta,
-  listArtifactMetasForChat,
-} from "../../infrastructure/artifact/artifact-storage.js";
 import { drizzleChatRepository } from "../../infrastructure/persistence/chat/drizzle-chat.repository.js";
+import { drizzleChatArtifactRepository } from "../../infrastructure/persistence/artifact/drizzle-chat-artifact.repository.js";
 
 export type AgentArtifactListItem = {
   chatId: string;
@@ -45,6 +42,18 @@ export async function publishSandboxArtifact(input: {
       fileBytes: input.fileBytes,
       title: input.title,
     });
+
+    await drizzleChatArtifactRepository.insert({
+      chatId: chat.id,
+      artifactId: spec.artifact_id,
+      userId: chat.userId,
+      agentId: chat.agentId,
+      filename: spec.filename,
+      title: spec.title,
+      kind: spec.kind,
+      format: spec.format,
+    });
+
     return { spec };
   } catch (err) {
     return {
@@ -72,43 +81,26 @@ export async function getArtifactDownloadForUser(input: {
   });
 }
 
+/** Agent artifact sidebar: `chat_artifacts` only (no blob directory scan). */
 export async function listAgentArtifactsForUser(input: {
   userId: string;
   agentId: string;
 }): Promise<AgentArtifactListItem[]> {
-  const chats = await drizzleChatRepository.listChats({
+  const rows = await drizzleChatArtifactRepository.listForAgent({
     userId: input.userId,
     agentId: input.agentId,
   });
-  const items: AgentArtifactListItem[] = [];
 
-  for (const chat of chats) {
-    const metas = await listArtifactMetasForChat(chat.id);
-    for (const entry of metas) {
-      const raw = await getArtifactMeta(chat.id, entry.artifactId);
-      const filename =
-        typeof raw?.filename === "string" ? raw.filename : entry.artifactId;
-      const kind = typeof raw?.kind === "string" ? raw.kind : "content_document";
-      const format = typeof raw?.format === "string" ? raw.format : "markdown";
-      items.push({
-        chatId: chat.id,
-        chatTitle: chat.title ?? null,
-        artifactId: entry.artifactId,
-        filename,
-        title: filename,
-        kind,
-        format,
-        updatedAt: entry.updatedAt,
-      });
-    }
-  }
-
-  items.sort((a, b) => {
-    const ta = a.updatedAt ? Date.parse(a.updatedAt) : 0;
-    const tb = b.updatedAt ? Date.parse(b.updatedAt) : 0;
-    return tb - ta;
-  });
-  return items;
+  return rows.map((row) => ({
+    chatId: row.chatId,
+    chatTitle: row.chatTitle ?? null,
+    artifactId: row.artifactId,
+    filename: row.filename,
+    title: row.title,
+    kind: row.kind,
+    format: row.format,
+    updatedAt: row.createdAt.toISOString(),
+  }));
 }
 
 export async function getArtifactSpecForUser(input: {

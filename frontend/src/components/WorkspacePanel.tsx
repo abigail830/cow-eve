@@ -231,11 +231,22 @@ export function WorkspacePanel({
           ) : null}
           <div className="workspace-file-list">
             {loadingFiles ? (
-              <p className="workspace-muted">Loading files…</p>
+              <div className="workspace-state-center" role="status">
+                <Loader2 size={22} className="spin" aria-hidden />
+                <span>Loading files…</span>
+              </div>
             ) : !selectedFolderId ? (
-              <p className="workspace-muted">Select a folder in the sidebar.</p>
+              <div className="workspace-state-center">
+                <p className="workspace-muted">
+                  Select a folder in the sidebar.
+                </p>
+              </div>
             ) : files.length === 0 ? (
-              <p className="workspace-muted">No files yet. Upload to get started.</p>
+              <div className="workspace-state-center">
+                <p className="workspace-muted">
+                  No files yet. Upload to get started.
+                </p>
+              </div>
             ) : (
               files.map((file) => {
                 const row = workspaceFileAsAttachmentRow(file);
@@ -298,7 +309,10 @@ export function WorkspacePanel({
               </div>
               <div className="workspace-preview-body">
                 {previewLoading ? (
-                  <p className="workspace-muted">Loading preview…</p>
+                  <div className="workspace-state-center" role="status">
+                    <Loader2 size={20} className="spin" aria-hidden />
+                    <span>Loading preview…</span>
+                  </div>
                 ) : previewBundle && previewFileId ? (
                   <DocumentPreviewPanel
                     bundle={previewBundle}

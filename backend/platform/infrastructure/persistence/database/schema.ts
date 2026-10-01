@@ -113,6 +113,34 @@ export const chatAttachments = pgTable(
   ],
 );
 
+/** Published deliverables index (blob holds bytes; list API reads this table only). */
+export const chatArtifacts = pgTable(
+  "chat_artifacts",
+  {
+    chatId: uuid("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    artifactId: text("artifact_id").notNull(),
+    userId: text("user_id").notNull(),
+    agentId: text("agent_id").notNull(),
+    filename: text("filename").notNull(),
+    title: text("title").notNull(),
+    kind: text("kind").notNull(),
+    format: text("format").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.chatId, table.artifactId] }),
+    index("chat_artifacts_user_agent_created_idx").on(
+      table.userId,
+      table.agentId,
+      table.createdAt,
+    ),
+  ],
+);
+
 export const workspaceFolders = pgTable(
   "workspace_folders",
   {
@@ -269,6 +297,7 @@ export const chatWorkspaceFileRefs = pgTable(
 export type ChatRow = typeof chats.$inferSelect;
 export type ChatEventRow = typeof chatEvents.$inferSelect;
 export type ChatAttachmentRow = typeof chatAttachments.$inferSelect;
+export type ChatArtifactRow = typeof chatArtifacts.$inferSelect;
 export type WorkspaceFolderRow = typeof workspaceFolders.$inferSelect;
 export type WorkspaceFileRow = typeof workspaceFiles.$inferSelect;
 export type ParseJobRunRow = typeof parseJobRuns.$inferSelect;

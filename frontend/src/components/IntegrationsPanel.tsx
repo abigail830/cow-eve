@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Plug } from "lucide-react";
+import { ExternalLink, Loader2, Plug } from "lucide-react";
 import {
   fetchIntegrations,
   saveIntegration,
@@ -279,25 +279,36 @@ export function IntegrationsPanel({ agentId }: Props) {
               </p>
             </div>
           </header>
-          {loading ? (
-            <p className="integrations-muted">Loading…</p>
-          ) : error ? (
-            <p className="integrations-error" role="alert">
-              {error}
-            </p>
-          ) : items.length === 0 ? (
-            <p className="integrations-muted">No integrations available yet.</p>
-          ) : (
-            <div className="integrations-list">
-              {items.map((item) => (
-                <IntegrationCard
-                  key={item.id}
-                  item={item}
-                  onSaved={handleSaved}
-                />
-              ))}
-            </div>
-          )}
+          <div className="integrations-list-body">
+            {loading ? (
+              <div className="integrations-state-center" role="status">
+                <Loader2 size={22} className="integrations-spin" aria-hidden />
+                <span>Loading integrations…</span>
+              </div>
+            ) : error ? (
+              <div className="integrations-state-center">
+                <p className="integrations-error" role="alert">
+                  {error}
+                </p>
+              </div>
+            ) : items.length === 0 ? (
+              <div className="integrations-state-center">
+                <p className="integrations-muted">
+                  No integrations available yet.
+                </p>
+              </div>
+            ) : (
+              <div className="integrations-list">
+                {items.map((item) => (
+                  <IntegrationCard
+                    key={item.id}
+                    item={item}
+                    onSaved={handleSaved}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </div>
     </div>

@@ -1,6 +1,6 @@
-import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { get, list, put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 import { getPlatformDataDir } from "../config/platform-data.config.js";
 import {
   blobAccess,
@@ -119,73 +119,6 @@ export async function putArtifactMeta(
   const filePath = localObjectPath(chatId, `${artifactId}.meta.json`);
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, payload, "utf8");
-}
-
-export type ArtifactMetaListing = {
-  artifactId: string;
-  updatedAt: string | null;
-};
-
-export async function listArtifactMetasForChat(chatId: string): Promise<ArtifactMetaListing[]> {
-  const suffix = ".meta.json";
-  if (useBlobStorage()) {
-    const prefix = blobPath(chatId, "");
-    const out: ArtifactMetaListing[] = [];
-    let cursor: string | undefined;
-    try {
-      do {
-        const page = await list({
-          prefix,
-          cursor,
-          limit: 1000,
-          ...blobCommandOptions(),
-        });
-        for (const blob of page.blobs) {
-          const pathname = blob.pathname.replace(/^\/+/, "");
-          const chatPrefix = `chat-artifacts/${chatId}/`;
-          if (!pathname.startsWith(chatPrefix)) continue;
-          const objectName = pathname.slice(chatPrefix.length);
-          if (!objectName.endsWith(suffix)) continue;
-          const artifactId = objectName.slice(0, -suffix.length);
-          if (!artifactId || artifactId.includes("/") || artifactId.includes("..")) continue;
-          out.push({
-            artifactId,
-            updatedAt: blob.uploadedAt?.toISOString?.() ?? null,
-          });
-        }
-        cursor = page.hasMore ? page.cursor : undefined;
-      } while (cursor);
-    } catch (err) {
-      console.error("[artifact-storage] blob list failed", {
-        chatId,
-        error: err instanceof Error ? err.message : err,
-      });
-      return [];
-    }
-    return out;
-  }
-
-  const dir = path.join(getPlatformDataDir(), CHAT_ARTIFACTS_DIR, chatId);
-  try {
-    const entries = await readdir(dir, { withFileTypes: true });
-    const out: ArtifactMetaListing[] = [];
-    for (const entry of entries) {
-      if (!entry.isFile() || !entry.name.endsWith(suffix)) continue;
-      const artifactId = entry.name.slice(0, -suffix.length);
-      if (!artifactId || artifactId.includes("..")) continue;
-      let updatedAt: string | null = null;
-      try {
-        const st = await stat(path.join(dir, entry.name));
-        updatedAt = st.mtime.toISOString();
-      } catch {
-        /* ignore */
-      }
-      out.push({ artifactId, updatedAt });
-    }
-    return out;
-  } catch {
-    return [];
-  }
 }
 
 export async function getArtifactMeta(

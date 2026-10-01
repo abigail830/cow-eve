@@ -163,9 +163,23 @@ export function ArtifactsPanel({ agentId }: Props) {
 
           <div className="artifacts-list-body">
             {loading ? (
-              <div className="artifacts-list-loading" role="status">
+              <div className="artifacts-state-center" role="status">
                 <Loader2 size={22} className="spin" aria-hidden />
                 <span>Loading artifacts…</span>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="artifacts-state-center">
+                {error ? (
+                  <p className="artifacts-error" role="alert">
+                    {error}
+                  </p>
+                ) : (
+                  <p className="artifacts-muted">
+                    {items.length === 0
+                      ? "No artifacts yet. Published deliverables from chats will appear here."
+                      : "No artifacts match your search."}
+                  </p>
+                )}
               </div>
             ) : (
               <>
@@ -177,13 +191,6 @@ export function ArtifactsPanel({ agentId }: Props) {
                 {previewError ? (
                   <p className="artifacts-error" role="alert">
                     {previewError}
-                  </p>
-                ) : null}
-                {!error && filtered.length === 0 ? (
-                  <p className="artifacts-muted">
-                    {items.length === 0
-                      ? "No artifacts yet. Published deliverables from chats will appear here."
-                      : "No artifacts match your search."}
                   </p>
                 ) : null}
                 <div className="artifacts-card-list">
