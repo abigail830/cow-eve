@@ -162,28 +162,32 @@ export function ArtifactsPanel({ agentId }: Props) {
           </header>
 
           <div className="artifacts-list-body">
-            {error ? (
-              <p className="artifacts-error" role="alert">
-                {error}
-              </p>
-            ) : null}
-            {previewError ? (
-              <p className="artifacts-error" role="alert">
-                {previewError}
-              </p>
-            ) : null}
             {loading ? (
-              <p className="artifacts-muted">Loading artifacts…</p>
-            ) : null}
-            {!loading && !error && filtered.length === 0 ? (
-              <p className="artifacts-muted">
-                {items.length === 0
-                  ? "No artifacts yet. Published deliverables from chats will appear here."
-                  : "No artifacts match your search."}
-              </p>
-            ) : null}
-            <div className="artifacts-card-list">
-              {filtered.map((item) => {
+              <div className="artifacts-list-loading" role="status">
+                <Loader2 size={22} className="spin" aria-hidden />
+                <span>Loading artifacts…</span>
+              </div>
+            ) : (
+              <>
+                {error ? (
+                  <p className="artifacts-error" role="alert">
+                    {error}
+                  </p>
+                ) : null}
+                {previewError ? (
+                  <p className="artifacts-error" role="alert">
+                    {previewError}
+                  </p>
+                ) : null}
+                {!error && filtered.length === 0 ? (
+                  <p className="artifacts-muted">
+                    {items.length === 0
+                      ? "No artifacts yet. Published deliverables from chats will appear here."
+                      : "No artifacts match your search."}
+                  </p>
+                ) : null}
+                <div className="artifacts-card-list">
+                  {filtered.map((item) => {
                 const key = `${item.chatId}:${item.artifactId}`;
                 const active = previewKey === key;
                 const subtitle = [item.chatTitle, item.artifactId]
@@ -212,10 +216,12 @@ export function ArtifactsPanel({ agentId }: Props) {
                     <span className="artifacts-card-time">
                       {formatArtifactTimestamp(item.updatedAt)}
                     </span>
-                  </button>
-                );
-              })}
-            </div>
+              </button>
+            );
+          })}
+                </div>
+              </>
+            )}
           </div>
         </section>
 

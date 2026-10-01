@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const KROKI_PLANTUML_SVG = "https://kroki.io/plantuml/svg";
+
+type Tab = "diagram" | "source";
 
 type Props = {
   source: string;
 };
 
 export function PlantumlArtifactPreview({ source }: Props) {
+  const [tab, setTab] = useState<Tab>("diagram");
   const [svgUrl, setSvgUrl] = useState<string | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [rendering, setRendering] = useState(true);
@@ -50,22 +54,58 @@ export function PlantumlArtifactPreview({ source }: Props) {
 
   return (
     <div className="artifact-plantuml-preview">
-      {rendering ? (
-        <p className="artifact-preview-status">Rendering diagram…</p>
-      ) : null}
-      {svgUrl ? (
-        <img
-          className="artifact-plantuml-diagram"
-          src={svgUrl}
-          alt="PlantUML diagram"
-        />
-      ) : null}
-      {renderError ? (
-        <p className="artifact-preview-status">
-          Diagram preview unavailable ({renderError}). Showing source.
-        </p>
-      ) : null}
-      <pre className="artifact-plantuml-source">{source}</pre>
+      <div className="artifact-plantuml-tabs" role="tablist" aria-label="PlantUML preview">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "diagram"}
+          className={tab === "diagram" ? "active" : ""}
+          onClick={() => setTab("diagram")}
+        >
+          Diagram
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "source"}
+          className={tab === "source" ? "active" : ""}
+          onClick={() => setTab("source")}
+        >
+          Source
+        </button>
+      </div>
+
+      <div className="artifact-plantuml-tab-body">
+        {tab === "diagram" ? (
+          <div className="artifact-plantuml-diagram-pane">
+            {rendering ? (
+              <div className="artifact-plantuml-center-status" role="status">
+                <Loader2 size={22} className="artifact-spin" aria-hidden />
+                <span>Rendering diagram…</span>
+              </div>
+            ) : null}
+            {!rendering && svgUrl ? (
+              <img
+                className="artifact-plantuml-diagram"
+                src={svgUrl}
+                alt="PlantUML diagram"
+              />
+            ) : null}
+            {!rendering && renderError ? (
+              <div className="artifact-plantuml-center-status">
+                <p className="artifact-preview-status">
+                  Diagram preview unavailable ({renderError}). Open the Source tab
+                  to view or copy the `.puml` file.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <pre className="artifact-plantuml-source artifact-plantuml-source-tab">
+            {source}
+          </pre>
+        )}
+      </div>
     </div>
   );
 }
