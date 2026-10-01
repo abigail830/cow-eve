@@ -229,13 +229,14 @@ export function AgentNav({
       </nav>
 
       <div className="agent-nav-footer">
-        <UserAccountMenu
-          compact={collapsed}
-          userName={userName}
-          userEmail={userEmail}
-          onOpenSettings={onOpenSettings}
-          onLogout={onLogout}
-        />
+        {!collapsed ? (
+          <UserAccountMenu
+            userName={userName}
+            userEmail={userEmail}
+            onOpenSettings={onOpenSettings}
+            onLogout={onLogout}
+          />
+        ) : null}
         <button
           type="button"
           className="agent-nav-collapse-btn"
