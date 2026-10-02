@@ -1,12 +1,10 @@
 import schedules from "@fde/schedules";
-
-const apiBaseUrl =
-  process.env.PLATFORM_API_BASE_URL?.trim() ?? "http://127.0.0.1:2000";
+import { resolvePlatformApiBaseUrl } from "../../lib/platform-api-base-url.js";
 
 /** Registry id for schedule dispatch and API tool injection. */
 export const OMNI_PLATFORM_AGENT_ID = "omni";
 
 export default schedules({
-  apiBaseUrl,
+  apiBaseUrl: resolvePlatformApiBaseUrl(),
   agentId: OMNI_PLATFORM_AGENT_ID,
 });
