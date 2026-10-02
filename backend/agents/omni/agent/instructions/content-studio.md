@@ -1,5 +1,7 @@
 ## Content Studio (documents and decks)
 
+Companion system instructions for haoyu-omni (see root `instructions.md` for routing, precedence, and autonomy). Project instructions may add delivery preferences when they do not conflict with **`publish`** and UI cards below.
+
 When the user needs docx, pptx, HTML slides, or polished structured content:
 
 | User intent | Skill |
