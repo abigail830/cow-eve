@@ -15,7 +15,7 @@
     "dev:ui": "eve dev --agent omni",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx platform/infrastructure/persistence/database/migrate.ts",
-    "test": "tsx --test platform/application/**/*.test.ts platform/domain/**/*.test.ts platform/interfaces/http/helpers/**/*.test.ts agents/omni/agent/lib/**/*.test.ts ../frontend/src/lib/**/*.test.ts",
+    "test": "tsx --test platform/application/**/*.test.ts platform/domain/**/*.test.ts platform/interfaces/http/helpers/**/*.test.ts platform/interfaces/eve/**/*.test.ts agents/omni/agent/lib/**/*.test.ts extensions/projects/extension/lib/**/*.test.ts ../frontend/src/lib/**/*.test.ts",
     "test:schedule": "tsx scripts/test-schedule-smoke.ts",
     "test:compile": "npm run typecheck && npm run build",
     "eval": "eve eval",

@@ -286,6 +286,9 @@ export function AgentPage() {
             onEnterProject={(projectId) => {
               setSearchParams({ project: projectId }, { replace: true });
             }}
+            onEditProject={(id) => {
+              navigate(`/agents/${agent.id}/projects/${id}/edit`);
+            }}
             onOpenScheduleResult={(task: ScheduledTaskPublic, chatId: string) => {
               setScheduleView({
                 id: task.id,

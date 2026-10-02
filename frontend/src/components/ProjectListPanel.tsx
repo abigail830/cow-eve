@@ -5,7 +5,8 @@ import {
   useImperativeHandle,
   useState,
 } from "react";
-import { Loader2, Plus, Target, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { MarkdownContent } from "./MarkdownContent";
 import {
   createProject,
   deleteProject,
@@ -17,6 +18,7 @@ import "./ProjectListPanel.css";
 type Props = {
   agentId: string;
   onEnterProject: (projectId: string) => void;
+  onEditProject?: (projectId: string) => void;
   showCreateButton?: boolean;
 };
 
@@ -26,7 +28,7 @@ export type ProjectListHandle = {
 
 export const ProjectListPanel = forwardRef<ProjectListHandle, Props>(
   function ProjectListPanel(
-    { agentId, onEnterProject, showCreateButton = true },
+    { agentId, onEnterProject, onEditProject, showCreateButton = true },
     ref,
   ) {
   const [projects, setProjects] = useState<ProjectPublic[]>([]);
@@ -58,13 +60,17 @@ export const ProjectListPanel = forwardRef<ProjectListHandle, Props>(
     try {
       const project = await createProject({ agentId, name: name.trim() });
       await reload();
-      onEnterProject(project.id);
+      if (onEditProject) {
+        onEditProject(project.id);
+      } else {
+        onEnterProject(project.id);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not create project");
     } finally {
       setPending(false);
     }
-  }, [agentId, onEnterProject, reload]);
+  }, [agentId, onEditProject, onEnterProject, reload]);
 
   useImperativeHandle(
     ref,
@@ -139,31 +145,51 @@ export const ProjectListPanel = forwardRef<ProjectListHandle, Props>(
                     <div className="project-card-head">
                       <span className="project-card-name">{project.name}</span>
                       <div className="project-card-actions">
+                        {onEditProject ? (
+                          <button
+                            type="button"
+                            className="project-card-icon-btn"
+                            aria-label={`Edit project ${project.name}`}
+                            disabled={pending}
+                            onClick={() => onEditProject(project.id)}
+                          >
+                            <Pencil size={15} strokeWidth={2} aria-hidden />
+                          </button>
+                        ) : null}
                         <button
                           type="button"
-                          className="project-card-cta"
-                          disabled={pending}
-                          onClick={() => onEnterProject(project.id)}
-                        >
-                          Open
-                        </button>
-                        <button
-                          type="button"
-                          className="project-card-cta project-card-cta-danger"
+                          className="project-card-icon-btn project-card-icon-btn--danger"
                           aria-label={`Delete project ${project.name}`}
                           disabled={pending}
                           onClick={() => void handleDelete(project)}
                         >
-                          <Trash2 size={14} strokeWidth={2} aria-hidden />
+                          <Trash2 size={15} strokeWidth={2} aria-hidden />
                         </button>
                       </div>
                     </div>
-                    <p className="project-card-desc">
-                      {summary || "No instructions yet."}
-                    </p>
-                    <p className="project-card-meta">
-                      Updated {new Date(project.lastActivityAt).toLocaleString()}
-                    </p>
+                    <div className="project-card-desc">
+                      {summary ? (
+                        <MarkdownContent text={summary} />
+                      ) : (
+                        <p className="project-card-desc-empty">
+                          No instructions yet.
+                        </p>
+                      )}
+                    </div>
+                    <div className="project-card-foot">
+                      <p className="project-card-meta">
+                        Updated{" "}
+                        {new Date(project.lastActivityAt).toLocaleString()}
+                      </p>
+                      <button
+                        type="button"
+                        className="project-card-start"
+                        disabled={pending}
+                        onClick={() => onEnterProject(project.id)}
+                      >
+                        Start work
+                      </button>
+                    </div>
                   </div>
                 </div>
               </li>

@@ -1,8 +1,9 @@
 import {
   extractBearerToken,
-  jwtHmac,
   localDev,
+  UnauthenticatedError,
   vercelOidc,
+  verifyJwtHmac,
   type AuthFn,
 } from "eve/channels/auth";
 import {
@@ -36,20 +37,40 @@ function withPlatformAccessToken(authFn: AuthFn<Request>): AuthFn<Request> {
   };
 }
 
-/** Platform JWT first, then Vercel OIDC / local dev fallbacks. */
+/**
+ * Cow Eve login JWT (HS256). Eve's built-in `jwtHmac()` authenticator marks
+ * callers as `principalType: "service"`; browser sessions need `user` for
+ * user-scoped connections (see Eve auth guide — custom AuthFn with user principal).
+ */
+function platformLoginUserJwt(): AuthFn<Request> {
+  return withPlatformAccessToken(async (request) => {
+    const bearer = extractBearerToken(request.headers.get("authorization"));
+    if (!bearer) return null;
+
+    const result = await verifyJwtHmac(bearer, {
+      algorithm: JWT_ALGORITHM,
+      issuer: JWT_ISSUER,
+      audiences: [JWT_AUDIENCE],
+      secret: getJwtSecret(),
+    });
+
+    if (!result.ok) {
+      throw new UnauthenticatedError({
+        code: "invalid_token",
+        message: "Sign in again to continue.",
+      });
+    }
+
+    return {
+      ...result.sessionAuth,
+      principalType: "user",
+    };
+  });
+}
+
+/** Platform login JWT first, then Vercel OIDC / local dev fallbacks. */
 export function platformRouteAuth(): AuthFn<Request>[] {
-  return [
-    withPlatformAccessToken(
-      jwtHmac({
-        algorithm: JWT_ALGORITHM,
-        issuer: JWT_ISSUER,
-        audiences: [JWT_AUDIENCE],
-        secret: getJwtSecret(),
-      }),
-    ),
-    vercelOidc(),
-    localDev(),
-  ];
+  return [platformLoginUserJwt(), vercelOidc(), localDev()];
 }
 
 export function platformCors() {

@@ -6,9 +6,9 @@ import {
 export default defineDynamic({
   events: {
     "session.started": async (_event, ctx) => {
-      const auth = ctx.session.auth.current ?? ctx.session.auth.initiator;
+      const caller = ctx.session.auth.current;
       const userId =
-        auth?.principalType === "user" ? auth.principalId : null;
+        caller?.principalType === "user" ? caller.principalId : null;
 
       const { url, apiKey } = await resolveHybridSearchCredentials(userId);
       if (!url || !apiKey) return null;

@@ -13,6 +13,7 @@ import type { AttachmentKind } from "../../domain/attachment/attachment-kinds.js
 import { drizzleWorkspaceRepository } from "../../infrastructure/persistence/workspace/drizzle-workspace.repository.js";
 import {
   finalizeWorkspaceFileParse,
+  retryWorkspaceFileParse,
   sha256Bytes,
 } from "../attachment/parse-enqueue.use-case.js";
 
@@ -132,6 +133,23 @@ export async function listWorkspaceFilesForUser(input: {
   if (!folder) return [];
   const rows = await drizzleWorkspaceRepository.listFilesInFolder(input);
   return rows.map(toPublic);
+}
+
+export async function retryWorkspaceFileParseForUser(input: {
+  userId: string;
+  fileId: string;
+}): Promise<{ file: WorkspaceFilePublic | null; error?: string }> {
+  const row = await drizzleWorkspaceRepository.getFileForUser(input);
+  if (!row) return { file: null, error: "File not found." };
+  try {
+    const updated = await retryWorkspaceFileParse(row);
+    return { file: toPublic(updated) };
+  } catch (err) {
+    return {
+      file: null,
+      error: err instanceof Error ? err.message : "Retry failed.",
+    };
+  }
 }
 
 export async function deleteWorkspaceFileForUser(input: {

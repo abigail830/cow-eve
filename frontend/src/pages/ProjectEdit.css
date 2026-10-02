@@ -1,0 +1,71 @@
+.project-edit-page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-canvas, #fff);
+}
+
+.project-edit-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+}
+
+.project-edit-back {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 8px 6px 4px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.project-edit-back:hover {
+  background: var(--nav-hover-bg);
+  color: var(--color-ink);
+}
+
+.project-edit-title {
+  margin: 0;
+  min-width: 0;
+  font-family: var(--font-heading);
+  font-size: var(--page-title-size, 1.0625rem);
+  font-weight: var(--page-title-weight, 600);
+  letter-spacing: var(--page-title-tracking, -0.01em);
+  color: var(--page-title-fg, var(--color-ink));
+}
+
+.project-edit-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 12px 20px 20px;
+  box-sizing: border-box;
+}
+
+.project-edit-body .project-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.project-edit-body .project-editor-state {
+  flex: 1;
+  min-height: 0;
+}

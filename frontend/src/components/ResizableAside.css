@@ -48,6 +48,37 @@
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
+.resizable-aside-handle-inside {
+  margin-left: 0;
+  width: 10px;
+}
+
+.resizable-aside-handle-inside::after {
+  left: auto;
+  right: 0;
+}
+
+.resizable-aside-handle-trailing {
+  left: auto;
+  right: 0;
+  margin-left: 0;
+  margin-right: -3px;
+}
+
+.resizable-aside-handle-trailing.resizable-aside-handle-inside {
+  margin-right: 0;
+}
+
+.resizable-aside-handle-trailing::after {
+  left: 0;
+  right: auto;
+}
+
+.resizable-aside-handle-trailing.resizable-aside-handle-inside::after {
+  left: auto;
+  right: 0;
+}
+
 .resizable-aside-content {
   flex: 1;
   min-height: 0;

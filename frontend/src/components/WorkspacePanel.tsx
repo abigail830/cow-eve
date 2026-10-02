@@ -10,7 +10,7 @@ import {
   DocumentPreviewPanel,
   type DocumentPreviewBundle,
 } from "@fde/artifact-ui";
-import { FileText, Loader2, Trash2, Upload, X } from "lucide-react";
+import { FileText, Loader2, RotateCcw, Trash2, Upload, X } from "lucide-react";
 import { formatBytes } from "../lib/attachments";
 import { useAuth } from "../lib/auth";
 import {
@@ -24,6 +24,7 @@ import {
   deleteWorkspaceFile,
   fetchWorkspaceFilePreviewBundle,
   fetchWorkspaceFiles,
+  retryWorkspaceFileParse,
   uploadWorkspaceFile,
   workspaceFileDownloadUrl,
   workspaceFileFigureUrl,
@@ -54,6 +55,9 @@ export function WorkspacePanel({
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileDropActive, setFileDropActive] = useState(false);
+  const fileDropDepthRef = useRef(0);
+  const [retryParseFileId, setRetryParseFileId] = useState<string | null>(null);
 
   const selectedFolder = useMemo(
     () => folders.find((f) => f.id === selectedFolderId) ?? null,
@@ -149,6 +153,26 @@ export function WorkspacePanel({
     [previewFileId],
   );
 
+  const handleRetryParse = useCallback(
+    async (fileId: string) => {
+      setRetryParseFileId(fileId);
+      setError(null);
+      try {
+        await retryWorkspaceFileParse(fileId);
+        await reloadFiles();
+        if (previewFileId === fileId) {
+          const bundle = await fetchWorkspaceFilePreviewBundle(fileId);
+          setPreviewBundle(bundle);
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Retry parse failed");
+      } finally {
+        setRetryParseFileId(null);
+      }
+    },
+    [previewFileId, reloadFiles],
+  );
+
   async function openPreview(file: WorkspaceFilePublic) {
     setPreviewLoading(true);
     setPreviewTitle(file.filename);
@@ -167,6 +191,43 @@ export function WorkspacePanel({
 
   function onFileInputChange(e: ChangeEvent<HTMLInputElement>) {
     void handleUpload(e.target.files);
+  }
+
+  function dragHasExternalFiles(dataTransfer: DataTransfer): boolean {
+    return [...dataTransfer.types].some(
+      (type) => type === "Files" || type === "application/x-moz-file",
+    );
+  }
+
+  function onFileListDragEnter(e: React.DragEvent) {
+    if (!selectedFolderId || uploading) return;
+    if (!dragHasExternalFiles(e.dataTransfer)) return;
+    e.preventDefault();
+    fileDropDepthRef.current += 1;
+    setFileDropActive(true);
+  }
+
+  function onFileListDragLeave(e: React.DragEvent) {
+    if (!dragHasExternalFiles(e.dataTransfer)) return;
+    fileDropDepthRef.current = Math.max(0, fileDropDepthRef.current - 1);
+    if (fileDropDepthRef.current === 0) setFileDropActive(false);
+  }
+
+  function onFileListDragOver(e: React.DragEvent) {
+    if (!selectedFolderId || uploading) return;
+    if (!dragHasExternalFiles(e.dataTransfer)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }
+
+  function onFileListDrop(e: React.DragEvent) {
+    e.preventDefault();
+    fileDropDepthRef.current = 0;
+    setFileDropActive(false);
+    if (!selectedFolderId || uploading) return;
+    if (!dragHasExternalFiles(e.dataTransfer)) return;
+    if (e.dataTransfer.files.length === 0) return;
+    void handleUpload(e.dataTransfer.files);
   }
 
   const listHeader = (
@@ -215,23 +276,30 @@ export function WorkspacePanel({
     </header>
   );
 
-  return (
-    <div className="workspace-panel">
-      <div className="workspace-panel-body">
-        <section
-          className={
-            previewOpen
-              ? "workspace-list-column workspace-list-column-narrow"
-              : "workspace-list-column"
-          }
-        >
-          {listHeader}
-          {error ? (
-            <p className="workspace-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <div className="workspace-file-list">
+  const listColumn = (
+    <>
+      {listHeader}
+      {error ? (
+        <p className="workspace-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div
+        className={
+          fileDropActive
+            ? "workspace-file-list workspace-file-list--drop-target"
+            : "workspace-file-list"
+        }
+        onDragEnter={onFileListDragEnter}
+        onDragLeave={onFileListDragLeave}
+        onDragOver={onFileListDragOver}
+        onDrop={onFileListDrop}
+      >
+            {fileDropActive ? (
+              <div className="workspace-drop-hint" aria-hidden>
+                Drop files to upload to {selectedFolder?.name ?? "this folder"}
+              </div>
+            ) : null}
             {loadingFiles ? (
               <div className="workspace-state-center" role="status">
                 <Loader2 size={22} className="spin" aria-hidden />
@@ -246,7 +314,7 @@ export function WorkspacePanel({
             ) : files.length === 0 ? (
               <div className="workspace-state-center">
                 <p className="workspace-muted">
-                  No files yet. Upload to get started.
+                  No files yet. Upload or drag files here.
                 </p>
               </div>
             ) : (
@@ -255,6 +323,8 @@ export function WorkspacePanel({
                 const status = effectiveParseStatus(row);
                 const badge = parseStatusLabel(row);
                 const parsing = status === "pending" || status === "running";
+                const failed = status === "failed";
+                const retryBusy = retryParseFileId === file.id;
                 return (
                   <article key={file.id} className="workspace-file-card">
                     <button
@@ -263,19 +333,49 @@ export function WorkspacePanel({
                       onClick={() => void openPreview(file)}
                     >
                       <span className="workspace-file-card-icon">
-                        <FileText size={18} strokeWidth={2} aria-hidden />
+                        <FileText size={16} strokeWidth={2} aria-hidden />
                       </span>
-                      <span className="workspace-file-card-text">
+                      <span className="workspace-file-card-title-row">
                         <span className="workspace-file-name">{file.filename}</span>
-                        <span className="workspace-file-meta">
-                          {formatBytes(file.sizeBytes)}
+                        <span
+                          className={
+                            parsing
+                              ? "workspace-parse-badge workspace-parse-badge--busy"
+                              : failed
+                                ? "workspace-parse-badge workspace-parse-badge--failed"
+                                : "workspace-parse-badge"
+                          }
+                        >
                           {parsing ? (
-                            <Loader2 size={12} className="spin" aria-hidden />
+                            <Loader2
+                              size={11}
+                              className="spin"
+                              aria-hidden
+                            />
                           ) : null}
-                          <span className="workspace-parse-badge">{badge}</span>
+                          {badge}
                         </span>
                       </span>
+                      <span className="workspace-file-size">
+                        {formatBytes(file.sizeBytes)}
+                      </span>
                     </button>
+                    {failed ? (
+                      <button
+                        type="button"
+                        className="workspace-file-retry"
+                        aria-label={`Retry parse for ${file.filename}`}
+                        title="Retry parse"
+                        disabled={retryBusy}
+                        onClick={() => void handleRetryParse(file.id)}
+                      >
+                        {retryBusy ? (
+                          <Loader2 size={14} className="spin" aria-hidden />
+                        ) : (
+                          <RotateCcw size={14} strokeWidth={2} aria-hidden />
+                        )}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="workspace-file-delete"
@@ -288,44 +388,63 @@ export function WorkspacePanel({
                 );
               })
             )}
-          </div>
-        </section>
+      </div>
+    </>
+  );
 
+  return (
+    <div className="workspace-panel">
+      <div className="workspace-panel-body">
         {previewOpen ? (
           <ResizableAside
-            defaultWidth={520}
-            minWidth={320}
-            className="workspace-preview-aside"
+            defaultWidth={420}
+            minWidth={280}
+            maxWidthRatio={0.55}
+            handlePlacement="inside"
+            handleSide="trailing"
+            className="workspace-list-resizable"
           >
-            <aside className="workspace-preview">
-              <div className="workspace-preview-header">
-                <h3>{previewTitle}</h3>
-                <button
-                  type="button"
-                  className="workspace-preview-close"
-                  aria-label="Close preview"
-                  onClick={closePreview}
-                >
-                  <X size={18} strokeWidth={2} aria-hidden />
-                </button>
-              </div>
-              <div className="workspace-preview-body">
-                {previewLoading ? (
-                  <div className="workspace-state-center" role="status">
-                    <Loader2 size={20} className="spin" aria-hidden />
-                    <span>Loading preview…</span>
-                  </div>
-                ) : previewBundle && previewFileId ? (
-                  <DocumentPreviewPanel
-                    bundle={previewBundle}
-                    originalDownloadUrl={workspaceFileDownloadUrl(previewFileId)}
-                    token={token}
-                    resolveFigureUrl={resolvePreviewFigureUrl}
-                  />
-                ) : null}
-              </div>
-            </aside>
+            <section className="workspace-list-column">{listColumn}</section>
           </ResizableAside>
+        ) : (
+          <section className="workspace-list-column">{listColumn}</section>
+        )}
+
+        {previewOpen ? (
+          <aside className="workspace-preview">
+            <div className="workspace-preview-header">
+              <h3>{previewTitle}</h3>
+              <button
+                type="button"
+                className="workspace-preview-close"
+                aria-label="Close preview"
+                onClick={closePreview}
+              >
+                <X size={18} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+            <div className="workspace-preview-body">
+              {previewLoading ? (
+                <div className="workspace-state-center" role="status">
+                  <Loader2 size={20} className="spin" aria-hidden />
+                  <span>Loading preview…</span>
+                </div>
+              ) : previewBundle && previewFileId ? (
+                <DocumentPreviewPanel
+                  bundle={previewBundle}
+                  originalDownloadUrl={workspaceFileDownloadUrl(previewFileId)}
+                  token={token}
+                  resolveFigureUrl={resolvePreviewFigureUrl}
+                  onRetryParse={
+                    previewBundle.file.parseStatus === "failed"
+                      ? () => void handleRetryParse(previewFileId)
+                      : undefined
+                  }
+                  retryParseBusy={retryParseFileId === previewFileId}
+                />
+              ) : null}
+            </div>
+          </aside>
         ) : null}
       </div>
     </div>

@@ -289,3 +289,13 @@ export async function retryAttachmentParse(
   });
   return finalizeAttachmentParse(row, kind);
 }
+
+export async function retryWorkspaceFileParse(
+  row: WorkspaceFile,
+): Promise<WorkspaceFile> {
+  const kind = classifyAttachment({
+    filename: row.filename,
+    mimeType: row.mediaType,
+  });
+  return finalizeWorkspaceFileParse(row, kind);
+}

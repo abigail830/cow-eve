@@ -10,7 +10,6 @@ type PlatformAccessTokenContext = {
   session: {
     auth: {
       current?: AuthLike | null;
-      initiator?: AuthLike | null;
     };
   };
 };
@@ -24,9 +23,9 @@ function readAttribute(
   return null;
 }
 
-/** Returns the platform JWT for the active user session, if available. */
+/** Platform JWT from the active turn's route auth (`auth.current`). */
 export function readPlatformAccessToken(ctx: PlatformAccessTokenContext): string | null {
-  const auth = ctx.session.auth.current ?? ctx.session.auth.initiator;
+  const auth = ctx.session.auth.current;
   if (!auth || auth.principalType !== "user") return null;
   return readAttribute(auth.attributes, PLATFORM_ACCESS_TOKEN_ATTR);
 }

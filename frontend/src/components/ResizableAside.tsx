@@ -16,6 +16,13 @@ type Props = {
   hidden?: boolean;
   /** When false, hide the default divider line (handle stays draggable). */
   showHandleDivider?: boolean;
+  /**
+   * "overlap" extends the handle slightly left (default).
+   * "inside" keeps the hit target within the panel (better when parent uses overflow:hidden).
+   */
+  handlePlacement?: "overlap" | "inside";
+  /** Leading = handle on the left (right-side panels). Trailing = handle on the right (left-side panels). */
+  handleSide?: "leading" | "trailing";
 };
 
 export function ResizableAside({
@@ -26,6 +33,8 @@ export function ResizableAside({
   className = "",
   hidden,
   showHandleDivider = true,
+  handlePlacement = "overlap",
+  handleSide = "leading",
 }: Props) {
   const [width, setWidth] = useState(defaultWidth);
   const dragRef = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -52,14 +61,17 @@ export function ResizableAside({
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (!dragRef.current) return;
       const maxWidth = Math.min(1200, window.innerWidth * maxWidthRatio);
-      const delta = dragRef.current.startX - event.clientX;
+      const delta =
+        handleSide === "trailing"
+          ? event.clientX - dragRef.current.startX
+          : dragRef.current.startX - event.clientX;
       const next = Math.min(
         maxWidth,
         Math.max(minWidth, dragRef.current.startWidth + delta),
       );
       setWidth(next);
     },
-    [minWidth, maxWidthRatio],
+    [handleSide, minWidth, maxWidthRatio],
   );
 
   return (
@@ -70,7 +82,14 @@ export function ResizableAside({
       aria-hidden={hidden}
     >
       <div
-        className={`resizable-aside-handle${showHandleDivider ? "" : " resizable-aside-handle-plain"}`}
+        className={[
+          "resizable-aside-handle",
+          showHandleDivider ? "" : "resizable-aside-handle-plain",
+          handlePlacement === "inside" ? "resizable-aside-handle-inside" : "",
+          handleSide === "trailing" ? "resizable-aside-handle-trailing" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         role="separator"
         aria-orientation="vertical"
         aria-valuenow={width}

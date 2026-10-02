@@ -161,6 +161,24 @@ export async function uploadWorkspaceFile(
   return data.file;
 }
 
+export async function retryWorkspaceFileParse(
+  fileId: string,
+): Promise<WorkspaceFilePublic> {
+  const res = await workspaceFetch(
+    `/api/workspace/files/${encodeURIComponent(fileId)}/retry-parse`,
+    { method: "POST" },
+  );
+  const data = (await res.json()) as {
+    ok?: boolean;
+    error?: string;
+    file?: WorkspaceFilePublic;
+  };
+  if (!res.ok || !data.file) {
+    throw new Error(data.error ?? `Retry parse failed (${res.status})`);
+  }
+  return data.file;
+}
+
 export async function deleteWorkspaceFile(fileId: string): Promise<void> {
   let res: Response;
   try {

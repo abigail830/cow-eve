@@ -13,6 +13,7 @@ import {
   listWorkspaceFoldersForUser,
   renameWorkspaceFolderForUser,
   uploadWorkspaceFileForUser,
+  retryWorkspaceFileParseForUser,
 } from "../../../composition/public-api.js";
 import type { PlatformRouteContext } from "../platform-route-context.js";
 
@@ -29,6 +30,7 @@ export function registerWorkspaceRoutes(
     preflight("/api/workspace/files/:id/preview"),
     preflight("/api/workspace/files/:id/preview-bundle"),
     preflight("/api/workspace/files/:id/download"),
+    preflight("/api/workspace/files/:id/retry-parse"),
     preflight("/api/workspace/files/:id/figures/:figureId"),
     // DELETE on `/api/workspace/files/:id` — explicit OPTIONS only (no duplicate preflight).
     OPTIONS("/api/workspace/files/:id", async (request) =>
@@ -158,6 +160,30 @@ export function registerWorkspaceRoutes(
           err instanceof Error ? err.message : "Upload failed unexpectedly";
         return json({ ok: false, error: message }, 500, request);
       }
+    }),
+
+    POST("/api/workspace/files/:id/retry-parse", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+      const result = await retryWorkspaceFileParseForUser({
+        userId: auth.principalId,
+        fileId: params.id,
+      });
+      if (!result.file) {
+        return json(
+          { ok: false, error: result.error ?? "Retry failed" },
+          400,
+          request,
+        );
+      }
+      return json({ ok: true, file: result.file }, 200, request);
     }),
 
     DELETE("/api/workspace/files/:id", async (request, { params }) => {

@@ -13,14 +13,15 @@ import { useEveAgent } from "eve/react";
 import type { InputResponse, MessageStreamEvent } from "eve/client";
 import {
   Brain,
-  Columns3Cog,
   List,
   Loader2,
   LogOut,
   MessageCirclePlus,
+  Pencil,
   Trash2,
   X,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   deleteChat,
   fetchChats,
@@ -78,11 +79,9 @@ import { ResizableAside } from "./ResizableAside";
 import { useBindChatSession } from "../hooks/useBindChatSession";
 import { fetchProject, type ProjectPublic } from "../lib/projects";
 import { ProjectListPanel } from "./ProjectListPanel";
-import { ProjectSettingsPanel } from "./ProjectSettingsPanel";
 import { WorkHubCards } from "./WorkHubCards";
 import "./AgentChat.css";
 import "./ProjectListPanel.css";
-import "./ProjectSettingsPanel.css";
 import "./WorkHubCards.css";
 
 type Props = {
@@ -436,7 +435,7 @@ function AgentChatSession({
 }: SessionProps) {
   const isOmni = agent.id === "omni";
   const [projectsOpen, setProjectsOpen] = useState(false);
-  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
+  const navigate = useNavigate();
   const [projectDetail, setProjectDetail] = useState<ProjectPublic | null>(null);
   const [scheduleLabel, setScheduleLabel] = useState<string | null>(null);
   const scheduleChatId =
@@ -480,6 +479,8 @@ function AgentChatSession({
     bound.session?.sessionId ?? null,
   );
   const chatBodyRef = useRef<HTMLDivElement>(null);
+  const chatContentRef = useRef<HTMLDivElement>(null);
+  const stickChatToBottomRef = useRef(true);
   const onStreamingChangeRef = useRef(onStreamingChange);
   onStreamingChangeRef.current = onStreamingChange;
 
@@ -684,7 +685,6 @@ function AgentChatSession({
     (id: string) => {
       onProjectIdChange?.(id);
       setProjectsOpen(false);
-      setProjectSettingsOpen(false);
       setPreviewArtifact(null);
       setHistoryOpen(false);
       setMemoryOpen(false);
@@ -695,7 +695,6 @@ function AgentChatSession({
 
   const exitProject = useCallback(() => {
     onProjectIdChange?.(null);
-    setProjectSettingsOpen(false);
     onNewChat();
   }, [onNewChat, onProjectIdChange]);
 
@@ -806,17 +805,57 @@ function AgentChatSession({
     });
   }, [data.messages]);
 
-  // After opening/restoring a conversation, land at the latest messages.
-  useLayoutEffect(() => {
-    if (conversationLoading || data.messages.length === 0) return;
+  const scrollChatToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     const el = chatBodyRef.current;
     if (!el) return;
-    const scrollToBottom = () => {
-      el.scrollTop = el.scrollHeight;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+  }, []);
+
+  useEffect(() => {
+    const body = chatBodyRef.current;
+    if (!body) return;
+    const onScroll = () => {
+      const distanceFromBottom =
+        body.scrollHeight - body.scrollTop - body.clientHeight;
+      stickChatToBottomRef.current = distanceFromBottom < 96;
     };
-    scrollToBottom();
-    requestAnimationFrame(scrollToBottom);
-  }, [conversationLoading, bound.chatId, data.messages.length]);
+    body.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => body.removeEventListener("scroll", onScroll);
+  }, [bound.chatId]);
+
+  // Land at latest messages when switching chats; follow growth while pinned.
+  useLayoutEffect(() => {
+    if (conversationLoading) return;
+    stickChatToBottomRef.current = true;
+    scrollChatToBottom();
+    requestAnimationFrame(() => scrollChatToBottom());
+  }, [conversationLoading, bound.chatId, scrollChatToBottom]);
+
+  useLayoutEffect(() => {
+    if (conversationLoading || !stickChatToBottomRef.current) return;
+    scrollChatToBottom();
+    requestAnimationFrame(() => scrollChatToBottom());
+  }, [
+    conversationLoading,
+    data.messages,
+    events,
+    isBusy,
+    scrollChatToBottom,
+  ]);
+
+  useEffect(() => {
+    const body = chatBodyRef.current;
+    const content = chatContentRef.current;
+    if (!body || !content || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      if (!stickChatToBottomRef.current) return;
+      scrollChatToBottom();
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [bound.chatId, scrollChatToBottom]);
 
   // First message on a blank composer creates a chat row; remember it for restore.
   useEffect(() => {
@@ -1164,14 +1203,13 @@ function AgentChatSession({
                 <IconButton
                   bare
                   size={22}
-                  icon={Columns3Cog}
-                  label="Project settings"
-                  active={projectSettingsOpen}
+                  icon={Pencil}
+                  label="Edit project"
                   onClick={() => {
-                    setPreviewArtifact(null);
-                    setHistoryOpen(false);
-                    setMemoryOpen(false);
-                    setProjectSettingsOpen((open) => !open);
+                    closePanels();
+                    navigate(
+                      `/agents/${agent.id}/projects/${projectId}/edit`,
+                    );
                   }}
                 />
                 <span className="chat-header-actions-sep" aria-hidden />
@@ -1215,7 +1253,7 @@ function AgentChatSession({
         </header>
 
         <div className="chat-body" ref={chatBodyRef}>
-          <div className="chat-content-column">
+          <div className="chat-content-column" ref={chatContentRef}>
             {switchingChatId ? (
               <div className="chat-switching-overlay" role="status" aria-live="polite">
                 <Loader2
@@ -1241,6 +1279,9 @@ function AgentChatSession({
               <ProjectListPanel
                 agentId={agent.id}
                 onEnterProject={enterProject}
+                onEditProject={(id) =>
+                  navigate(`/agents/${agent.id}/projects/${id}/edit`)
+                }
               />
             ) : (
               <>
@@ -1445,21 +1486,6 @@ function AgentChatSession({
             });
           }}
         />
-      ) : null}
-
-      {projectSettingsOpen && projectId ? (
-        <ResizableAside defaultWidth={400} showHandleDivider={false}>
-          <ProjectSettingsPanel
-            projectId={projectId}
-            agentId={agent.id}
-            onClose={() => setProjectSettingsOpen(false)}
-            onProjectUpdated={() => {
-              void fetchProject(projectId, agent.id)
-                .then(setProjectDetail)
-                .catch(() => undefined);
-            }}
-          />
-        </ResizableAside>
       ) : null}
 
       {!previewArtifact && memoryOpen ? (

@@ -169,6 +169,7 @@ export {
   listWorkspaceFilesForUser,
   listWorkspaceFilesByIdsForUser,
   uploadWorkspaceFileForUser,
+  retryWorkspaceFileParseForUser,
   deleteWorkspaceFileForUser,
   getWorkspaceFilePreviewForUser,
   getWorkspaceFilePreviewBundleForUser,

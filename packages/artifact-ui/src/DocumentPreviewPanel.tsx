@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { DocumentOriginalPreview } from "./DocumentOriginalPreview";
 import { DocumentPageIndexPreview } from "./DocumentPageIndexPreview";
 import { ParsedDocumentMarkdownPreview } from "./ParsedDocumentMarkdownPreview";
@@ -14,6 +14,9 @@ type Props = {
   token?: string | null;
   resolveFigureUrl: (figureRef: string) => string;
   className?: string;
+  /** When set, shows retry control when parse status is failed. */
+  onRetryParse?: () => void;
+  retryParseBusy?: boolean;
 };
 
 function parseStatusMessage(bundle: DocumentPreviewBundle): string | null {
@@ -36,26 +39,24 @@ export function DocumentPreviewPanel({
   token,
   resolveFigureUrl,
   className = "",
+  onRetryParse,
+  retryParseBusy = false,
 }: Props) {
   const hasParsed = Boolean(
     bundle.parsed.markdown ?? bundle.parsed.markdownRaw,
   );
 
-  const defaultTab = useMemo((): DocumentPreviewTab => {
-    if (bundle.file.kind === "image" || bundle.file.kind === "pdf") {
-      return "original";
-    }
-    if (hasParsed) return "parsed";
-    return "original";
-  }, [bundle.file.kind, hasParsed]);
+  const defaultTab: DocumentPreviewTab = "original";
 
   const [tab, setTab] = useState<DocumentPreviewTab>(defaultTab);
   const [parsedView, setParsedView] = useState<ParsedMarkdownView>("rendered");
   const statusMessage = parseStatusMessage(bundle);
+  const parseFailed = bundle.file.parseStatus === "failed";
+  const showRetry = parseFailed && Boolean(onRetryParse);
 
   useEffect(() => {
-    setTab(defaultTab);
-  }, [bundle.file.id, defaultTab]);
+    setTab("original");
+  }, [bundle.file.id]);
 
   useEffect(() => {
     setParsedView("rendered");
@@ -97,6 +98,22 @@ export function DocumentPreviewPanel({
           Page index
         </button>
       </div>
+
+      {showRetry ? (
+        <div className="document-preview-parse-actions">
+          <p className="document-preview-status document-preview-status-inline">
+            {statusMessage ?? "Parse failed."}
+          </p>
+          <button
+            type="button"
+            className="document-preview-retry-btn"
+            disabled={retryParseBusy}
+            onClick={() => onRetryParse?.()}
+          >
+            {retryParseBusy ? "Retrying…" : "Retry parse"}
+          </button>
+        </div>
+      ) : null}
 
       <div className="document-preview-tab-body">
         {tab === "original" ? (

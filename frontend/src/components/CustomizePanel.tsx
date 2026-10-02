@@ -16,6 +16,7 @@ type Props = {
   tab: CustomizeTab;
   onTabChange: (tab: CustomizeTab) => void;
   onEnterProject: (projectId: string) => void;
+  onEditProject: (projectId: string) => void;
   onOpenScheduleResult: (task: ScheduledTaskPublic, chatId: string) => void;
 };
 
@@ -57,6 +58,7 @@ export function CustomizePanel({
   tab,
   onTabChange,
   onEnterProject,
+  onEditProject,
   onOpenScheduleResult,
 }: Props) {
   const projectRef = useRef<ProjectListHandle>(null);
@@ -154,6 +156,7 @@ export function CustomizePanel({
             agentId={agentId}
             showCreateButton={false}
             onEnterProject={onEnterProject}
+            onEditProject={onEditProject}
           />
         ) : tab === "schedules" ? (
           <SchedulePanel
