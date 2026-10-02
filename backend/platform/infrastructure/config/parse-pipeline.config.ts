@@ -257,9 +257,13 @@ export async function probeGithubWorkflowAccess(): Promise<{
     if (actionsWriteLikely === false) {
       hint =
         "Classic PAT is missing the workflow or repo scope — workflow_dispatch will fail. Regenerate with repo or workflow scope.";
-    } else if (actionsWriteLikely === null && workflowState === "active") {
+    } else if (
+      actionsWriteLikely === null &&
+      workflowState === "active" &&
+      (recentWorkflowDispatchRuns ?? 0) === 0
+    ) {
       hint =
-        "Fine-grained PAT: GET succeeded but workflow_dispatch needs Actions Read and write on this repo.";
+        "Fine-grained PAT: no workflow_dispatch runs yet — confirm Actions Read and write on this repo.";
     }
 
     return {
