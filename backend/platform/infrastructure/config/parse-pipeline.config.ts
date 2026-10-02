@@ -154,3 +154,69 @@ export function getParsePipelineDiagnostics(): {
     },
   };
 }
+
+/** Validates GITHUB_TOKEN can read the configured workflow (does not dispatch). */
+export async function probeGithubWorkflowAccess(): Promise<{
+  ok: boolean;
+  httpStatus: number;
+  workflowState: string | null;
+  hint: string | null;
+}> {
+  const token = getGithubToken();
+  const repo = getGithubRepo();
+  const workflow = getGithubWorkflowFile();
+  if (!token || !repo) {
+    return {
+      ok: false,
+      httpStatus: 0,
+      workflowState: null,
+      hint: "GITHUB_TOKEN or GITHUB_REPO missing",
+    };
+  }
+  const url = `https://api.github.com/repos/${repo}/actions/workflows/${encodeURIComponent(workflow)}`;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+    if (!response.ok) {
+      let hint = `GitHub API returned ${response.status}`;
+      if (response.status === 401) {
+        hint = "GITHUB_TOKEN rejected (401). Regenerate the PAT on Vercel.";
+      } else if (response.status === 403) {
+        hint =
+          "GITHUB_TOKEN lacks Actions access on this repo (403). Grant Actions: Read and write.";
+      } else if (response.status === 404) {
+        hint =
+          "Workflow or repo not visible to this token (404). Check GITHUB_REPO and workflow filename.";
+      }
+      return {
+        ok: false,
+        httpStatus: response.status,
+        workflowState: null,
+        hint,
+      };
+    }
+    const data = (await response.json()) as { state?: string };
+    const workflowState = data.state ?? null;
+    return {
+      ok: workflowState === "active",
+      httpStatus: response.status,
+      workflowState,
+      hint:
+        workflowState && workflowState !== "active"
+          ? `Workflow state is ${workflowState}`
+          : null,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      httpStatus: 0,
+      workflowState: null,
+      hint: err instanceof Error ? err.message : "GitHub API request failed",
+    };
+  }
+}
