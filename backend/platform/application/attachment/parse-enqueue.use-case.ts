@@ -165,14 +165,17 @@ export async function enqueueParseJob(
     await import("../../infrastructure/persistence/parse/drizzle-parse-job.repository.js").then(
       ({ updateParseJobRunStatus }) => updateParseJobRunStatus(jobId, "failed"),
     );
-    // Non-fatal: callers (e.g. workspace upload) must still return success after bytes are stored.
+    return;
   }
 
   const runningUpdate = {
     status: ParseStatus.RUNNING,
     stageSnapshot: {
       current_stage: "fetch",
-      message: "Parse service accepted job — waiting for worker…",
+      message:
+        mode === "gha"
+          ? "Dispatched to GitHub Actions — waiting for workflow…"
+          : "Parse service accepted job — waiting for worker…",
       stages: [],
     },
   };
