@@ -160,6 +160,10 @@ export async function probeGithubWorkflowAccess(): Promise<{
   ok: boolean;
   httpStatus: number;
   workflowState: string | null;
+  oauthScopes: string | null;
+  /** Classic PAT: inferred from X-OAuth-Scopes. Fine-grained: null (need Actions Read and write). */
+  actionsWriteLikely: boolean | null;
+  recentWorkflowDispatchRuns: number | null;
   hint: string | null;
 }> {
   const token = getGithubToken();
@@ -170,17 +174,40 @@ export async function probeGithubWorkflowAccess(): Promise<{
       ok: false,
       httpStatus: 0,
       workflowState: null,
+      oauthScopes: null,
+      actionsWriteLikely: null,
+      recentWorkflowDispatchRuns: null,
       hint: "GITHUB_TOKEN or GITHUB_REPO missing",
     };
   }
+  const ghHeaders = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+
+  let oauthScopes: string | null = null;
+  let actionsWriteLikely: boolean | null = null;
+  try {
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: ghHeaders,
+      signal: AbortSignal.timeout(10_000),
+    });
+    oauthScopes = userRes.headers.get("x-oauth-scopes");
+    if (oauthScopes) {
+      const parts = oauthScopes.split(",").map((s) => s.trim());
+      actionsWriteLikely =
+        parts.includes("workflow") || parts.includes("repo");
+    }
+  } catch {
+    // optional
+  }
+
   const url = `https://api.github.com/repos/${repo}/actions/workflows/${encodeURIComponent(workflow)}`;
   try {
     const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
+      headers: ghHeaders,
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
       let hint = `GitHub API returned ${response.status}`;
@@ -197,25 +224,61 @@ export async function probeGithubWorkflowAccess(): Promise<{
         ok: false,
         httpStatus: response.status,
         workflowState: null,
+        oauthScopes,
+        actionsWriteLikely,
+        recentWorkflowDispatchRuns: null,
         hint,
       };
     }
     const data = (await response.json()) as { state?: string };
     const workflowState = data.state ?? null;
+
+    let recentWorkflowDispatchRuns: number | null = null;
+    try {
+      const runsRes = await fetch(
+        `${url}/runs?event=workflow_dispatch&per_page=1`,
+        { headers: ghHeaders, signal: AbortSignal.timeout(10_000) },
+      );
+      if (runsRes.ok) {
+        const runsData = (await runsRes.json()) as { total_count?: number };
+        recentWorkflowDispatchRuns =
+          typeof runsData.total_count === "number"
+            ? runsData.total_count
+            : null;
+      }
+    } catch {
+      // optional
+    }
+
+    let hint: string | null =
+      workflowState && workflowState !== "active"
+        ? `Workflow state is ${workflowState}`
+        : null;
+    if (actionsWriteLikely === false) {
+      hint =
+        "Classic PAT is missing the workflow or repo scope — workflow_dispatch will fail. Regenerate with repo or workflow scope.";
+    } else if (actionsWriteLikely === null && workflowState === "active") {
+      hint =
+        "Fine-grained PAT: GET succeeded but workflow_dispatch needs Actions Read and write on this repo.";
+    }
+
     return {
-      ok: workflowState === "active",
+      ok: workflowState === "active" && actionsWriteLikely !== false,
       httpStatus: response.status,
       workflowState,
-      hint:
-        workflowState && workflowState !== "active"
-          ? `Workflow state is ${workflowState}`
-          : null,
+      oauthScopes,
+      actionsWriteLikely,
+      recentWorkflowDispatchRuns,
+      hint,
     };
   } catch (err) {
     return {
       ok: false,
       httpStatus: 0,
       workflowState: null,
+      oauthScopes,
+      actionsWriteLikely,
+      recentWorkflowDispatchRuns: null,
       hint: err instanceof Error ? err.message : "GitHub API request failed",
     };
   }

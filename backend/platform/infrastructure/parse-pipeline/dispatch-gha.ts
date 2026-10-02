@@ -43,6 +43,7 @@ export async function dispatchParseGha(input: {
         job_id: input.jobId,
       },
     }),
+    signal: AbortSignal.timeout(20_000),
   });
 
   if (response.status !== 201 && response.status !== 204) {

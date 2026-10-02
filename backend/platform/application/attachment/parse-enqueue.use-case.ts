@@ -12,6 +12,7 @@ import type { WorkspaceFile } from "../../domain/workspace/workspace-file.entity
 import {
   parseableFromWorkspaceFile,
 } from "../../domain/document/parseable-file.js";
+import { parsedArtifactInManifest } from "../../domain/docstore/parsed-manifest.js";
 import { ParseStatus } from "../../domain/parse/parse-status.js";
 import {
   getGithubRepo,
@@ -74,6 +75,32 @@ function assertParseDispatchConfigured(
   }
 }
 
+function chatAttachmentParseAlreadyComplete(
+  row: ChatAttachment,
+  pipelineId: string,
+): boolean {
+  if (row.parseStatus === ParseStatus.SKIPPED) return true;
+  if (row.parseStatus !== ParseStatus.READY) return false;
+  if (row.parsePipelineId !== pipelineId) return false;
+  return (
+    parsedArtifactInManifest(row.parsedArtifactManifest, "content_md") ||
+    parsedArtifactInManifest(row.parsedArtifactManifest, "meta_json")
+  );
+}
+
+function workspaceFileParseAlreadyComplete(
+  row: WorkspaceFile,
+  pipelineId: string,
+): boolean {
+  if (row.parseStatus === ParseStatus.SKIPPED) return true;
+  if (row.parseStatus !== ParseStatus.READY) return false;
+  if (row.parsePipelineId !== pipelineId) return false;
+  return (
+    parsedArtifactInManifest(row.parsedArtifactManifest, "content_md") ||
+    parsedArtifactInManifest(row.parsedArtifactManifest, "meta_json")
+  );
+}
+
 export async function markChatAttachmentParseStartFailed(
   attachmentId: string,
   message: string,
@@ -100,11 +127,8 @@ export async function finalizeAttachmentParse(
   if (resolution.action === "reject") {
     throw new Error(`Unsupported file type for parse: ${row.mediaType}`);
   }
-  if (
-    row.parseStatus === ParseStatus.READY ||
-    row.parseStatus === ParseStatus.SKIPPED
-  ) {
-    if (row.parsePipelineId === resolution.pipelineId) return row;
+  if (chatAttachmentParseAlreadyComplete(row, resolution.pipelineId)) {
+    return row;
   }
   await enqueueParseJob(parseableFromChatAttachment(row), resolution.pipelineId);
   const running = await drizzleChatAttachmentRepository.getByIdOnly(row.id);
@@ -125,11 +149,8 @@ export async function finalizeWorkspaceFileParse(
   if (resolution.action === "reject") {
     throw new Error(`Unsupported file type for parse: ${row.mediaType}`);
   }
-  if (
-    row.parseStatus === ParseStatus.READY ||
-    row.parseStatus === ParseStatus.SKIPPED
-  ) {
-    if (row.parsePipelineId === resolution.pipelineId) return row;
+  if (workspaceFileParseAlreadyComplete(row, resolution.pipelineId)) {
+    return row;
   }
   await enqueueParseJob(
     parseableFromWorkspaceFile(row, row.userId),
