@@ -438,9 +438,10 @@ export function Composer({
   );
 
   const uploadOne = useCallback(
-    async (localId: string) => {
+    async (localId: string, fallback?: PreparedAttachment) => {
       if (!canUpload) return;
-      const current = attachmentsRef.current.find((item) => item.id === localId);
+      const current =
+        attachmentsRef.current.find((item) => item.id === localId) ?? fallback;
       if (!current || current.platformId || current.uploadState === "uploading") {
         return;
       }
@@ -494,8 +495,22 @@ export function Composer({
     [agentId, canUpload, chatId, eveSessionId],
   );
 
+  const pendingUploadLocalIds = useMemo(
+    () =>
+      attachments
+        .filter(
+          (item) =>
+            !item.platformId &&
+            item.uploadState !== "uploading" &&
+            item.uploadState !== "error",
+        )
+        .map((item) => item.id)
+        .join("\n"),
+    [attachments],
+  );
+
   useEffect(() => {
-    if (!canUpload) return;
+    if (!canUpload || !pendingUploadLocalIds) return;
     for (const attachment of attachmentsRef.current) {
       if (
         !attachment.platformId &&
@@ -505,7 +520,7 @@ export function Composer({
         void uploadOne(attachment.id);
       }
     }
-  }, [canUpload, chatId, eveSessionId, uploadOne]);
+  }, [canUpload, chatId, eveSessionId, uploadOne, pendingUploadLocalIds]);
 
   const addFiles = useCallback(
     async (files: readonly File[]) => {
@@ -522,7 +537,7 @@ export function Composer({
         setAttachments((prev) => [...prev, ...staged]);
         if (canUpload) {
           for (const item of staged) {
-            void uploadOne(item.id);
+            void uploadOne(item.id, item);
           }
         }
       } catch (err) {
