@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   FolderOpen,
   BotMessageSquare,
+  CalendarClock,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
@@ -17,7 +18,12 @@ import { StreamingIndicator } from "./StreamingIndicator";
 import { UserAccountMenu } from "./UserAccountMenu";
 import "./AgentNav.css";
 
-export type AgentNavView = "work" | "workspace" | "integrations" | "artifacts";
+export type AgentNavView =
+  | "work"
+  | "automation"
+  | "workspace"
+  | "integrations"
+  | "artifacts";
 
 type Props = {
   agent: AgentInfo;
@@ -101,6 +107,20 @@ export function AgentNav({
           <BotMessageSquare size={18} strokeWidth={2} aria-hidden />
           {!collapsed ? <span>Work</span> : null}
         </button>
+
+        {agent.id === "omni" ? (
+          <button
+            type="button"
+            className={
+              view === "automation" ? "agent-nav-item active" : "agent-nav-item"
+            }
+            title="Automation"
+            onClick={() => onViewChange("automation")}
+          >
+            <CalendarClock size={18} strokeWidth={2} aria-hidden />
+            {!collapsed ? <span>Automation</span> : null}
+          </button>
+        ) : null}
 
         <button
           type="button"

@@ -12,6 +12,7 @@ import { AgentChat } from "../components/AgentChat";
 import { AgentNav, type AgentNavView } from "../components/AgentNav";
 import { ArtifactsPanel } from "../components/ArtifactsPanel";
 import { IntegrationsPanel } from "../components/IntegrationsPanel";
+import { SchedulePanel } from "../components/SchedulePanel";
 import { WorkspacePanel } from "../components/WorkspacePanel";
 import {
   createWorkspaceFolder,
@@ -33,7 +34,6 @@ export function AgentPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [restoreChatId, setRestoreChatId] = useState<string | null>(null);
   const [streaming, setStreaming] = useState(false);
-  const [omniSchedulesOpen, setOmniSchedulesOpen] = useState(false);
 
   const projectId = searchParams.get("project")?.trim() || null;
 
@@ -60,7 +60,9 @@ export function AgentPage() {
         ? "integrations"
         : viewParam === "artifacts"
           ? "artifacts"
-          : "work";
+          : viewParam === "automation"
+            ? "automation"
+            : "work";
 
   const setView = useCallback(
     (next: AgentNavView) => {
@@ -180,20 +182,25 @@ export function AgentPage() {
       | undefined;
     if (!state) return;
 
-    if (state.openSchedules) {
-      setOmniSchedulesOpen(true);
-    }
     if (state.restoreChatId) {
       setRestoreChatId(state.restoreChatId);
     }
 
     if (state.openSchedules || state.restoreChatId) {
-      navigate(location.pathname + location.search, {
+      const params = new URLSearchParams(location.search);
+      if (state.openSchedules) params.set("view", "automation");
+      const search = params.toString();
+      navigate(`${location.pathname}${search ? `?${search}` : ""}`, {
         replace: true,
         state: null,
       });
     }
   }, [location.pathname, location.search, location.state, navigate]);
+
+  useEffect(() => {
+    if (view !== "work" || !restoreChatId) return;
+    setRestoreChatId(null);
+  }, [view, restoreChatId]);
 
   if (!token || !user) return <Navigate to="/login" replace />;
 
@@ -234,6 +241,21 @@ export function AgentPage() {
           <div className="agent-load-error">{loadError}</div>
         ) : !agent ? (
           <div className="agent-load-error">Loading agent…</div>
+        ) : view === "automation" ? (
+          <div className="automation-page">
+            <header className="automation-page-header">
+              <h2 className="automation-page-title">Automation</h2>
+            </header>
+            <div className="automation-page-body">
+              <SchedulePanel
+                agentId={agent.id}
+                onOpenResultChat={(chatId) => {
+                  setRestoreChatId(chatId);
+                  setView("work");
+                }}
+              />
+            </div>
+          </div>
         ) : view === "integrations" ? (
           <IntegrationsPanel agentId={agent.id} />
         ) : view === "artifacts" ? (
@@ -251,9 +273,8 @@ export function AgentPage() {
           <AgentChat
             agent={agent}
             restoreChatId={restoreChatId}
-            schedulesOpen={agent.id === "omni" ? omniSchedulesOpen : false}
-            onSchedulesOpenChange={
-              agent.id === "omni" ? setOmniSchedulesOpen : undefined
+            onOpenAutomation={
+              agent.id === "omni" ? () => setView("automation") : undefined
             }
             projectId={projectId}
             onProjectIdChange={setProjectId}
