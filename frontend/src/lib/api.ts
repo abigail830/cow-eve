@@ -185,9 +185,15 @@ export async function saveModelCatalog(update: ModelCatalogUpdate) {
   });
 }
 
-export async function fetchChats(agentId: string) {
+export async function fetchChats(
+  agentId: string,
+  options?: { scope?: "generic" | "project"; projectId?: string },
+) {
+  const params = new URLSearchParams({ agentId });
+  if (options?.scope) params.set("scope", options.scope);
+  if (options?.projectId) params.set("projectId", options.projectId);
   return api<{ ok: true; chats: ChatSummary[] }>(
-    `/api/chats?agentId=${encodeURIComponent(agentId)}`,
+    `/api/chats?${params.toString()}`,
   );
 }
 
@@ -236,6 +242,7 @@ export async function deleteUser(email: string) {
 
 export type ScheduledTaskPublic = {
   id: string;
+  agentId: string;
   name: string | null;
   prompt: string;
   everyMinutes: number | null;
@@ -250,11 +257,23 @@ export type ScheduledTaskPublic = {
   updatedAt: string;
 };
 
-export async function fetchSchedules() {
-  return api<{ ok: true; schedules: ScheduledTaskPublic[] }>("/api/schedules");
+export async function fetchSchedules(agentId?: string) {
+  const q = agentId
+    ? `?agentId=${encodeURIComponent(agentId)}`
+    : "";
+  return api<{ ok: true; schedules: ScheduledTaskPublic[] }>(
+    `/api/schedules${q}`,
+  );
+}
+
+export async function fetchScheduleSummary(agentId: string, limit = 3) {
+  return api<{ ok: true; schedules: ScheduledTaskPublic[] }>(
+    `/api/schedules/summary?agentId=${encodeURIComponent(agentId)}&limit=${limit}`,
+  );
 }
 
 export async function createSchedule(input: {
+  agentId?: string;
   name?: string;
   prompt: string;
   firstRunAt: string;

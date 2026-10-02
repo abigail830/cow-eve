@@ -12,10 +12,12 @@ import { useEveAgent } from "eve/react";
 import type { MessageStreamEvent } from "eve/client";
 import {
   Brain,
-  Clock,
+  CalendarClock,
   List,
   Loader2,
   MessageCirclePlus,
+  Settings2,
+  Target,
   Trash2,
   X,
 } from "lucide-react";
@@ -71,9 +73,17 @@ import { IconButton } from "./IconButton";
 import { MemoryPanel } from "./MemoryPanel";
 import { MessageStream } from "./MessageStream";
 import { ResizableAside } from "./ResizableAside";
+import { useBindChatSession } from "../hooks/useBindChatSession";
+import { fetchProject, type ProjectPublic } from "../lib/projects";
+import { ProjectListPanel } from "./ProjectListPanel";
+import { ProjectSettingsPanel } from "./ProjectSettingsPanel";
 import { SchedulePanel } from "./SchedulePanel";
+import { WorkHubCards } from "./WorkHubCards";
 import "./AgentChat.css";
+import "./ProjectListPanel.css";
+import "./ProjectSettingsPanel.css";
 import "./SchedulePanel.css";
+import "./WorkHubCards.css";
 
 type Props = {
   agent: AgentInfo;
@@ -82,6 +92,9 @@ type Props = {
   /** Omni only: show schedules in the main chat content area. */
   schedulesOpen?: boolean;
   onSchedulesOpenChange?: (open: boolean) => void;
+  /** When set, new sessions bind to this project and history is scoped. */
+  projectId?: string | null;
+  onProjectIdChange?: (projectId: string | null) => void;
   onActiveChatChange?: (chatId: string | null) => void;
   onStreamingChange?: (streaming: boolean) => void;
 };
@@ -113,6 +126,8 @@ export function AgentChat({
   restoreChatId = null,
   schedulesOpen = false,
   onSchedulesOpenChange,
+  projectId = null,
+  onProjectIdChange,
   onActiveChatChange,
   onStreamingChange,
 }: Props) {
@@ -133,10 +148,18 @@ export function AgentChat({
     key: `new-${agent.id}`,
   }));
 
+  const chatListOptions = useMemo(
+    () =>
+      projectId
+        ? ({ scope: "project" as const, projectId })
+        : ({ scope: "generic" as const }),
+    [projectId],
+  );
+
   const refreshChats = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetchChats(agent.id);
+      const res = await fetchChats(agent.id, chatListOptions);
       setChats(res.chats);
       setHistoryError(null);
     } catch (err) {
@@ -144,7 +167,7 @@ export function AgentChat({
         err instanceof Error ? err.message : "Failed to load history",
       );
     }
-  }, [agent.id, token]);
+  }, [agent.id, token, chatListOptions]);
 
   useEffect(() => {
     if (!token) return;
@@ -212,7 +235,7 @@ export function AgentChat({
     void (async () => {
       if (!token) return;
 
-      const chatsTask = fetchChats(agent.id)
+      const chatsTask = fetchChats(agent.id, chatListOptions)
         .then((res) => {
           if (cancelled) return res;
           setChats(res.chats);
@@ -256,6 +279,11 @@ export function AgentChat({
     // restoreChatId captured at agent switch — intentionally not a dep.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agent.id, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    void refreshChats();
+  }, [projectId, token, refreshChats]);
 
   const startNewChat = () => {
     syncActiveChat(null);
@@ -316,6 +344,8 @@ export function AgentChat({
       onStreamingChange={onStreamingChange}
       schedulesOpen={schedulesOpen}
       onSchedulesOpenChange={onSchedulesOpenChange}
+      projectId={projectId}
+      onProjectIdChange={onProjectIdChange}
       onReloadConversation={(chatId) => void bindChat(chatId)}
       onCaptureChatLinked={(chatId) => {
         syncActiveChat(chatId);
@@ -347,6 +377,8 @@ type SessionProps = {
   onActiveChatChange?: (chatId: string | null) => void;
   schedulesOpen: boolean;
   onSchedulesOpenChange?: (open: boolean) => void;
+  projectId: string | null;
+  onProjectIdChange?: (projectId: string | null) => void;
   onReloadConversation?: (chatId: string) => void;
   onCaptureChatLinked?: (chatId: string) => void;
 };
@@ -370,10 +402,15 @@ function AgentChatSession({
   onStreamingChange,
   schedulesOpen,
   onSchedulesOpenChange,
+  projectId,
+  onProjectIdChange,
   onReloadConversation,
   onCaptureChatLinked,
 }: SessionProps) {
   const isOmni = agent.id === "omni";
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
+  const [projectDetail, setProjectDetail] = useState<ProjectPublic | null>(null);
   const [previewArtifact, setPreviewArtifact] = useState<ArtifactSpec | null>(null);
   const [parseDrawerAttachment, setParseDrawerAttachment] =
     useState<ChatAttachmentPublic | null>(null);
@@ -510,6 +547,33 @@ function AgentChatSession({
     setOptimisticWorkspaceFiles(new Map());
   }, [bound.key]);
 
+  const prevProjectIdRef = useRef(projectId);
+  useEffect(() => {
+    const prev = prevProjectIdRef.current;
+    prevProjectIdRef.current = projectId;
+    if (prev !== projectId && prev != null && projectId != null) {
+      onNewChat();
+    }
+  }, [projectId, onNewChat]);
+
+  useEffect(() => {
+    if (!projectId) {
+      setProjectDetail(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchProject(projectId)
+      .then((project) => {
+        if (!cancelled) setProjectDetail(project);
+      })
+      .catch(() => {
+        if (!cancelled) setProjectDetail(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
   useEffect(() => {
     const fromBound = bound.session?.sessionId?.trim();
     if (fromBound) {
@@ -522,6 +586,36 @@ function AgentChatSession({
     () => resolveUploadEveSessionId(session, events, knownEveSessionId),
     [events, knownEveSessionId, session],
   );
+
+  useBindChatSession({
+    token,
+    agentId: agent.id,
+    projectId,
+    eveSessionId: uploadEveSessionId,
+    conversationKey: bound.key,
+  });
+
+  const workSurfaceOpen = schedulesOpen || projectsOpen;
+
+  const enterProject = useCallback(
+    (id: string) => {
+      onProjectIdChange?.(id);
+      setProjectsOpen(false);
+      onSchedulesOpenChange?.(false);
+      setProjectSettingsOpen(false);
+      setPreviewArtifact(null);
+      setHistoryOpen(false);
+      setMemoryOpen(false);
+      onNewChat();
+    },
+    [onNewChat, onProjectIdChange, onSchedulesOpenChange],
+  );
+
+  const exitProject = useCallback(() => {
+    onProjectIdChange?.(null);
+    setProjectSettingsOpen(false);
+    onNewChat();
+  }, [onNewChat, onProjectIdChange]);
 
   const audioCaptureTarget = useMemo(
     () => ({
@@ -864,6 +958,7 @@ function AgentChatSession({
     setHistoryOpen(false);
     setMemoryOpen(false);
     setPreviewArtifact(null);
+    setProjectsOpen(false);
     onSchedulesOpenChange?.(false);
   }
 
@@ -871,13 +966,102 @@ function AgentChatSession({
     setPreviewArtifact(null);
     setHistoryOpen(false);
     setMemoryOpen(false);
+    setProjectsOpen(false);
     onSchedulesOpenChange?.(true);
   }
+
+  const streamEmptyState = useMemo(() => {
+    if (workSurfaceOpen || conversationLoading || isBusy) return undefined;
+    if (projectId) {
+      return (
+        <p className="chat-project-empty-hint">
+          {projectDetail
+            ? `Project: ${projectDetail.name}. Send a message to start.`
+            : "Send a message to start this project chat."}
+        </p>
+      );
+    }
+    if (isOmni) {
+      return (
+        <WorkHubCards
+          agentId={agent.id}
+          onOpenSchedules={() => openSchedulesPanel()}
+          onOpenProjects={() => {
+            onSchedulesOpenChange?.(false);
+            setProjectsOpen(true);
+          }}
+          onOpenScheduleResult={(chatId) => {
+            onSchedulesOpenChange?.(false);
+            void onOpenChat(chatId);
+          }}
+          onEnterProject={enterProject}
+        />
+      );
+    }
+    return undefined;
+  }, [
+    agent.id,
+    conversationLoading,
+    enterProject,
+    isBusy,
+    isOmni,
+    onOpenChat,
+    onSchedulesOpenChange,
+    projectDetail,
+    projectId,
+    workSurfaceOpen,
+  ]);
 
   return (
     <div className="agent-chat">
       <div className="chat-main-column">
         <header className="chat-header chat-header--toolbar">
+          {schedulesOpen && isOmni ? (
+            <h2 className="work-page-title">
+              <span>Work</span>
+              <span className="work-page-title-sep" aria-hidden>
+                |
+              </span>
+              <span>Scheduled tasks</span>
+            </h2>
+          ) : projectsOpen && isOmni ? (
+            <h2 className="work-page-title">
+              <span>Work</span>
+              <span className="work-page-title-sep" aria-hidden>
+                |
+              </span>
+              <span>Projects</span>
+            </h2>
+          ) : projectId && projectDetail ? (
+            <div className="chat-header-project">
+              <span className="chat-project-chip">{projectDetail.name}</span>
+              <IconButton
+                bare
+                size={22}
+                icon={Settings2}
+                label="Project settings"
+                active={projectSettingsOpen}
+                onClick={() => {
+                  setPreviewArtifact(null);
+                  setHistoryOpen(false);
+                  setMemoryOpen(false);
+                  setProjectSettingsOpen((open) => !open);
+                }}
+              />
+              <button
+                type="button"
+                className="chat-project-exit"
+                onClick={() => {
+                  closePanels();
+                  exitProject();
+                }}
+              >
+                Exit project
+              </button>
+            </div>
+          ) : (
+            <h2 className="work-page-title">Work</h2>
+          )}
           <div className="chat-header-actions">
             <IconButton
               bare
@@ -890,20 +1074,40 @@ function AgentChatSession({
               }}
             />
             {isOmni ? (
-              <IconButton
-                bare
-                size={22}
-                icon={Clock}
-                label="Scheduled tasks"
-                active={schedulesOpen}
-                onClick={() => {
-                  if (schedulesOpen) {
-                    onSchedulesOpenChange?.(false);
-                  } else {
-                    openSchedulesPanel();
-                  }
-                }}
-              />
+              <>
+                <IconButton
+                  bare
+                  size={22}
+                  icon={CalendarClock}
+                  label="Scheduled tasks"
+                  active={schedulesOpen}
+                  onClick={() => {
+                    if (schedulesOpen) {
+                      onSchedulesOpenChange?.(false);
+                    } else {
+                      openSchedulesPanel();
+                    }
+                  }}
+                />
+                <IconButton
+                  bare
+                  size={22}
+                  icon={Target}
+                  label="Projects"
+                  active={projectsOpen}
+                  onClick={() => {
+                    if (projectsOpen) {
+                      setProjectsOpen(false);
+                    } else {
+                      setPreviewArtifact(null);
+                      setHistoryOpen(false);
+                      setMemoryOpen(false);
+                      onSchedulesOpenChange?.(false);
+                      setProjectsOpen(true);
+                    }
+                  }}
+                />
+              </>
             ) : null}
             <IconButton
               bare
@@ -957,10 +1161,16 @@ function AgentChatSession({
               </div>
             ) : schedulesOpen && isOmni ? (
               <SchedulePanel
+                agentId={agent.id}
                 onOpenResultChat={(chatId) => {
                   onSchedulesOpenChange?.(false);
                   void onOpenChat(chatId);
                 }}
+              />
+            ) : projectsOpen && isOmni ? (
+              <ProjectListPanel
+                agentId={agent.id}
+                onEnterProject={enterProject}
               />
             ) : (
               <>
@@ -987,6 +1197,7 @@ function AgentChatSession({
                   }
                   onOpenAttachmentPipeline={setParseDrawerAttachment}
                   workspaceFilesById={workspaceFilesById}
+                  emptyState={streamEmptyState}
                 />
                 {cancelling && isBusy ? (
                   <p className="chat-status" role="status">
@@ -1001,7 +1212,7 @@ function AgentChatSession({
           </div>
         </div>
 
-        {schedulesOpen && isOmni ? null : (
+        {workSurfaceOpen && isOmni ? null : (
           <Composer
             disabled={!token}
             modelLabel={modelLabel}
@@ -1154,6 +1365,20 @@ function AgentChatSession({
             });
           }}
         />
+      ) : null}
+
+      {projectSettingsOpen && projectId ? (
+        <ResizableAside defaultWidth={400} showHandleDivider={false}>
+          <ProjectSettingsPanel
+            projectId={projectId}
+            onClose={() => setProjectSettingsOpen(false)}
+            onProjectUpdated={() => {
+              void fetchProject(projectId)
+                .then(setProjectDetail)
+                .catch(() => undefined);
+            }}
+          />
+        </ResizableAside>
       ) : null}
 
       {!previewArtifact && memoryOpen ? (

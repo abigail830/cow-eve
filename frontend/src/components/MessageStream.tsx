@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { MessageStreamEvent } from "eve/client";
 import type { EveMessage, EveMessagePart } from "eve/react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
@@ -55,6 +55,7 @@ type Props = {
   onRetryAudioCapture?: (chatId: string, captureId: string) => void | Promise<void>;
   onOpenAttachmentPipeline?: (attachment: ChatAttachmentPublic) => void;
   workspaceFilesById?: ReadonlyMap<string, WorkspaceFilePublic>;
+  emptyState?: ReactNode;
 };
 
 function StepChevron() {
@@ -245,6 +246,7 @@ export function MessageStream({
   onRetryAudioCapture,
   onOpenAttachmentPipeline,
   workspaceFilesById,
+  emptyState,
 }: Props) {
   const [libraryAttachments, setLibraryAttachments] = useState<
     ChatAttachmentPublic[]
@@ -330,6 +332,9 @@ export function MessageStream({
     timeline.some((row) => row.type === "platform_audio");
 
   if (messages.length === 0 && !streaming && !hasAudioTurns) {
+    if (emptyState) {
+      return <div className="msg-empty msg-empty-custom">{emptyState}</div>;
+    }
     return (
       <div className="msg-empty">
         Send a message to start collaborating with this agent.

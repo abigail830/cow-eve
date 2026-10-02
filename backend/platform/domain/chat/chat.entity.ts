@@ -9,6 +9,8 @@ export type Chat = {
   titleSource: string | null;
   titleGeneratedAt: Date | null;
   deletedAt: Date | null;
+  projectId: string | null;
+  scheduledTaskId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

@@ -7,6 +7,7 @@ export type ScheduleStatus =
 export type ScheduledTask = {
   id: string;
   userId: string;
+  agentId: string;
   name: string | null;
   prompt: string;
   everyMinutes: number | null;
@@ -29,6 +30,7 @@ export type ClaimedScheduleTask = ScheduledTask & {
 };
 
 export type CreateScheduleInput = {
+  agentId: string;
   name?: string | null;
   prompt: string;
   firstRunAt: Date;

@@ -19,17 +19,92 @@
 .chat-header {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  padding: 8px 20px;
-  border-bottom: 1px solid #ececec;
+  justify-content: space-between;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
-  background: #fff;
+  background: var(--surface-raised);
   position: relative;
   z-index: 2;
 }
 
+.work-page-title {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35em;
+  font-family: var(--font-heading);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.work-page-title-sep {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
 .chat-header--toolbar {
   border-bottom: none;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chat-header-project {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.chat-project-chip {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  background: var(--accent-muted);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border-subtle));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: min(280px, 40vw);
+}
+
+.chat-project-exit {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.chat-project-exit:hover {
+  background: var(--accent-muted);
+}
+
+.chat-project-empty-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.msg-empty.msg-empty-custom {
+  width: 100%;
+  max-width: none;
+  margin-top: 0;
+  padding: 0;
+  text-align: left;
 }
 
 .chat-header-actions {
@@ -47,12 +122,17 @@
   box-sizing: border-box;
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
   font-size: var(--chat-font-size);
   line-height: var(--chat-line-height);
 }
 
 .chat-content-column {
   width: 100%;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
   position: relative;
 }
 

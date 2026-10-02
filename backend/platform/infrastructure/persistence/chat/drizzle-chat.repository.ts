@@ -10,6 +10,7 @@ import {
   getDatabaseUrl,
   chats,
   chatEvents,
+  chatSessionBindings,
   chatWorkspaceFileRefs,
   workspaceFiles,
   type ChatRow,
@@ -26,6 +27,8 @@ function toDomainChat(row: ChatRow): Chat {
     titleSource: row.titleSource ?? null,
     titleGeneratedAt: row.titleGeneratedAt ?? null,
     deletedAt: row.deletedAt,
+    projectId: row.projectId ?? null,
+    scheduledTaskId: row.scheduledTaskId ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -57,12 +60,23 @@ export class DrizzleChatRepository implements ChatRepository {
       return toDomainChat(existing);
     }
 
+    const binding = await db.query.chatSessionBindings.findFirst({
+      where: eq(chatSessionBindings.eveSessionId, input.eveSessionId),
+    });
+    const projectId =
+      binding &&
+      binding.userId === input.userId &&
+      binding.agentId === input.agentId
+        ? binding.projectId ?? null
+        : null;
+
     const [row] = await db
       .insert(chats)
       .values({
         userId: input.userId,
         agentId: input.agentId,
         eveSessionId: input.eveSessionId,
+        projectId,
       })
       .onConflictDoNothing({ target: chats.eveSessionId })
       .returning();
@@ -149,20 +163,51 @@ export class DrizzleChatRepository implements ChatRepository {
   async listChats(input: {
     userId: string;
     agentId: string;
+    scope?: "generic" | "project";
+    projectId?: string;
   }): Promise<Chat[]> {
     const db = requireDb();
+    const conditions = [
+      eq(chats.userId, input.userId),
+      eq(chats.agentId, input.agentId),
+      isNull(chats.deletedAt),
+    ];
+    if (input.scope === "generic") {
+      conditions.push(isNull(chats.projectId));
+      conditions.push(isNull(chats.scheduledTaskId));
+    } else if (input.scope === "project") {
+      if (!input.projectId?.trim()) {
+        return [];
+      }
+      conditions.push(eq(chats.projectId, input.projectId.trim()));
+    }
+
     const rows = await db
       .select()
       .from(chats)
-      .where(
-        and(
-          eq(chats.userId, input.userId),
-          eq(chats.agentId, input.agentId),
-          isNull(chats.deletedAt),
-        ),
-      )
+      .where(and(...conditions))
       .orderBy(desc(chats.updatedAt));
     return rows.map(toDomainChat);
+  }
+
+  async setScheduledTaskIdIfUnset(input: {
+    chatId: string;
+    userId: string;
+    scheduledTaskId: string;
+  }): Promise<void> {
+    const db = getDb();
+    if (!db) return;
+    await db
+      .update(chats)
+      .set({ scheduledTaskId: input.scheduledTaskId, updatedAt: new Date() })
+      .where(
+        and(
+          eq(chats.id, input.chatId),
+          eq(chats.userId, input.userId),
+          isNull(chats.scheduledTaskId),
+          isNull(chats.projectId),
+        ),
+      );
   }
 
   async getChatByEveSessionForUser(input: {

@@ -8,6 +8,7 @@ import { drizzleScheduleRepository } from "../../infrastructure/persistence/sche
 
 export type ScheduledTaskPublic = {
   id: string;
+  agentId: string;
   name: string | null;
   prompt: string;
   everyMinutes: number | null;
@@ -25,6 +26,7 @@ export type ScheduledTaskPublic = {
 export function toPublicSchedule(task: ScheduledTask): ScheduledTaskPublic {
   return {
     id: task.id,
+    agentId: task.agentId,
     name: task.name,
     prompt: task.prompt,
     everyMinutes: task.everyMinutes,
@@ -61,8 +63,38 @@ export async function createScheduleForUser(
 
 export async function listSchedulesForUser(
   userId: string,
+  agentId?: string,
 ): Promise<ScheduledTask[]> {
-  return drizzleScheduleRepository.list(userId);
+  return drizzleScheduleRepository.list(userId, agentId);
+}
+
+/** Prefer tasks with a last run; otherwise newest by createdAt. */
+export function pickScheduleSummaryTasks(
+  tasks: ScheduledTask[],
+  limit: number,
+): ScheduledTask[] {
+  const withRun = tasks
+    .filter((t) => t.lastRunAt != null || t.lastStatus != null)
+    .sort((a, b) => {
+      const ta = a.lastRunAt?.getTime() ?? 0;
+      const tb = b.lastRunAt?.getTime() ?? 0;
+      return tb - ta;
+    });
+  if (withRun.length >= limit) return withRun.slice(0, limit);
+
+  const rest = tasks
+    .filter((t) => !withRun.includes(t))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return [...withRun, ...rest].slice(0, limit);
+}
+
+export async function listScheduleSummaryForUser(
+  userId: string,
+  agentId: string,
+  limit: number,
+): Promise<ScheduledTask[]> {
+  const all = await drizzleScheduleRepository.list(userId, agentId);
+  return pickScheduleSummaryTasks(all, limit);
 }
 
 export async function getScheduleForUser(

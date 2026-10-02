@@ -20,6 +20,7 @@ function toDomain(row: ScheduledTaskRow): ScheduledTask {
   return {
     id: row.id,
     userId: row.userId,
+    agentId: row.agentId,
     name: row.name,
     prompt: row.prompt,
     everyMinutes: row.everyMinutes,
@@ -55,6 +56,7 @@ export class DrizzleScheduleRepository implements ScheduleRepository {
       .insert(scheduledTasks)
       .values({
         userId,
+        agentId: input.agentId.trim() || "omni",
         name: input.name?.trim() || null,
         prompt: input.prompt.trim(),
         everyMinutes: input.everyMinutes ?? null,
@@ -68,15 +70,19 @@ export class DrizzleScheduleRepository implements ScheduleRepository {
     return toDomain(row);
   }
 
-  async list(userId: string): Promise<ScheduledTask[]> {
+  async list(userId: string, agentId?: string): Promise<ScheduledTask[]> {
     const db = getDb();
     if (!db) return [];
 
+    const whereParts = [
+      eq(scheduledTasks.userId, userId),
+      isNull(scheduledTasks.deletedAt),
+    ];
+    if (agentId?.trim()) {
+      whereParts.push(eq(scheduledTasks.agentId, agentId.trim()));
+    }
     const rows = await db.query.scheduledTasks.findMany({
-      where: and(
-        eq(scheduledTasks.userId, userId),
-        isNull(scheduledTasks.deletedAt),
-      ),
+      where: and(...whereParts),
       orderBy: desc(scheduledTasks.updatedAt),
     });
     return rows.map(toDomain);
@@ -246,6 +252,18 @@ export class DrizzleScheduleRepository implements ScheduleRepository {
           eq(scheduledTasks.id, input.scheduleId),
           eq(scheduledTasks.userId, input.userId),
           isNull(scheduledTasks.deletedAt),
+        ),
+      );
+
+    await db
+      .update(chats)
+      .set({ scheduledTaskId: input.scheduleId, updatedAt: new Date() })
+      .where(
+        and(
+          eq(chats.id, chat.id),
+          eq(chats.userId, input.userId),
+          isNull(chats.scheduledTaskId),
+          isNull(chats.projectId),
         ),
       );
   }

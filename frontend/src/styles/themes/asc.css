@@ -31,6 +31,13 @@
   --surface-nav: #fafafa;
   --surface-overlay: rgba(255, 255, 255, 0.82);
 
+  /* Orange stays on links, nav, and the composer. Task rows stay gray, not peach. */
+  --work-card-bg: #ffffff;
+  --work-card-border: #e8e8e8;
+  --work-item-bg: #f6f6f6;
+  --work-item-border: #e6e6e6;
+  --work-hint-fg: #3d4343;
+
   /* Borders */
   --border-subtle: #e8e8e8;
   --border-default: #ececec;
@@ -39,6 +46,19 @@
   --color-info: #1877f2;
   --color-error: #dc3545;
   --color-teal: #077069;
+
+  --btn-primary-bg: var(--color-ink);
+  --btn-primary-fg: #ffffff;
+  --badge-neutral-bg: #eeeeee;
+  --badge-neutral-fg: #666666;
+  --badge-success-bg: #ecfdf3;
+  --badge-success-fg: #067647;
+  --badge-muted-bg: #f2f4f7;
+  --badge-muted-fg: #667085;
+  --badge-warning-bg: #fff7ed;
+  --badge-warning-fg: #c2410c;
+  --badge-info-bg: #eff8ff;
+  --badge-info-fg: #175cd3;
 
   /* Paper / marketing wash (home ambient, settings rail) */
   --paper-cover: #fff0e7;

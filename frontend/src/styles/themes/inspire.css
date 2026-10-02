@@ -29,12 +29,32 @@
   --surface-nav: #f7f9fb;
   --surface-overlay: rgba(255, 255, 255, 0.94);
 
+  /* Creative blue stays on links. Cards use a cool gray, not a blue wash. */
+  --work-card-bg: #ffffff;
+  --work-card-border: #e2e6ea;
+  --work-item-bg: #f5f7f9;
+  --work-item-border: #e0e4e8;
+  --work-hint-fg: #243044;
+
   --border-subtle: #e2e6ea;
   --border-default: #d5dbe3;
 
   --color-info: var(--brand-creative);
   --color-error: #dc3545;
   --color-teal: #2899c9;
+
+  --btn-primary-bg: var(--color-ink);
+  --btn-primary-fg: #ffffff;
+  --badge-neutral-bg: color-mix(in srgb, var(--surface-muted) 70%, var(--border-subtle));
+  --badge-neutral-fg: var(--color-text-secondary);
+  --badge-success-bg: #ecfdf3;
+  --badge-success-fg: #067647;
+  --badge-muted-bg: #f2f4f7;
+  --badge-muted-fg: #667085;
+  --badge-warning-bg: #fff7ed;
+  --badge-warning-fg: #c2410c;
+  --badge-info-bg: #eff8ff;
+  --badge-info-fg: #175cd3;
 
   --paper-cover: #f0f2f5;
   --paper-cover-soft: color-mix(in srgb, var(--paper-cover) 70%, transparent);

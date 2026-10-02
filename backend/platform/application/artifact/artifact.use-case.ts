@@ -18,6 +18,11 @@ export type AgentArtifactListItem = {
   kind: string;
   format: string;
   updatedAt: string | null;
+  source: "generic" | "project" | "schedule";
+  projectId: string | null;
+  projectName: string | null;
+  scheduleId: string | null;
+  scheduleName: string | null;
 };
 
 export async function publishSandboxArtifact(input: {
@@ -85,10 +90,16 @@ export async function getArtifactDownloadForUser(input: {
 export async function listAgentArtifactsForUser(input: {
   userId: string;
   agentId: string;
+  source?: "generic" | "project" | "schedule";
+  projectId?: string;
+  scheduleId?: string;
 }): Promise<AgentArtifactListItem[]> {
   const rows = await drizzleChatArtifactRepository.listForAgent({
     userId: input.userId,
     agentId: input.agentId,
+    source: input.source,
+    projectId: input.projectId,
+    scheduleId: input.scheduleId,
   });
 
   return rows.map((row) => ({
@@ -100,6 +111,11 @@ export async function listAgentArtifactsForUser(input: {
     kind: row.kind,
     format: row.format,
     updatedAt: row.createdAt.toISOString(),
+    source: row.source,
+    projectId: row.projectId,
+    projectName: row.projectName,
+    scheduleId: row.scheduleId,
+    scheduleName: row.scheduleName,
   }));
 }
 

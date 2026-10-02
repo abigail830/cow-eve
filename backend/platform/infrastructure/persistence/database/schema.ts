@@ -26,6 +26,8 @@ export const chats = pgTable(
     titleSource: text("title_source"),
     titleGeneratedAt: timestamp("title_generated_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    projectId: uuid("project_id"),
+    scheduledTaskId: uuid("scheduled_task_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -36,6 +38,12 @@ export const chats = pgTable(
   (table) => [
     index("chats_user_agent_updated_idx")
       .on(table.userId, table.agentId, table.updatedAt.desc())
+      .where(sql`${table.deletedAt} is null`),
+    index("chats_user_agent_project_idx")
+      .on(table.userId, table.agentId, table.projectId)
+      .where(sql`${table.deletedAt} is null`),
+    index("chats_scheduled_task_idx")
+      .on(table.scheduledTaskId)
       .where(sql`${table.deletedAt} is null`),
   ],
 );
@@ -140,6 +148,60 @@ export const chatArtifacts = pgTable(
     ),
   ],
 );
+
+export const projects = pgTable(
+  "projects",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id").notNull(),
+    agentId: text("agent_id").notNull(),
+    name: text("name").notNull(),
+    instructions: text("instructions").default("").notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("projects_user_agent_updated_idx")
+      .on(table.userId, table.agentId, table.updatedAt.desc())
+      .where(sql`${table.deletedAt} is null`),
+  ],
+);
+
+export const projectWorkspaceFileRefs = pgTable(
+  "project_workspace_file_refs",
+  {
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    workspaceFileId: uuid("workspace_file_id")
+      .notNull()
+      .references(() => workspaceFiles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.projectId, table.workspaceFileId] }),
+    index("project_workspace_file_refs_file_idx").on(table.workspaceFileId),
+  ],
+);
+
+export const chatSessionBindings = pgTable("chat_session_bindings", {
+  eveSessionId: text("eve_session_id").primaryKey(),
+  userId: text("user_id").notNull(),
+  agentId: text("agent_id").notNull(),
+  projectId: uuid("project_id").references(() => projects.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
 
 export const workspaceFolders = pgTable(
   "workspace_folders",
@@ -298,6 +360,7 @@ export type ChatRow = typeof chats.$inferSelect;
 export type ChatEventRow = typeof chatEvents.$inferSelect;
 export type ChatAttachmentRow = typeof chatAttachments.$inferSelect;
 export type ChatArtifactRow = typeof chatArtifacts.$inferSelect;
+export type ProjectRow = typeof projects.$inferSelect;
 export type WorkspaceFolderRow = typeof workspaceFolders.$inferSelect;
 export type WorkspaceFileRow = typeof workspaceFiles.$inferSelect;
 export type ParseJobRunRow = typeof parseJobRuns.$inferSelect;
@@ -312,6 +375,7 @@ export const scheduledTasks = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     userId: text("user_id").notNull(),
+    agentId: text("agent_id").notNull().default("omni"),
     name: text("name"),
     prompt: text("prompt").notNull(),
     everyMinutes: integer("every_minutes"),

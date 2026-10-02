@@ -4,6 +4,7 @@ import {
   persistStreamEvent,
   registerChatWorkspaceFileRefsForUser,
   resolveChatIdForEveSession,
+  touchProjectForChat,
   workspaceFileIdsFromMessageReceivedData,
 } from "#platform/composition/public-api.js";
 
@@ -26,6 +27,20 @@ export default defineHook({
           eveSessionId: ctx.session.id,
           event,
         });
+
+        if (userId) {
+          const chatId = await resolveChatIdForEveSession({
+            userId,
+            eveSessionId: ctx.session.id,
+          });
+          if (chatId) {
+            try {
+              await touchProjectForChat({ userId, chatId });
+            } catch {
+              /* non-fatal */
+            }
+          }
+        }
 
         if (
           userId &&

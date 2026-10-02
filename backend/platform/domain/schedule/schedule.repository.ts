@@ -7,7 +7,7 @@ import type {
 
 export interface ScheduleRepository {
   create(userId: string, input: CreateScheduleInput): Promise<ScheduledTask>;
-  list(userId: string): Promise<ScheduledTask[]>;
+  list(userId: string, agentId?: string): Promise<ScheduledTask[]>;
   getById(userId: string, id: string): Promise<ScheduledTask | null>;
   update(
     userId: string,

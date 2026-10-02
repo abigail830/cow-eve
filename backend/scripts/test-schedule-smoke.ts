@@ -51,6 +51,7 @@ async function run() {
   console.log("[test:schedule] create one-time task");
   const past = new Date(Date.now() - 60_000);
   const created = await createScheduleForUser(TEST_USER, {
+    agentId: "omni",
     name: "smoke",
     prompt: "Smoke test prompt",
     firstRunAt: past,
@@ -102,6 +103,7 @@ async function run() {
 
   console.log("[test:schedule] update + delete");
   const recurring = await createScheduleForUser(TEST_USER, {
+    agentId: "omni",
     prompt: "Recurring smoke",
     firstRunAt: new Date(Date.now() + 3600_000),
     everyMinutes: 60,

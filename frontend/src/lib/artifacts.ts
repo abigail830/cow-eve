@@ -2,6 +2,8 @@ import type { ArtifactSpec } from "@fde/artifact-spec";
 import { API_URL } from "./config";
 import { getToken } from "./session";
 
+export type ArtifactSourceKind = "generic" | "project" | "schedule";
+
 export type AgentArtifactListItem = {
   chatId: string;
   chatTitle: string | null;
@@ -11,6 +13,17 @@ export type AgentArtifactListItem = {
   kind: string;
   format: string;
   updatedAt: string | null;
+  source: ArtifactSourceKind;
+  projectId: string | null;
+  projectName: string | null;
+  scheduleId: string | null;
+  scheduleName: string | null;
+};
+
+export type ArtifactListFilter = {
+  source?: ArtifactSourceKind;
+  projectId?: string;
+  scheduleId?: string;
 };
 
 async function artifactFetch(path: string, init?: RequestInit): Promise<Response> {
@@ -22,9 +35,15 @@ async function artifactFetch(path: string, init?: RequestInit): Promise<Response
 
 export async function fetchAgentArtifacts(
   agentId: string,
+  filter?: ArtifactListFilter,
 ): Promise<AgentArtifactListItem[]> {
+  const params = new URLSearchParams();
+  if (filter?.source) params.set("source", filter.source);
+  if (filter?.projectId) params.set("projectId", filter.projectId);
+  if (filter?.scheduleId) params.set("scheduleId", filter.scheduleId);
+  const q = params.toString();
   const res = await artifactFetch(
-    `/api/agents/${encodeURIComponent(agentId)}/artifacts`,
+    `/api/agents/${encodeURIComponent(agentId)}/artifacts${q ? `?${q}` : ""}`,
   );
   const body = (await res.json()) as {
     ok?: boolean;

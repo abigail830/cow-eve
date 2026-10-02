@@ -5,7 +5,9 @@ import {
   buildSessionDocumentLibrary,
   classifyAttachment,
   listChatWorkspaceFileRefsForUser,
+  listProjectWorkspaceFileIdsForChat,
   listWorkspaceFilesForDocumentIndex,
+  mergeWorkspaceFileIds,
   registerChatWorkspaceFileRefsForUser,
   PARSE_READY_STATUSES,
   type DocumentIndexEntry,
@@ -72,9 +74,15 @@ export default defineDynamic({
         chatId != null
           ? await listChatWorkspaceFileRefsForUser({ userId, chatId })
           : [];
-      const workspaceFileIds = [
-        ...new Set([...fromMessages, ...persisted]),
-      ];
+      const projectFileIds =
+        chatId != null
+          ? await listProjectWorkspaceFileIdsForChat({ userId, chatId })
+          : [];
+      const workspaceFileIds = mergeWorkspaceFileIds({
+        projectFileIds,
+        chatFileIds: persisted,
+        messageFileIds: fromMessages,
+      });
 
       if (
         mentioned.length === 0 &&
@@ -99,6 +107,12 @@ export default defineDynamic({
       const lines: string[] = [];
 
       if (workspaceFileIds.length > 0) {
+        if (projectFileIds.length > 0) {
+          lines.push(
+            "Project context files (always available in this project; use ws:<uuid> as attachment_id):",
+            ...projectFileIds.map((id) => `- ws:${id}`),
+          );
+        }
         lines.push(
           "Workspace files referenced this thread (use ws:<uuid> as attachment_id):",
           ...workspaceFileIds.map((id) => `- ws:${id}`),

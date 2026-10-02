@@ -9,6 +9,7 @@ import {
   fetchArtifactSpec,
   formatArtifactTimestamp,
   type AgentArtifactListItem,
+  type ArtifactSourceKind,
 } from "../lib/artifacts";
 import { ResizableAside } from "./ResizableAside";
 import "./ArtifactsPanel.css";
@@ -38,6 +39,9 @@ export function ArtifactsPanel({ agentId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<"all" | ArtifactSourceKind>(
+    "all",
+  );
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [previewSpec, setPreviewSpec] = useState<ArtifactSpec | null>(null);
@@ -51,7 +55,10 @@ export function ArtifactsPanel({ agentId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const next = await fetchAgentArtifacts(agentId);
+      const next = await fetchAgentArtifacts(
+        agentId,
+        sourceFilter === "all" ? undefined : { source: sourceFilter },
+      );
       setItems(next);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load artifacts");
@@ -59,7 +66,7 @@ export function ArtifactsPanel({ agentId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [agentId]);
+  }, [agentId, sourceFilter]);
 
   useEffect(() => {
     void reload();
@@ -129,6 +136,30 @@ export function ArtifactsPanel({ agentId }: Props) {
                 Published deliverables from your chats with this agent.
               </p>
             </div>
+            <div className="artifacts-source-filters" role="group" aria-label="Filter by source">
+              {(
+                [
+                  ["all", "All"],
+                  ["generic", "Generic"],
+                  ["project", "Project"],
+                  ["schedule", "Schedule"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={
+                    sourceFilter === value
+                      ? "artifacts-source-chip active"
+                      : "artifacts-source-chip"
+                  }
+                  aria-pressed={sourceFilter === value}
+                  onClick={() => setSourceFilter(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="artifacts-header-tools">
               {searchOpen ? (
                 <div className="artifacts-search-wrap">
@@ -197,7 +228,13 @@ export function ArtifactsPanel({ agentId }: Props) {
                   {filtered.map((item) => {
                 const key = `${item.chatId}:${item.artifactId}`;
                 const active = previewKey === key;
-                const subtitle = [item.chatTitle, item.artifactId]
+                const sourceLabel =
+                  item.source === "project"
+                    ? item.projectName ?? "Project"
+                    : item.source === "schedule"
+                      ? item.scheduleName ?? "Schedule"
+                      : "Generic";
+                const subtitle = [sourceLabel, item.chatTitle, item.artifactId]
                   .filter(Boolean)
                   .join(" · ");
                 return (

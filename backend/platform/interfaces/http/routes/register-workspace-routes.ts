@@ -4,7 +4,6 @@ import {
   deleteWorkspaceFileForUser,
   deleteWorkspaceFolderForUser,
   getDatabaseUrl,
-  resolveCorsOrigin,
   getWorkspaceFileDownloadForUser,
   getWorkspaceFileFigureForUser,
   getWorkspaceFilePreviewBundleForUser,
@@ -14,36 +13,28 @@ import {
   listWorkspaceFoldersForUser,
   renameWorkspaceFolderForUser,
   uploadWorkspaceFileForUser,
-} from "../../../../platform/composition/public-api.js";
+} from "../../../composition/public-api.js";
+import type { PlatformRouteContext } from "../platform-route-context.js";
 
-type JsonFn = (
-  body: unknown,
-  status: number,
-  request: Request,
-) => Response;
-
-function workspaceCorsHeaders(request?: Request): HeadersInit {
-  return {
-    "Access-Control-Allow-Origin": resolveCorsOrigin(
-      request?.headers.get("origin") ?? null,
-    ),
-    "Access-Control-Allow-Headers": "authorization, content-type",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Credentials": "true",
-    Vary: "Origin",
-  };
-}
-
-export function registerWorkspaceRoutes(input: {
-  json: JsonFn;
-  requireUser: (request: Request) => Promise<{ principalId: string } | null>;
-}): RouteDefinition[] {
-  const { json, requireUser } = input;
+export function registerWorkspaceRoutes(
+  ctx: PlatformRouteContext,
+): RouteDefinition[] {
+  const { json, corsHeaders, preflight, requireUser } = ctx;
 
   return [
+    preflight("/api/workspace/batch-file-lookup"),
+    preflight("/api/workspace/folders"),
+    preflight("/api/workspace/folders/:id"),
+    preflight("/api/workspace/folders/:id/files"),
+    preflight("/api/workspace/files/:id/preview"),
+    preflight("/api/workspace/files/:id/preview-bundle"),
+    preflight("/api/workspace/files/:id/download"),
+    preflight("/api/workspace/files/:id/figures/:figureId"),
+    // DELETE on `/api/workspace/files/:id` — explicit OPTIONS only (no duplicate preflight).
     OPTIONS("/api/workspace/files/:id", async (request) =>
-      new Response(null, { status: 204, headers: workspaceCorsHeaders(request) }),
+      new Response(null, { status: 204, headers: corsHeaders(request) }),
     ),
+
     POST("/api/workspace/batch-file-lookup", async (request) => {
       const auth = await requireUser(request);
       if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
@@ -201,7 +192,7 @@ export function registerWorkspaceRoutes(input: {
       }
       return new Response(Buffer.from(payload.data), {
         headers: {
-          ...workspaceCorsHeaders(request),
+          ...corsHeaders(request),
           "Content-Type": payload.mediaType,
           "Cache-Control": "private, no-store",
         },
@@ -246,7 +237,7 @@ export function registerWorkspaceRoutes(input: {
       }
       return new Response(Buffer.from(payload.data), {
         headers: {
-          ...workspaceCorsHeaders(request),
+          ...corsHeaders(request),
           "Content-Type": payload.mediaType,
           "Content-Disposition": `inline; filename="${payload.filename.replace(/"/g, "")}"`,
           "Cache-Control": "private, no-store",

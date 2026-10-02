@@ -35,6 +35,23 @@ export function AgentPage() {
   const [streaming, setStreaming] = useState(false);
   const [omniSchedulesOpen, setOmniSchedulesOpen] = useState(false);
 
+  const projectId = searchParams.get("project")?.trim() || null;
+
+  const setProjectId = useCallback(
+    (id: string | null) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (id) next.set("project", id);
+          else next.delete("project");
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
   const viewParam = searchParams.get("view");
   const view: AgentNavView =
     viewParam === "workspace"
@@ -238,6 +255,8 @@ export function AgentPage() {
             onSchedulesOpenChange={
               agent.id === "omni" ? setOmniSchedulesOpen : undefined
             }
+            projectId={projectId}
+            onProjectIdChange={setProjectId}
             onActiveChatChange={() => {
               /* chat id tracked inside AgentChat */
             }}

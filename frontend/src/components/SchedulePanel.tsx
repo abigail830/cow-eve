@@ -5,7 +5,7 @@ import {
   type FormEvent,
   type SetStateAction,
 } from "react";
-import { Clock, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import {
   createSchedule,
   deleteSchedule,
@@ -215,10 +215,11 @@ function ScheduleTaskForm({
 }
 
 type Props = {
+  agentId?: string;
   onOpenResultChat?: (chatId: string) => void;
 };
 
-export function SchedulePanel({ onOpenResultChat }: Props) {
+export function SchedulePanel({ agentId = "omni", onOpenResultChat }: Props) {
   const [schedules, setSchedules] = useState<ScheduledTaskPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -237,7 +238,7 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchSchedules();
+      const res = await fetchSchedules(agentId);
       setSchedules(res.schedules);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
@@ -248,7 +249,7 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
 
   useEffect(() => {
     void reload();
-  }, []);
+  }, [agentId]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -268,6 +269,7 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
         });
       } else {
         await createSchedule({
+          agentId,
           name: form.name.trim() || undefined,
           prompt: form.prompt.trim(),
           firstRunAt: localInputToIso(form.firstRunAt),
@@ -329,10 +331,6 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
   return (
     <div className="schedule-panel">
       <div className="schedule-panel-toolbar">
-        <div className="schedule-panel-title">
-          <Clock size={18} strokeWidth={2} aria-hidden />
-          <h3>Scheduled tasks</h3>
-        </div>
         <button
           type="button"
           className="schedule-panel-create"
@@ -343,11 +341,6 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
           New task
         </button>
       </div>
-
-      <p className="schedule-panel-hint">
-        At the scheduled time, haoyu-omni runs your prompt automatically.
-        Results appear in a new conversation.
-      </p>
 
       {error ? <p className="chat-error">{error}</p> : null}
 
@@ -367,11 +360,15 @@ export function SchedulePanel({ onOpenResultChat }: Props) {
 
       <section className="schedule-panel-list">
         {loading ? (
-          <p className="schedule-muted">Loading…</p>
+          <div className="schedule-state-center" role="status">
+            <p className="schedule-muted">Loading…</p>
+          </div>
         ) : schedules.length === 0 && !showCreateForm ? (
-          <p className="schedule-muted">
-            No scheduled tasks yet. Click &ldquo;New task&rdquo; to get started.
-          </p>
+          <div className="schedule-state-center">
+            <p className="schedule-muted">
+              No scheduled tasks yet. Click &ldquo;New task&rdquo; to get started.
+            </p>
+          </div>
         ) : (
           <ul className="schedule-list">
             {schedules.map((task) =>

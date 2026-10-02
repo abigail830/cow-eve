@@ -28,12 +28,32 @@
   --surface-nav: var(--brand-navy);
   --surface-overlay: rgba(255, 255, 255, 0.92);
 
+  /* Teal stays on the rail and links. Cards use a cool gray, not a mint wash. */
+  --work-card-bg: #ffffff;
+  --work-card-border: #e2e6e8;
+  --work-item-bg: #f4f7f8;
+  --work-item-border: #e0e5e7;
+  --work-hint-fg: #2c3148;
+
   --border-subtle: #e2e6e8;
   --border-default: #d8dde0;
 
   --color-info: #1877f2;
   --color-error: #dc3545;
   --color-teal: #00a884;
+
+  --btn-primary-bg: var(--color-ink);
+  --btn-primary-fg: #ffffff;
+  --badge-neutral-bg: color-mix(in srgb, var(--surface-muted) 70%, var(--border-subtle));
+  --badge-neutral-fg: var(--color-text-secondary);
+  --badge-success-bg: #ecfdf3;
+  --badge-success-fg: #067647;
+  --badge-muted-bg: #f2f4f7;
+  --badge-muted-fg: #667085;
+  --badge-warning-bg: #fff7ed;
+  --badge-warning-fg: #c2410c;
+  --badge-info-bg: #eff8ff;
+  --badge-info-fg: #175cd3;
 
   --paper-cover: #f5f7f8;
   --paper-cover-soft: color-mix(in srgb, var(--paper-cover) 72%, transparent);

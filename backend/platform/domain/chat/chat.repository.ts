@@ -15,7 +15,18 @@ export interface ChatRepository {
     event: PersistableEvent;
   }): Promise<void>;
 
-  listChats(input: { userId: string; agentId: string }): Promise<Chat[]>;
+  listChats(input: {
+    userId: string;
+    agentId: string;
+    scope?: "generic" | "project";
+    projectId?: string;
+  }): Promise<Chat[]>;
+
+  setScheduledTaskIdIfUnset(input: {
+    chatId: string;
+    userId: string;
+    scheduledTaskId: string;
+  }): Promise<void>;
 
   getChatForUser(input: {
     userId: string;

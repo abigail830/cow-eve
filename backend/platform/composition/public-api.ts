@@ -136,6 +136,22 @@ export {
   registerChatWorkspaceFileRefsForUser,
   listChatWorkspaceFileRefsForUser,
 } from "../application/doc-retrieval/chat-workspace-refs.use-case.js";
+export { mergeWorkspaceFileIds } from "../application/doc-retrieval/effective-workspace-file-ids.js";
+export {
+  bindChatSessionForUser,
+  createProjectForUser,
+  deleteProjectForUser,
+  getProjectForUser,
+  getProjectInstructionsForChat,
+  listProjectSummaryForUserAgent,
+  listProjectWorkspaceFileIdsForChat,
+  listProjectWorkspaceFileRefsForUser,
+  listProjectsForUserAgent,
+  replaceProjectWorkspaceFileRefsForUser,
+  touchProjectForChat,
+  updateProjectForUser,
+  type ProjectPublic,
+} from "../application/project/project.use-case.js";
 export { workspaceFileIdsFromMessageReceivedData } from "../application/doc-retrieval/client-context-parse.js";
 export {
   listWorkspaceFoldersForUser,
@@ -215,6 +231,7 @@ export {
   deleteScheduleForUser,
   getScheduleForUser,
   listSchedulesForUser,
+  listScheduleSummaryForUser,
   linkScheduleRunChat,
   releaseSchedule,
   toPublicSchedule,
