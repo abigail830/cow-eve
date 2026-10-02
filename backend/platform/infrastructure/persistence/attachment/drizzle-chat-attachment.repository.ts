@@ -59,7 +59,17 @@ export class DrizzleChatAttachmentRepository implements ChatAttachmentRepository
           sizeBytes: input.sizeBytes,
           storageKey: input.storageKey,
           contentHash: input.contentHash ?? null,
-          ...(input.parseStatus ? { parseStatus: input.parseStatus } : {}),
+          ...(input.parseStatus
+            ? { parseStatus: input.parseStatus }
+            : {
+                parseStatus: ParseStatus.PENDING,
+                parsePipelineId: null,
+                parseJobId: null,
+                parseErrorCode: null,
+                parseErrorMessage: null,
+                parseStageSnapshot: null,
+                parsedArtifactManifest: null,
+              }),
         })
         .where(eq(chatAttachments.id, existing.id))
         .returning();

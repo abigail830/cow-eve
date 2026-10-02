@@ -28,10 +28,17 @@ function vercelDeploymentOrigin(): string {
   return "";
 }
 
+export function isVercelRuntime(): boolean {
+  return Boolean(trimEnv("VERCEL"));
+}
+
 export function getParsePipelineDispatchMode(): "auto" | "service" | "gha" | "inline" {
   const raw = trimEnv("PARSE_PIPELINE_DISPATCH").toLowerCase() || "auto";
   if (raw === "service" || raw === "gha" || raw === "inline") return raw;
   if (trimEnv("GITHUB_TOKEN") && trimEnv("GITHUB_REPO")) return "gha";
+  if (trimEnv("PARSE_PIPELINE_SERVICE_API_KEY")) return "service";
+  // Serverless: avoid defaulting to unreachable localhost parse service.
+  if (isVercelRuntime()) return "gha";
   return "service";
 }
 

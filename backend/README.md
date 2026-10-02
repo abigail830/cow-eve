@@ -64,7 +64,7 @@ curl -X POST http://127.0.0.1:2000/eve/v1/dev/schedules/heartbeat
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL for Eve memory |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token |
 | `AI_GATEWAY_API_KEY` | Model access when not using Vercel OIDC |
-| `PARSE_PIPELINE_DISPATCH` | `gha` (recommended on Vercel), `service` (local parse-pipeline HTTP), or `auto` (gha when `GITHUB_TOKEN` + `GITHUB_REPO` are set) |
+| `PARSE_PIPELINE_DISPATCH` | On Vercel use **`gha`** (not `service`). Local dev: `service` + `PARSE_PIPELINE_SERVICE_*`. `auto` picks gha when GitHub env is set; on Vercel without service keys, `auto` also expects gha. |
 | `GITHUB_TOKEN` | PAT with **Actions: read and write** on `GITHUB_REPO` (for `workflow_dispatch`) |
 | `GITHUB_REPO` | e.g. `abigail830/cow-eve` |
 | `GITHUB_WORKFLOW_FILE` | Default `parse-pipeline-run-job.yml` |

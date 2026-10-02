@@ -15,8 +15,13 @@ import {
 import { ParseStatus } from "../../domain/parse/parse-status.js";
 import {
   getGithubRepo,
+  getGithubToken,
   getGithubWorkflowFile,
   getParsePipelineDispatchMode,
+  getParsePipelinePublicBaseUrl,
+  getParsePipelineServiceApiKey,
+  getParsePipelineServiceUrl,
+  isVercelRuntime,
 } from "../../infrastructure/config/parse-pipeline.config.js";
 import { dispatchParseGha } from "../../infrastructure/parse-pipeline/dispatch-gha.js";
 import { dispatchParseService } from "../../infrastructure/parse-pipeline/dispatch-service.js";
@@ -35,6 +40,38 @@ import { createParseJobRun } from "../../infrastructure/persistence/parse/drizzl
 
 export function sha256Bytes(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function assertParseDispatchConfigured(
+  mode: ReturnType<typeof getParsePipelineDispatchMode>,
+): void {
+  if (mode === "service" && isVercelRuntime()) {
+    if (!getParsePipelineServiceApiKey()) {
+      throw new Error(
+        "On Vercel, PARSE_PIPELINE_DISPATCH=service requires PARSE_PIPELINE_SERVICE_API_KEY. " +
+          "Use PARSE_PIPELINE_DISPATCH=gha with GITHUB_TOKEN, GITHUB_REPO, and a public backend URL instead.",
+      );
+    }
+    const serviceUrl = getParsePipelineServiceUrl();
+    if (/127\.0\.0\.1|localhost/i.test(serviceUrl)) {
+      throw new Error(
+        "On Vercel, PARSE_PIPELINE_SERVICE_URL cannot be localhost. " +
+          "Set PARSE_PIPELINE_DISPATCH=gha and configure GITHUB_TOKEN + GITHUB_REPO.",
+      );
+    }
+  }
+  if (mode === "gha") {
+    if (!getGithubToken() || !getGithubRepo()) {
+      throw new Error(
+        "GITHUB_TOKEN and GITHUB_REPO are required when using GHA parse dispatch (set PARSE_PIPELINE_DISPATCH=gha on Vercel).",
+      );
+    }
+    if (!getParsePipelinePublicBaseUrl()) {
+      throw new Error(
+        "PARSE_PIPELINE_PUBLIC_BASE_URL (or Vercel host injection) is required for GHA parse dispatch.",
+      );
+    }
+  }
 }
 
 export async function markChatAttachmentParseStartFailed(
@@ -157,6 +194,7 @@ export async function enqueueParseJob(
   }
 
   const mode = getParsePipelineDispatchMode();
+  assertParseDispatchConfigured(mode);
   console.info("[parse] enqueue", {
     jobId,
     pipelineId,

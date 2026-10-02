@@ -9,6 +9,7 @@ import { registerAttachmentRoutes } from "./routes/register-attachment-routes.js
 import { registerAuthRoutes } from "./routes/register-auth-routes.js";
 import { registerIntegrationRoutes } from "./routes/register-integration-routes.js";
 import { registerChatRoutes } from "./routes/register-chat-routes.js";
+import { registerHealthRoutes } from "./routes/register-health-routes.js";
 import { registerMemoryRoutes } from "./routes/register-memory-routes.js";
 import { registerParseInternalRoutes } from "./routes/register-parse-internal-routes.js";
 import { registerProjectRoutes } from "./routes/register-project-routes.js";
@@ -28,6 +29,7 @@ export function registerPublicApiRoutes(
 ): RouteDefinition[] {
   return [
     ...registerAuthRoutes(ctx),
+    ...registerHealthRoutes(ctx),
     ...registerAgentsRoutes(ctx),
     ...registerSettingsRoutes(ctx),
     ...registerIntegrationRoutes(ctx),
