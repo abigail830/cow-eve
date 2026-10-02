@@ -13,12 +13,15 @@ import {
 import { FileText, Loader2, RotateCcw, Trash2, Upload, X } from "lucide-react";
 import { formatBytes } from "../lib/attachments";
 import { useAuth } from "../lib/auth";
+import type { ChatAttachmentPublic } from "../lib/attachmentUpload";
 import {
   ATTACHMENT_PARSE_POLL_MS,
   attachmentNeedsParsePoll,
   effectiveParseStatus,
+  isAttachmentReadyForSend,
   parseStatusLabel,
 } from "../lib/attachmentParseProgress";
+import { AttachmentParseDrawer } from "./AttachmentParseDrawer";
 import { workspaceFileAsAttachmentRow } from "../lib/workspaceParse";
 import {
   deleteWorkspaceFile,
@@ -58,6 +61,9 @@ export function WorkspacePanel({
   const [fileDropActive, setFileDropActive] = useState(false);
   const fileDropDepthRef = useRef(0);
   const [retryParseFileId, setRetryParseFileId] = useState<string | null>(null);
+  const [parseDrawerFileId, setParseDrawerFileId] = useState<string | null>(
+    null,
+  );
 
   const selectedFolder = useMemo(
     () => folders.find((f) => f.id === selectedFolderId) ?? null,
@@ -65,6 +71,12 @@ export function WorkspacePanel({
   );
 
   const previewOpen = Boolean(previewTitle);
+
+  const parseDrawerAttachment = useMemo((): ChatAttachmentPublic | null => {
+    if (!parseDrawerFileId) return null;
+    const file = files.find((f) => f.id === parseDrawerFileId);
+    return file ? workspaceFileAsAttachmentRow(file) : null;
+  }, [files, parseDrawerFileId]);
 
   const reloadFiles = useCallback(async () => {
     if (!selectedFolderId) {
@@ -133,6 +145,9 @@ export function WorkspacePanel({
       if (previewFileId === file.id) {
         closePreview();
       }
+      if (parseDrawerFileId === file.id) {
+        setParseDrawerFileId(null);
+      }
       await reloadFiles();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Delete failed");
@@ -173,7 +188,17 @@ export function WorkspacePanel({
     [previewFileId, reloadFiles],
   );
 
+  function openFilePanel(file: WorkspaceFilePublic) {
+    const row = workspaceFileAsAttachmentRow(file);
+    if (isAttachmentReadyForSend(row)) {
+      void openPreview(file);
+      return;
+    }
+    setParseDrawerFileId(file.id);
+  }
+
   async function openPreview(file: WorkspaceFilePublic) {
+    setParseDrawerFileId(null);
     setPreviewLoading(true);
     setPreviewTitle(file.filename);
     setPreviewFileId(file.id);
@@ -324,6 +349,8 @@ export function WorkspacePanel({
                 const badge = parseStatusLabel(row);
                 const parsing = status === "pending" || status === "running";
                 const failed = status === "failed";
+                const readyBadge =
+                  !parsing && !failed && isAttachmentReadyForSend(row);
                 const parseErrorHint = file.parseErrorMessage?.trim() || null;
                 const retryBusy = retryParseFileId === file.id;
                 return (
@@ -331,7 +358,7 @@ export function WorkspacePanel({
                     <button
                       type="button"
                       className="workspace-file-card-main"
-                      onClick={() => void openPreview(file)}
+                      onClick={() => openFilePanel(file)}
                     >
                       <span className="workspace-file-card-icon">
                         <FileText size={16} strokeWidth={2} aria-hidden />
@@ -344,7 +371,9 @@ export function WorkspacePanel({
                               ? "workspace-parse-badge workspace-parse-badge--busy"
                               : failed
                                 ? "workspace-parse-badge workspace-parse-badge--failed"
-                                : "workspace-parse-badge"
+                                : readyBadge
+                                  ? "workspace-parse-badge workspace-parse-badge--ready"
+                                  : "workspace-parse-badge"
                           }
                           title={
                             failed && parseErrorHint
@@ -453,6 +482,14 @@ export function WorkspacePanel({
           </aside>
         ) : null}
       </div>
+
+      <AttachmentParseDrawer
+        attachment={parseDrawerAttachment}
+        onClose={() => setParseDrawerFileId(null)}
+        onRetry={async (row) => {
+          await handleRetryParse(row.id);
+        }}
+      />
     </div>
   );
 }

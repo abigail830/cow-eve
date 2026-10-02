@@ -1,4 +1,5 @@
 import { classifyAttachment } from "../../domain/attachment/attachment-kinds.js";
+import type { WorkspaceFile } from "../../domain/workspace/workspace-file.entity.js";
 import { workspaceLibraryId } from "../../domain/document/document-scope.js";
 import { ParseStatus } from "../../domain/parse/parse-status.js";
 import {
@@ -30,23 +31,14 @@ export type WorkspaceFilePublic = {
   sizeBytes: number;
   parseStatus: string;
   parsePipelineId: string | null;
+  parseJobId: string | null;
   parseErrorMessage: string | null;
+  parseStageSnapshot: Record<string, unknown> | null;
   gist: string | null;
   createdAt: string;
 };
 
-function toPublic(row: {
-  id: string;
-  folderId: string;
-  filename: string;
-  mediaType: string;
-  sizeBytes: number;
-  parseStatus: string;
-  parsePipelineId: string | null;
-  parseErrorMessage: string | null;
-  gist: string | null;
-  createdAt: Date;
-}): WorkspaceFilePublic {
+function toPublic(row: WorkspaceFile): WorkspaceFilePublic {
   return {
     id: row.id,
     folderId: row.folderId,
@@ -55,7 +47,9 @@ function toPublic(row: {
     sizeBytes: row.sizeBytes,
     parseStatus: row.parseStatus,
     parsePipelineId: row.parsePipelineId,
+    parseJobId: row.parseJobId,
     parseErrorMessage: row.parseErrorMessage,
+    parseStageSnapshot: row.parseStageSnapshot,
     gist: row.gist,
     createdAt: row.createdAt.toISOString(),
   };

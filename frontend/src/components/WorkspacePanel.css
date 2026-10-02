@@ -279,6 +279,11 @@
   color: var(--color-text-muted);
 }
 
+.workspace-parse-badge--ready {
+  background: #ecfdf3;
+  color: #15803d;
+}
+
 .workspace-parse-badge--busy {
   background: #eef6ff;
   color: #2563eb;

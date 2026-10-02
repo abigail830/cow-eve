@@ -19,7 +19,9 @@ export type WorkspaceFilePublic = {
   sizeBytes: number;
   parseStatus: string;
   parsePipelineId: string | null;
+  parseJobId?: string | null;
   parseErrorMessage: string | null;
+  parseStageSnapshot?: Record<string, unknown> | null;
   gist: string | null;
   createdAt: string;
 };

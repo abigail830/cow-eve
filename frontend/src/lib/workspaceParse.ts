@@ -13,7 +13,9 @@ export function workspaceFileAsAttachmentRow(
     sizeBytes: file.sizeBytes,
     parseStatus: file.parseStatus,
     parsePipelineId: file.parsePipelineId,
+    parseJobId: file.parseJobId ?? null,
     parseErrorMessage: file.parseErrorMessage,
+    parseStageSnapshot: file.parseStageSnapshot ?? null,
     createdAt: file.createdAt,
   };
 }
