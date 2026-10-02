@@ -5,6 +5,7 @@ import './index.css'
 
 initThemeFromStorage()
 import '../../packages/artifact-ui/src/styles.css'
+import '../../packages/question-ui/src/styles.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

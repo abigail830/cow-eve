@@ -7,13 +7,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "postinstall": "npm install --prefix ../packages/artifact-spec && npm install --prefix ../packages/artifact-ui --omit=peer && npm run copy:ooxml-wasm",
+    "postinstall": "npm install --prefix ../packages/artifact-spec && npm install --prefix ../packages/artifact-ui --omit=peer && npm install --prefix ../packages/question-ui --omit=peer && npm run copy:ooxml-wasm",
     "copy:ooxml-wasm": "mkdir -p public/ooxml && cp node_modules/@silurus/ooxml/dist/docx_parser_bg.wasm node_modules/@silurus/ooxml/dist/pptx_parser_bg.wasm public/ooxml/",
     "preview": "vite preview"
   },
   "dependencies": {
     "@fde/artifact-spec": "file:../packages/artifact-spec",
     "@fde/artifact-ui": "file:../packages/artifact-ui",
+    "@fde/question-ui": "file:../packages/question-ui",
     "@silurus/ooxml": "^0.87.0",
     "@vercel/blob": "^2.8.0",
     "eve": "^0.62.0",

@@ -8,8 +8,9 @@ import {
 } from "react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { ArtifactPreviewPanel } from "@fde/artifact-ui";
+import { collectPendingInputRequests } from "@fde/question-ui";
 import { useEveAgent } from "eve/react";
-import type { MessageStreamEvent } from "eve/client";
+import type { InputResponse, MessageStreamEvent } from "eve/client";
 import {
   Brain,
   Columns3Cog,
@@ -468,6 +469,7 @@ function AgentChatSession({
   >(() => new Map());
   /** True after cancel() is accepted until the stream settles. */
   const [cancelling, setCancelling] = useState(false);
+  const [hitlResponding, setHitlResponding] = useState(false);
   const [pendingDeleteChat, setPendingDeleteChat] = useState<ChatSummary | null>(
     null,
   );
@@ -482,23 +484,24 @@ function AgentChatSession({
   onStreamingChangeRef.current = onStreamingChange;
 
   const host = agentHost(agent.id);
-  const { data, status, error, events, session, send, cancel } = useEveAgent({
-    host,
-    auth: token ? { bearer: () => token } : undefined,
-    initialSession: bound.session,
-    initialEvents: bound.events,
-    resume: bound.resume,
-    onSessionChange: (session) => {
-      const nextId = session?.sessionId;
-      if (!nextId || nextId === knownSessionIdRef.current) return;
-      knownSessionIdRef.current = nextId;
-      setKnownEveSessionId(nextId);
-      onRefreshChats();
-    },
-    onFinish: () => {
-      onRefreshChats();
-    },
-  });
+  const { data, status, error, events, session, send, cancel, respond } =
+    useEveAgent({
+      host,
+      auth: token ? { bearer: () => token } : undefined,
+      initialSession: bound.session,
+      initialEvents: bound.events,
+      resume: bound.resume,
+      onSessionChange: (session) => {
+        const nextId = session?.sessionId;
+        if (!nextId || nextId === knownSessionIdRef.current) return;
+        knownSessionIdRef.current = nextId;
+        setKnownEveSessionId(nextId);
+        onRefreshChats();
+      },
+      onFinish: () => {
+        onRefreshChats();
+      },
+    });
 
   const sessionWorkspaceFileIds = useMemo(() => {
     const display = collapseUserClientContextMessages(data.messages);
@@ -556,6 +559,25 @@ function AgentChatSession({
   // - cancel keeps the stream attached through turn.cancelled → session.waiting
   const isBusy = status === "submitted" || status === "streaming";
   const isResuming = status === "resuming";
+  const pendingHitl = useMemo(
+    () => collectPendingInputRequests(data.messages),
+    [data.messages],
+  );
+  const hitlAwaitingAnswer =
+    pendingHitl.length > 0 && !isBusy && !isResuming && !hitlResponding;
+
+  const handleHitlRespond = useCallback(
+    async (responses: InputResponse[]) => {
+      if (isResuming || hitlResponding || isBusy) return;
+      setHitlResponding(true);
+      try {
+        await respond(responses);
+      } finally {
+        setHitlResponding(false);
+      }
+    },
+    [respond, isResuming, hitlResponding, isBusy],
+  );
   /** Legacy partial streams only — full history renders from initialEvents without blocking UI. */
   const conversationLoading =
     bound.resume &&
@@ -1246,6 +1268,8 @@ function AgentChatSession({
                   onOpenAttachmentPipeline={setParseDrawerAttachment}
                   workspaceFilesById={workspaceFilesById}
                   emptyState={streamEmptyState}
+                  onHitlRespond={handleHitlRespond}
+                  hitlResponding={hitlResponding}
                 />
                 {cancelling && isBusy ? (
                   <p className="chat-status" role="status">
@@ -1267,6 +1291,7 @@ function AgentChatSession({
             busy={isBusy}
             resuming={isResuming}
             cancelling={cancelling}
+            hitlAwaitingAnswer={hitlAwaitingAnswer}
             chatId={activeChatId ?? bound.chatId}
             eveSessionId={uploadEveSessionId}
             agentId={agent.id}

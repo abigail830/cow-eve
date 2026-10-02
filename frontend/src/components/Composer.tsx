@@ -70,6 +70,8 @@ type Props = {
   resuming?: boolean;
   /** cancel() accepted; still waiting for turn.cancelled / session.waiting. */
   cancelling?: boolean;
+  /** Agent paused on Eve HITL (ask_question / approval); prompt user to use cards above. */
+  hitlAwaitingAnswer?: boolean;
   chatId?: string | null;
   eveSessionId?: string | null;
   agentId: string;
@@ -117,6 +119,7 @@ export function Composer({
   busy = false,
   resuming = false,
   cancelling = false,
+  hitlAwaitingAnswer = false,
   chatId = null,
   eveSessionId = null,
   agentId,
@@ -799,6 +802,12 @@ export function Composer({
       onDragOver={handleDragOver}
     >
       {audioDraft.transcriptToolbar}
+      {hitlAwaitingAnswer ? (
+        <p className="composer-hitl-hint" role="status">
+          Answer the prompt above to continue. You can also reply in the box if
+          your text matches an option.
+        </p>
+      ) : null}
       <div className="composer-box">
         {audioDraft.draftCard}
         {audioDraft.error ? (

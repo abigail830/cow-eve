@@ -1,3 +1,13 @@
+.composer-hitl-hint {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text-muted, #666);
+  background: var(--surface-muted, rgba(0, 0, 0, 0.04));
+  border-radius: 8px;
+}
+
 .composer {
   flex-shrink: 0;
   width: 100%;

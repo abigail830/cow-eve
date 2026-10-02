@@ -23,7 +23,8 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@fde/artifact-spec": ["../packages/artifact-spec/src/index.ts"],
-      "@fde/artifact-ui": ["../packages/artifact-ui/src/index.ts"]
+      "@fde/artifact-ui": ["../packages/artifact-ui/src/index.ts"],
+      "@fde/question-ui": ["../packages/question-ui/src/index.ts"]
     }
   },
   "include": ["src"]

@@ -12,6 +12,10 @@ Backend agent `instructions.md` may match the user's language when they write in
 
 See [backend/AGENTS.md](backend/AGENTS.md) for Eve authoring conventions.
 
+## Human-in-the-loop (questions & approvals)
+
+Omni uses Eve `ask_question` plus `@fde/question-ui` in the chat client. See [backend/platform/docs/HITL_QUESTION_UI.md](backend/platform/docs/HITL_QUESTION_UI.md).
+
 ## Platform product turns (composer cards in chat)
 
 User-initiated product flows (e.g. audio transcript) must be recorded as **Platform Product Turns** on the Eve stream, not a parallel UI list. See [backend/platform/docs/PLATFORM_PRODUCT_TURNS.md](backend/platform/docs/PLATFORM_PRODUCT_TURNS.md).

@@ -3,6 +3,8 @@ import type { MessageStreamEvent } from "eve/client";
 import type { EveMessage, EveMessagePart } from "eve/react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { resolveArtifactToolPart } from "@fde/artifact-ui";
+import { resolveHitlToolPart } from "@fde/question-ui";
+import type { InputResponse } from "eve/client";
 import { ChevronRight, FileText, ImageIcon, Loader2 } from "lucide-react";
 import { formatBytes, isImageMime } from "../lib/attachments";
 import {
@@ -56,6 +58,8 @@ type Props = {
   onOpenAttachmentPipeline?: (attachment: ChatAttachmentPublic) => void;
   workspaceFilesById?: ReadonlyMap<string, WorkspaceFilePublic>;
   emptyState?: ReactNode;
+  onHitlRespond?: (responses: InputResponse[]) => void | Promise<void>;
+  hitlResponding?: boolean;
 };
 
 function StepChevron() {
@@ -76,6 +80,8 @@ function PartView({
   chatId,
   previewArtifactId,
   onPreviewArtifact,
+  onHitlRespond,
+  hitlResponding,
 }: {
   part: EveMessagePart;
   apiBase: string;
@@ -83,6 +89,8 @@ function PartView({
   chatId?: string | null;
   previewArtifactId?: string | null;
   onPreviewArtifact?: (spec: ArtifactSpec) => void;
+  onHitlRespond?: (responses: InputResponse[]) => void | Promise<void>;
+  hitlResponding?: boolean;
 }) {
   if (part.type === "text") {
     return <MarkdownContent text={part.text} className="msg-text" />;
@@ -102,6 +110,18 @@ function PartView({
     const name = "toolName" in part ? String(part.toolName) : "tool";
     const state = "state" in part ? String(part.state) : "";
     const output = "output" in part ? part.output : null;
+
+    if (onHitlRespond) {
+      const hitlView = resolveHitlToolPart({
+        part,
+        onRespond: onHitlRespond,
+        responding: hitlResponding,
+      });
+      if (hitlView) {
+        return hitlView;
+      }
+    }
+
     const artifactView =
       output != null
         ? resolveArtifactToolPart({
@@ -247,6 +267,8 @@ export function MessageStream({
   onOpenAttachmentPipeline,
   workspaceFilesById,
   emptyState,
+  onHitlRespond,
+  hitlResponding,
 }: Props) {
   const [libraryAttachments, setLibraryAttachments] = useState<
     ChatAttachmentPublic[]
@@ -506,6 +528,8 @@ export function MessageStream({
                   chatId={chatId}
                   previewArtifactId={previewArtifactId}
                   onPreviewArtifact={onPreviewArtifact}
+                  onHitlRespond={onHitlRespond}
+                  hitlResponding={hitlResponding}
                 />
               ))}
               {isLastAssistant ? <StreamingIndicator /> : null}

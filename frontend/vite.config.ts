@@ -15,6 +15,7 @@ export default defineConfig({
     alias: {
       "@fde/artifact-spec": path.resolve(__dirname, "../packages/artifact-spec/src/index.ts"),
       "@fde/artifact-ui": path.resolve(__dirname, "../packages/artifact-ui/src/index.ts"),
+      "@fde/question-ui": path.resolve(__dirname, "../packages/question-ui/src/index.ts"),
       react: path.resolve(__dirname, "node_modules/react"),
       "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
     },
