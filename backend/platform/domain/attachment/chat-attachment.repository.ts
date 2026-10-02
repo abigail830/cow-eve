@@ -2,6 +2,7 @@ import type { ChatAttachment } from "./chat-attachment.entity";
 
 export type ChatAttachmentRepository = {
   upsert(input: {
+    id?: string;
     chatId: string;
     filename: string;
     mediaType: string;

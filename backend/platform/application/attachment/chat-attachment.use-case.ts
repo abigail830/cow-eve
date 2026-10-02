@@ -108,7 +108,11 @@ export async function uploadChatAttachmentForUser(input: {
   } catch {
     return { attachment: null, error: "Unsupported file type." };
   }
-  const attachmentId = crypto.randomUUID();
+  const existing = await drizzleChatAttachmentRepository.findByFilename({
+    chatId: chat.id,
+    filename: input.filename,
+  });
+  const attachmentId = existing?.id ?? crypto.randomUUID();
   const contentHash = sha256Bytes(input.bytes);
   const storageKey = storageKeyFor(attachmentId, input.filename);
 
@@ -120,6 +124,7 @@ export async function uploadChatAttachmentForUser(input: {
       input.mediaType,
     );
     const saved = await drizzleChatAttachmentRepository.upsert({
+      id: existing ? undefined : attachmentId,
       chatId: chat.id,
       filename: input.filename,
       mediaType: input.mediaType,

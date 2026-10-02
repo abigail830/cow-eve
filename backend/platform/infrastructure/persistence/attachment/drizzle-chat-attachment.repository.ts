@@ -35,6 +35,7 @@ function toDomain(row: ChatAttachmentRow): ChatAttachment {
 
 export class DrizzleChatAttachmentRepository implements ChatAttachmentRepository {
   async upsert(input: {
+    id?: string;
     chatId: string;
     filename: string;
     mediaType: string;
@@ -79,6 +80,7 @@ export class DrizzleChatAttachmentRepository implements ChatAttachmentRepository
     const [row] = await db
       .insert(chatAttachments)
       .values({
+        ...(input.id ? { id: input.id } : {}),
         chatId: input.chatId,
         filename: input.filename,
         mediaType: input.mediaType,

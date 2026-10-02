@@ -119,6 +119,12 @@ export async function handleParseOriginalFile(
   }
   const bytes = await getAttachmentBytes(parseable.scopeId, parseable.storageKey);
   if (!bytes?.byteLength) {
+    console.error("[parse] original bytes missing", {
+      attachmentId,
+      chatId: parseable.scopeId,
+      storageKey: parseable.storageKey,
+      jobId: run.jobId,
+    });
     return Response.json({ error: "original not found" }, { status: 404 });
   }
   return new Response(Buffer.from(bytes), {
