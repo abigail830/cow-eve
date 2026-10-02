@@ -324,6 +324,7 @@ export function WorkspacePanel({
                 const badge = parseStatusLabel(row);
                 const parsing = status === "pending" || status === "running";
                 const failed = status === "failed";
+                const parseErrorHint = file.parseErrorMessage?.trim() || null;
                 const retryBusy = retryParseFileId === file.id;
                 return (
                   <article key={file.id} className="workspace-file-card">
@@ -344,6 +345,11 @@ export function WorkspacePanel({
                               : failed
                                 ? "workspace-parse-badge workspace-parse-badge--failed"
                                 : "workspace-parse-badge"
+                          }
+                          title={
+                            failed && parseErrorHint
+                              ? parseErrorHint
+                              : undefined
                           }
                         >
                           {parsing ? (

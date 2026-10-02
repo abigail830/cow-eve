@@ -13,6 +13,31 @@ from parse_pipeline.normalize.artifacts import NormalizedArtifacts, artifacts_to
 from parse_pipeline.schemas.storage import ReadSpec, StorageSpec, WriteTarget
 
 _HTTP_TIMEOUT = 120.0
+_READ_TIMEOUT_FLOOR = 120.0
+_READ_TIMEOUT_CAP = 600.0
+
+
+def _read_timeout_sec(read_spec: ReadSpec) -> float:
+    """Allow large originals (e.g. 20MB pptx) without httpx default read cutoff."""
+    size = read_spec.size_bytes
+    if not size or size <= 0:
+        return _READ_TIMEOUT_FLOOR
+    # ~512 KB/s minimum assumed for localhost/backend fetch
+    estimated = 60.0 + (size / (512 * 1024))
+    return min(_READ_TIMEOUT_CAP, max(_READ_TIMEOUT_FLOOR, estimated))
+
+
+def _httpx_timeout(read_spec: ReadSpec | None = None) -> httpx.Timeout:
+    read_sec = _read_timeout_sec(read_spec) if read_spec else _READ_TIMEOUT_FLOOR
+    return httpx.Timeout(_HTTP_TIMEOUT, read=read_sec)
+
+
+def _local_platform_url(url: str) -> bool:
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    host = (parsed.hostname or "").lower()
+    return host in {"127.0.0.1", "localhost", "::1"}
 
 
 def _file_path_from_url(url: str) -> Path:
@@ -24,7 +49,10 @@ def _file_path_from_url(url: str) -> Path:
 
 @asynccontextmanager
 async def http_put_client() -> AsyncIterator[httpx.AsyncClient]:
-    client = httpx.AsyncClient(timeout=_HTTP_TIMEOUT)
+    client = httpx.AsyncClient(
+        timeout=httpx.Timeout(_HTTP_TIMEOUT, read=_READ_TIMEOUT_CAP),
+        trust_env=False,
+    )
     try:
         yield client
     finally:
@@ -37,7 +65,11 @@ async def fetch_bytes(read_spec: ReadSpec) -> bytes:
         path = _file_path_from_url(read_spec.url)
         return path.read_bytes()
     headers = dict(read_spec.headers or {})
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as client:
+    trust_env = not _local_platform_url(read_spec.url)
+    async with httpx.AsyncClient(
+        timeout=_httpx_timeout(read_spec),
+        trust_env=trust_env,
+    ) as client:
         response = await client.request(read_spec.method, read_spec.url, headers=headers)
         response.raise_for_status()
         return response.content
@@ -62,7 +94,10 @@ async def put_bytes(
         response = await client.request(target.method, target.url, content=data, headers=headers)
         response.raise_for_status()
         return
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT) as ephemeral:
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(_HTTP_TIMEOUT, read=_READ_TIMEOUT_CAP),
+        trust_env=not _local_platform_url(target.url),
+    ) as ephemeral:
         response = await ephemeral.request(target.method, target.url, content=data, headers=headers)
         response.raise_for_status()
 

@@ -52,9 +52,10 @@ export function buildJobPayload(
     runToken,
   });
   const webhookUrl = `${publicBase.replace(/\/+$/, "")}${getParsePipelineWebhookPath()}`;
+  // Include jobId so each enqueue/run is distinct (parse service dedupes by idempotency_key).
   const idempotencyKey = row.contentHash
-    ? `sha256:${row.scopeId}:${row.id}:${row.contentHash}`
-    : null;
+    ? `sha256:${row.scopeId}:${row.id}:${row.contentHash}:${input.jobId}`
+    : `job:${input.jobId}`;
 
   const payload: Record<string, unknown> = {
     schema_version: "1.0",

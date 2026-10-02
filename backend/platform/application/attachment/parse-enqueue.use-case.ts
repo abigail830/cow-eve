@@ -127,7 +127,10 @@ export async function finalizeAttachmentParse(
   if (resolution.action === "reject") {
     throw new Error(`Unsupported file type for parse: ${row.mediaType}`);
   }
-  if (chatAttachmentParseAlreadyComplete(row, resolution.pipelineId)) {
+  if (
+    row.parseStatus !== ParseStatus.FAILED &&
+    chatAttachmentParseAlreadyComplete(row, resolution.pipelineId)
+  ) {
     return row;
   }
   await enqueueParseJob(parseableFromChatAttachment(row), resolution.pipelineId);
@@ -149,7 +152,10 @@ export async function finalizeWorkspaceFileParse(
   if (resolution.action === "reject") {
     throw new Error(`Unsupported file type for parse: ${row.mediaType}`);
   }
-  if (workspaceFileParseAlreadyComplete(row, resolution.pipelineId)) {
+  if (
+    row.parseStatus !== ParseStatus.FAILED &&
+    workspaceFileParseAlreadyComplete(row, resolution.pipelineId)
+  ) {
     return row;
   }
   await enqueueParseJob(
