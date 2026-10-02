@@ -70,6 +70,19 @@ export async function getProjectForUser(input: {
   return toPublic({ ...row, lastActivityAt: row.updatedAt });
 }
 
+export async function getProjectForUserAgent(input: {
+  userId: string;
+  projectId: string;
+  agentId: string;
+}): Promise<ProjectPublic | null> {
+  const row = await drizzleProjectRepository.getForUser({
+    userId: input.userId,
+    projectId: input.projectId,
+  });
+  if (!row || row.agentId !== input.agentId) return null;
+  return toPublic({ ...row, lastActivityAt: row.updatedAt });
+}
+
 export async function updateProjectForUser(input: {
   userId: string;
   projectId: string;
@@ -81,11 +94,41 @@ export async function updateProjectForUser(input: {
   return toPublic({ ...row, lastActivityAt: row.updatedAt });
 }
 
+export async function updateProjectForUserAgent(input: {
+  userId: string;
+  projectId: string;
+  agentId: string;
+  name?: string;
+  instructions?: string;
+}): Promise<ProjectPublic | null> {
+  const existing = await getProjectForUserAgent(input);
+  if (!existing) return null;
+  return updateProjectForUser({
+    userId: input.userId,
+    projectId: input.projectId,
+    name: input.name,
+    instructions: input.instructions,
+  });
+}
+
 export async function deleteProjectForUser(input: {
   userId: string;
   projectId: string;
 }): Promise<boolean> {
   return drizzleProjectRepository.softDeleteForUser(input);
+}
+
+export async function deleteProjectForUserAgent(input: {
+  userId: string;
+  projectId: string;
+  agentId: string;
+}): Promise<boolean> {
+  const existing = await getProjectForUserAgent(input);
+  if (!existing) return false;
+  return deleteProjectForUser({
+    userId: input.userId,
+    projectId: input.projectId,
+  });
 }
 
 export async function bindChatSessionForUser(input: {

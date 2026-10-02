@@ -19,6 +19,7 @@ export interface ScheduleRepository {
     now: Date;
     limit: number;
     leaseForMs: number;
+    agentId: string;
   }): Promise<ClaimedScheduleTask[]>;
   complete(job: ClaimedScheduleTask): Promise<void>;
   release(

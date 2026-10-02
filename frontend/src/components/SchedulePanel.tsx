@@ -273,7 +273,7 @@ export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
       const everyMinutes =
         form.repeatKind === "once" ? null : form.everyMinutes;
       if (editingId) {
-        await updateSchedule(editingId, {
+        await updateSchedule(editingId, agentId, {
           name: form.name.trim() || null,
           prompt: form.prompt.trim(),
           nextRunAt: localInputToIso(form.firstRunAt),
@@ -319,7 +319,7 @@ export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
     setPending(true);
     setError(null);
     try {
-      await deleteSchedule(id);
+      await deleteSchedule(id, agentId);
       if (editingId === id) {
         resetFormState();
       }
@@ -335,7 +335,7 @@ export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
     setPending(true);
     setError(null);
     try {
-      await updateSchedule(task.id, { enabled: !task.enabled });
+      await updateSchedule(task.id, agentId, { enabled: !task.enabled });
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update");

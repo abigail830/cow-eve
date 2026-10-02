@@ -2,16 +2,20 @@ import { DELETE, GET, POST, PUT, type RouteDefinition } from "eve/channels";
 import {
   bindChatSessionForUser,
   createProjectForUser,
-  deleteProjectForUser,
   getDatabaseUrl,
-  getProjectForUser,
   listProjectSummaryForUserAgent,
   listProjectWorkspaceFileRefsForUser,
   listProjectsForUserAgent,
   replaceProjectWorkspaceFileRefsForUser,
-  updateProjectForUser,
+  updateProjectForUserAgent,
+  deleteProjectForUserAgent,
+  getProjectForUserAgent,
 } from "../../../composition/public-api.js";
 import type { PlatformRouteContext } from "../platform-route-context.js";
+import {
+  readAgentIdFromQuery,
+  resolveRegisteredAgentId,
+} from "../helpers/agent-scope.js";
 
 export function registerProjectRoutes(
   ctx: PlatformRouteContext,
@@ -187,15 +191,11 @@ export function registerProjectRoutes(
       } catch {
         return json({ ok: false, error: "Invalid JSON body" }, 400, request);
       }
-      const agentId = body.agentId?.trim();
-      if (!agentId || !body.name?.trim()) {
-        return json(
-          { ok: false, error: "agentId and name are required" },
-          400,
-          request,
-        );
+      if (!body.name?.trim()) {
+        return json({ ok: false, error: "name is required" }, 400, request);
       }
       try {
+        const agentId = resolveRegisteredAgentId(body.agentId);
         const project = await createProjectForUser({
           userId: auth.principalId,
           agentId,
@@ -221,10 +221,19 @@ export function registerProjectRoutes(
       if (!auth) {
         return json({ ok: false, error: "Unauthorized" }, 401, request);
       }
+      const agentId = readAgentIdFromQuery(request);
+      if (!agentId) {
+        return json(
+          { ok: false, error: "agentId query parameter is required" },
+          400,
+          request,
+        );
+      }
       try {
-        const project = await getProjectForUser({
+        const project = await getProjectForUserAgent({
           userId: auth.principalId,
           projectId: params.id,
+          agentId,
         });
         if (!project) {
           return json({ ok: false, error: "Project not found" }, 404, request);
@@ -253,10 +262,19 @@ export function registerProjectRoutes(
       } catch {
         return json({ ok: false, error: "Invalid JSON body" }, 400, request);
       }
+      const agentId = readAgentIdFromQuery(request);
+      if (!agentId) {
+        return json(
+          { ok: false, error: "agentId query parameter is required" },
+          400,
+          request,
+        );
+      }
       try {
-        const project = await updateProjectForUser({
+        const project = await updateProjectForUserAgent({
           userId: auth.principalId,
           projectId: params.id,
+          agentId,
           name: body.name,
           instructions: body.instructions,
         });
@@ -282,10 +300,19 @@ export function registerProjectRoutes(
       if (!auth) {
         return json({ ok: false, error: "Unauthorized" }, 401, request);
       }
+      const agentId = readAgentIdFromQuery(request);
+      if (!agentId) {
+        return json(
+          { ok: false, error: "agentId query parameter is required" },
+          400,
+          request,
+        );
+      }
       try {
-        const ok = await deleteProjectForUser({
+        const ok = await deleteProjectForUserAgent({
           userId: auth.principalId,
           projectId: params.id,
+          agentId,
         });
         if (!ok) {
           return json({ ok: false, error: "Project not found" }, 404, request);

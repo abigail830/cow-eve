@@ -141,7 +141,9 @@ export {
   bindChatSessionForUser,
   createProjectForUser,
   deleteProjectForUser,
+  deleteProjectForUserAgent,
   getProjectForUser,
+  getProjectForUserAgent,
   getProjectInstructionsForChat,
   listProjectSummaryForUserAgent,
   listProjectWorkspaceFileIdsForChat,
@@ -150,6 +152,7 @@ export {
   replaceProjectWorkspaceFileRefsForUser,
   touchProjectForChat,
   updateProjectForUser,
+  updateProjectForUserAgent,
   type ProjectPublic,
 } from "../application/project/project.use-case.js";
 export { workspaceFileIdsFromMessageReceivedData } from "../application/doc-retrieval/client-context-parse.js";
@@ -229,13 +232,16 @@ export {
   completeSchedule,
   createScheduleForUser,
   deleteScheduleForUser,
+  deleteScheduleForUserAgent,
   getScheduleForUser,
+  getScheduleForUserAgent,
   listSchedulesForUser,
   listScheduleSummaryForUser,
   linkScheduleRunChat,
   releaseSchedule,
   toPublicSchedule,
   updateScheduleForUser,
+  updateScheduleForUserAgent,
 } from "../application/schedule/schedule.use-case";
 export type { ScheduledTaskPublic } from "../application/schedule/schedule.use-case";
 export type {

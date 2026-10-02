@@ -1,14 +1,19 @@
 import { DELETE, GET, POST, PUT, type RouteDefinition } from "eve/channels";
 import {
   createScheduleForUser,
-  deleteScheduleForUser,
+  deleteScheduleForUserAgent,
   getDatabaseUrl,
+  getScheduleForUserAgent,
   listScheduleSummaryForUser,
   listSchedulesForUser,
   toPublicSchedule,
-  updateScheduleForUser,
+  updateScheduleForUserAgent,
 } from "../../../composition/public-api.js";
 import type { PlatformRouteContext } from "../platform-route-context.js";
+import {
+  readAgentIdFromQuery,
+  resolveRegisteredAgentId,
+} from "../helpers/agent-scope.js";
 
 export function registerScheduleRoutes(
   ctx: PlatformRouteContext,
@@ -81,8 +86,14 @@ export function registerScheduleRoutes(
           request,
         );
       }
-      const agentId =
-        new URL(request.url).searchParams.get("agentId")?.trim() || undefined;
+      const agentId = readAgentIdFromQuery(request);
+      if (!agentId) {
+        return json(
+          { ok: false, error: "agentId query parameter is required" },
+          400,
+          request,
+        );
+      }
       try {
         const schedules = await listSchedulesForUser(auth.principalId, agentId);
         return json(
@@ -139,8 +150,9 @@ export function registerScheduleRoutes(
       }
 
       try {
+        const agentId = resolveRegisteredAgentId(body.agentId);
         const schedule = await createScheduleForUser(auth.principalId, {
-          agentId: body.agentId?.trim() || "omni",
+          agentId,
           name: body.name,
           prompt: body.prompt,
           firstRunAt: new Date(body.firstRunAt),
@@ -160,6 +172,53 @@ export function registerScheduleRoutes(
               err instanceof Error ? err.message : "Failed to create schedule",
           },
           400,
+          request,
+        );
+      }
+    }),
+
+    GET("/api/schedules/:id", async (request, { params }) => {
+      const auth = await requireUser(request);
+      if (!auth) {
+        return json({ ok: false, error: "Unauthorized" }, 401, request);
+      }
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+      const agentId = readAgentIdFromQuery(request);
+      if (!agentId) {
+        return json(
+          { ok: false, error: "agentId query parameter is required" },
+          400,
+          request,
+        );
+      }
+      try {
+        const schedule = await getScheduleForUserAgent({
+          userId: auth.principalId,
+          id: params.id,
+          agentId,
+        });
+        if (!schedule) {
+          return json({ ok: false, error: "Schedule not found" }, 404, request);
+        }
+        return json(
+          { ok: true, schedule: toPublicSchedule(schedule) },
+          200,
+          request,
+        );
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error:
+              err instanceof Error ? err.message : "Failed to load schedule",
+          },
+          500,
           request,
         );
       }
@@ -192,16 +251,26 @@ export function registerScheduleRoutes(
         return json({ ok: false, error: "Invalid JSON body" }, 400, request);
       }
 
+      const agentId = readAgentIdFromQuery(request);
+      if (!agentId) {
+        return json(
+          { ok: false, error: "agentId query parameter is required" },
+          400,
+          request,
+        );
+      }
+
       try {
         const { nextRunAt, ...rest } = body;
-        const schedule = await updateScheduleForUser(
-          auth.principalId,
-          params.id,
-          {
+        const schedule = await updateScheduleForUserAgent({
+          userId: auth.principalId,
+          id: params.id,
+          agentId,
+          patch: {
             ...rest,
             ...(nextRunAt ? { nextRunAt: new Date(nextRunAt) } : {}),
           },
-        );
+        });
         if (!schedule) {
           return json({ ok: false, error: "Schedule not found" }, 404, request);
         }
@@ -236,11 +305,21 @@ export function registerScheduleRoutes(
         );
       }
 
-      try {
-        const deleted = await deleteScheduleForUser(
-          auth.principalId,
-          params.id,
+      const agentId = readAgentIdFromQuery(request);
+      if (!agentId) {
+        return json(
+          { ok: false, error: "agentId query parameter is required" },
+          400,
+          request,
         );
+      }
+
+      try {
+        const deleted = await deleteScheduleForUserAgent({
+          userId: auth.principalId,
+          id: params.id,
+          agentId,
+        });
         if (!deleted) {
           return json({ ok: false, error: "Schedule not found" }, 404, request);
         }

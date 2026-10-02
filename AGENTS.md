@@ -12,10 +12,14 @@ Backend agent `instructions.md` may match the user's language when they write in
 
 See [backend/AGENTS.md](backend/AGENTS.md) for Eve authoring conventions.
 
+## Agent-scoped projects & schedules
+
+Omni manages **its own** projects and scheduled tasks via `@fde/projects` and `@fde/schedules` (OpenAPI tools with injected `agentId`). See skills `project-management` and `schedule-management`. Platform APIs require `agentId` on list/mutate; dispatch claims due jobs per agent.
+
 ## Human-in-the-loop (questions & approvals)
 
-Omni uses Eve `ask_question` plus `@fde/question-ui` in the chat client. See [backend/platform/docs/HITL_QUESTION_UI.md](backend/platform/docs/HITL_QUESTION_UI.md).
+Omni uses Eve `ask_question` plus `@fde/question-ui` in the chat client. See [docs/platform/HITL_QUESTION_UI.md](docs/platform/HITL_QUESTION_UI.md).
 
 ## Platform product turns (composer cards in chat)
 
-User-initiated product flows (e.g. audio transcript) must be recorded as **Platform Product Turns** on the Eve stream, not a parallel UI list. See [backend/platform/docs/PLATFORM_PRODUCT_TURNS.md](backend/platform/docs/PLATFORM_PRODUCT_TURNS.md).
+User-initiated product flows (e.g. audio transcript) must be recorded as **Platform Product Turns** on the Eve stream, not a parallel UI list. See [docs/platform/PLATFORM_PRODUCT_TURNS.md](docs/platform/PLATFORM_PRODUCT_TURNS.md).

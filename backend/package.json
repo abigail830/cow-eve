@@ -7,7 +7,7 @@
     "#platform/*": "./platform/*"
   },
   "scripts": {
-    "build:extensions": "npm run build --prefix extensions/knowledge && npm run build --prefix extensions/schedules",
+    "build:extensions": "npm run build --prefix extensions/knowledge && npm run build --prefix extensions/schedules && npm run build --prefix extensions/projects",
     "build": "npm run db:migrate && npm run build:extensions && eve build",
     "deploy": "eve deploy",
     "dev": "eve dev --agent omni --no-ui --port 2000",
@@ -15,7 +15,7 @@
     "dev:ui": "eve dev --agent omni",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx platform/infrastructure/persistence/database/migrate.ts",
-    "test": "tsx --test platform/application/**/*.test.ts platform/domain/**/*.test.ts agents/omni/agent/lib/**/*.test.ts ../frontend/src/lib/**/*.test.ts",
+    "test": "tsx --test platform/application/**/*.test.ts platform/domain/**/*.test.ts platform/interfaces/http/helpers/**/*.test.ts agents/omni/agent/lib/**/*.test.ts ../frontend/src/lib/**/*.test.ts",
     "test:schedule": "tsx scripts/test-schedule-smoke.ts",
     "test:compile": "npm run typecheck && npm run build",
     "eval": "eve eval",
@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@fde/knowledge": "file:./extensions/knowledge",
+    "@fde/projects": "file:./extensions/projects",
     "@fde/schedules": "file:./extensions/schedules",
     "@ai-sdk/openai-compatible": "^3.0.53",
     "@e2b/eve-sandbox": "^0.1.1",

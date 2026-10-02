@@ -37,9 +37,12 @@ export async function fetchProjectSummary(
   return body.projects ?? [];
 }
 
-export async function fetchProject(projectId: string): Promise<ProjectPublic> {
+export async function fetchProject(
+  projectId: string,
+  agentId: string,
+): Promise<ProjectPublic> {
   const res = await projectFetch(
-    `/api/projects/detail/${encodeURIComponent(projectId)}`,
+    `/api/projects/detail/${encodeURIComponent(projectId)}?agentId=${encodeURIComponent(agentId)}`,
   );
   const body = (await res.json()) as {
     ok?: boolean;
@@ -89,12 +92,16 @@ export async function createProject(input: {
 
 export async function updateProject(
   projectId: string,
+  agentId: string,
   patch: { name?: string; instructions?: string },
 ): Promise<ProjectPublic> {
-  const res = await projectFetch(`/api/projects/${encodeURIComponent(projectId)}`, {
-    method: "PUT",
-    body: JSON.stringify(patch),
-  });
+  const res = await projectFetch(
+    `/api/projects/${encodeURIComponent(projectId)}?agentId=${encodeURIComponent(agentId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(patch),
+    },
+  );
   const body = (await res.json()) as {
     ok?: boolean;
     project?: ProjectPublic;
@@ -106,10 +113,16 @@ export async function updateProject(
   return body.project;
 }
 
-export async function deleteProject(projectId: string): Promise<void> {
-  const res = await projectFetch(`/api/projects/${encodeURIComponent(projectId)}`, {
-    method: "DELETE",
-  });
+export async function deleteProject(
+  projectId: string,
+  agentId: string,
+): Promise<void> {
+  const res = await projectFetch(
+    `/api/projects/${encodeURIComponent(projectId)}?agentId=${encodeURIComponent(agentId)}`,
+    {
+      method: "DELETE",
+    },
+  );
   const body = (await res.json()) as { ok?: boolean; error?: string };
   if (!res.ok || !body.ok) {
     throw new Error(body.error ?? "Failed to delete project");

@@ -278,12 +278,9 @@ export type ScheduledTaskPublic = {
   updatedAt: string;
 };
 
-export async function fetchSchedules(agentId?: string) {
-  const q = agentId
-    ? `?agentId=${encodeURIComponent(agentId)}`
-    : "";
+export async function fetchSchedules(agentId: string) {
   return api<{ ok: true; schedules: ScheduledTaskPublic[] }>(
-    `/api/schedules${q}`,
+    `/api/schedules?agentId=${encodeURIComponent(agentId)}`,
   );
 }
 
@@ -309,6 +306,7 @@ export async function createSchedule(input: {
 
 export async function updateSchedule(
   id: string,
+  agentId: string,
   input: {
     name?: string | null;
     prompt?: string;
@@ -319,7 +317,7 @@ export async function updateSchedule(
   },
 ) {
   return api<{ ok: true; schedule: ScheduledTaskPublic }>(
-    `/api/schedules/${encodeURIComponent(id)}`,
+    `/api/schedules/${encodeURIComponent(id)}?agentId=${encodeURIComponent(agentId)}`,
     {
       method: "PUT",
       body: JSON.stringify(input),
@@ -327,8 +325,11 @@ export async function updateSchedule(
   );
 }
 
-export async function deleteSchedule(id: string) {
-  return api<{ ok: true }>(`/api/schedules/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
+export async function deleteSchedule(id: string, agentId: string) {
+  return api<{ ok: true }>(
+    `/api/schedules/${encodeURIComponent(id)}?agentId=${encodeURIComponent(agentId)}`,
+    {
+      method: "DELETE",
+    },
+  );
 }

@@ -104,6 +104,16 @@ export async function getScheduleForUser(
   return drizzleScheduleRepository.getById(userId, id);
 }
 
+export async function getScheduleForUserAgent(input: {
+  userId: string;
+  id: string;
+  agentId: string;
+}): Promise<ScheduledTask | null> {
+  const task = await drizzleScheduleRepository.getById(input.userId, input.id);
+  if (!task || task.agentId !== input.agentId) return null;
+  return task;
+}
+
 export async function updateScheduleForUser(
   userId: string,
   id: string,
@@ -121,6 +131,21 @@ export async function updateScheduleForUser(
   return drizzleScheduleRepository.update(userId, id, patch);
 }
 
+export async function updateScheduleForUserAgent(input: {
+  userId: string;
+  id: string;
+  agentId: string;
+  patch: UpdateScheduleInput;
+}): Promise<ScheduledTask | null> {
+  const existing = await getScheduleForUserAgent({
+    userId: input.userId,
+    id: input.id,
+    agentId: input.agentId,
+  });
+  if (!existing) return null;
+  return updateScheduleForUser(input.userId, input.id, input.patch);
+}
+
 export async function deleteScheduleForUser(
   userId: string,
   id: string,
@@ -128,14 +153,30 @@ export async function deleteScheduleForUser(
   return drizzleScheduleRepository.softDelete(userId, id);
 }
 
+export async function deleteScheduleForUserAgent(input: {
+  userId: string;
+  id: string;
+  agentId: string;
+}): Promise<boolean> {
+  const existing = await getScheduleForUserAgent(input);
+  if (!existing) return false;
+  return deleteScheduleForUser(input.userId, input.id);
+}
+
 export async function claimDueSchedules(input: {
+  agentId: string;
   limit?: number;
   leaseForMs?: number;
 }): Promise<ClaimedScheduleTask[]> {
+  const agentId = input.agentId.trim();
+  if (!agentId) {
+    throw new Error("agentId is required");
+  }
   return drizzleScheduleRepository.claimDue({
     now: new Date(),
     limit: input.limit ?? 25,
     leaseForMs: input.leaseForMs ?? 5 * 60_000,
+    agentId,
   });
 }
 

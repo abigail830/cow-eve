@@ -87,7 +87,7 @@ export const ProjectListPanel = forwardRef<ProjectListHandle, Props>(
     setPending(true);
     setError(null);
     try {
-      await deleteProject(project.id);
+      await deleteProject(project.id, agentId);
       await reload();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not delete project");

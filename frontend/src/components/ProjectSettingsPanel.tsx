@@ -12,12 +12,14 @@ import "./ProjectSettingsPanel.css";
 
 type Props = {
   projectId: string;
+  agentId: string;
   onClose: () => void;
   onProjectUpdated?: () => void;
 };
 
 export function ProjectSettingsPanel({
   projectId,
+  agentId,
   onClose,
   onProjectUpdated,
 }: Props) {
@@ -36,7 +38,7 @@ export function ProjectSettingsPanel({
     setError(null);
     try {
       const [project, ids] = await Promise.all([
-        fetchProject(projectId),
+        fetchProject(projectId, agentId),
         fetchProjectWorkspaceFileIds(projectId),
       ]);
       setName(project.name);
@@ -52,7 +54,7 @@ export function ProjectSettingsPanel({
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, agentId]);
 
   useEffect(() => {
     void reload();
@@ -64,7 +66,7 @@ export function ProjectSettingsPanel({
     setSaving(true);
     setError(null);
     try {
-      await updateProject(projectId, {
+      await updateProject(projectId, agentId, {
         name: name.trim() || undefined,
         instructions,
       });

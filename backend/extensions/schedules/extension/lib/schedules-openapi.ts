@@ -20,6 +20,7 @@ export const schedulesOpenApiSpec = {
         type: "object",
         required: ["prompt", "firstRunAt"],
         properties: {
+          agentId: { type: "string" },
           name: { type: "string", maxLength: 200 },
           prompt: { type: "string", minLength: 1, maxLength: 8000 },
           firstRunAt: { type: "string", format: "date-time" },
@@ -46,6 +47,14 @@ export const schedulesOpenApiSpec = {
       get: {
         operationId: "listSchedules",
         summary: "List the current user's scheduled agent tasks.",
+        parameters: [
+          {
+            name: "agentId",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": { description: "Schedule list" },
           "401": { description: "Unauthorized" },
@@ -76,6 +85,12 @@ export const schedulesOpenApiSpec = {
           in: "path",
           required: true,
           schema: { type: "string", format: "uuid" },
+        },
+        {
+          name: "agentId",
+          in: "query",
+          required: true,
+          schema: { type: "string" },
         },
       ],
       get: {

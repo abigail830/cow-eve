@@ -175,6 +175,7 @@ export class DrizzleScheduleRepository implements ScheduleRepository {
     now: Date;
     limit: number;
     leaseForMs: number;
+    agentId: string;
   }): Promise<ClaimedScheduleTask[]> {
     const db = getDb();
     if (!db) return [];
@@ -187,6 +188,7 @@ export class DrizzleScheduleRepository implements ScheduleRepository {
       .from(scheduledTasks)
       .where(
         and(
+          eq(scheduledTasks.agentId, input.agentId),
           eq(scheduledTasks.enabled, true),
           isNull(scheduledTasks.deletedAt),
           lte(scheduledTasks.nextRunAt, input.now),

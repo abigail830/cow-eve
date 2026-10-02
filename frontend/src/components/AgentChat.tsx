@@ -616,7 +616,7 @@ function AgentChatSession({
       return;
     }
     let cancelled = false;
-    void fetchProject(projectId)
+    void fetchProject(projectId, agent.id)
       .then((project) => {
         if (!cancelled) setProjectDetail(project);
       })
@@ -626,7 +626,7 @@ function AgentChatSession({
     return () => {
       cancelled = true;
     };
-  }, [projectId]);
+  }, [projectId, agent.id]);
 
   useEffect(() => {
     if (!scheduleChatId) {
@@ -1451,9 +1451,10 @@ function AgentChatSession({
         <ResizableAside defaultWidth={400} showHandleDivider={false}>
           <ProjectSettingsPanel
             projectId={projectId}
+            agentId={agent.id}
             onClose={() => setProjectSettingsOpen(false)}
             onProjectUpdated={() => {
-              void fetchProject(projectId)
+              void fetchProject(projectId, agent.id)
                 .then(setProjectDetail)
                 .catch(() => undefined);
             }}

@@ -1,5 +1,6 @@
 import { defineSchedule } from "eve/schedules";
 import eve from "../../../channels/eve.js";
+import { OMNI_PLATFORM_AGENT_ID } from "../extension.js";
 import {
   claimDueSchedules,
   completeSchedule,
@@ -26,6 +27,7 @@ export default defineSchedule({
     waitUntil(
       (async () => {
         const jobs = await claimDueSchedules({
+          agentId: OMNI_PLATFORM_AGENT_ID,
           limit: 25,
           leaseForMs: 5 * 60_000,
         });

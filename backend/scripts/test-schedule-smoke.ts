@@ -67,7 +67,11 @@ async function run() {
   assert.ok(listed.some((t) => t.id === created.id));
 
   console.log("[test:schedule] claim due");
-  const claimed = await claimDueSchedules({ limit: 10, leaseForMs: 60_000 });
+  const claimed = await claimDueSchedules({
+    agentId: "omni",
+    limit: 10,
+    leaseForMs: 60_000,
+  });
   const job = claimed.find((j) => j.id === created.id);
   assert.ok(job, "expected claimed job for created schedule");
 
@@ -82,7 +86,11 @@ async function run() {
   assert.ok(released?.lastError?.includes("simulated"));
 
   console.log("[test:schedule] claim again and complete");
-  const reclaimed = await claimDueSchedules({ limit: 10, leaseForMs: 60_000 });
+  const reclaimed = await claimDueSchedules({
+    agentId: "omni",
+    limit: 10,
+    leaseForMs: 60_000,
+  });
   const job2 = reclaimed.find((j) => j.id === created.id);
   if (job2) {
     await completeSchedule(job2);
@@ -90,7 +98,11 @@ async function run() {
     await updateScheduleForUser(TEST_USER, created.id, {
       nextRunAt: new Date(Date.now() - 1000),
     });
-    const claimedAgain = await claimDueSchedules({ limit: 10, leaseForMs: 60_000 });
+    const claimedAgain = await claimDueSchedules({
+      agentId: "omni",
+      limit: 10,
+      leaseForMs: 60_000,
+    });
     const job3 = claimedAgain.find((j) => j.id === created.id);
     assert.ok(job3, "expected reclaim after nextRunAt bump");
     await completeSchedule(job3!);

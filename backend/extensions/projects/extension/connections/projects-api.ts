@@ -2,12 +2,12 @@ import { defineDynamic, defineOpenAPIConnection } from "eve/connections";
 
 import extension from "../extension.js";
 import { readPlatformAccessToken } from "../lib/platform-access-token.js";
-import { schedulesOpenApiSpec } from "../lib/schedules-openapi.js";
+import { projectsOpenApiSpec } from "../lib/projects-openapi.js";
 
 export default defineDynamic({
   events: {
     "session.started": (_event, ctx) => {
-      const { apiBaseUrl } = extension.config;
+      const { apiBaseUrl, agentId } = extension.config;
       const connections: Record<
         string,
         ReturnType<typeof defineOpenAPIConnection>
@@ -22,13 +22,11 @@ export default defineDynamic({
         return connections;
       }
 
-      const { agentId } = extension.config;
-
-      connections["schedules-api"] = defineOpenAPIConnection({
-        spec: schedulesOpenApiSpec,
+      connections["projects-api"] = defineOpenAPIConnection({
+        spec: projectsOpenApiSpec,
         baseUrl: apiBaseUrl,
         description:
-          "Platform schedule API — create, list, update, and delete scheduled agent runs for this agent only.",
+          "Platform projects API — create and maintain agent-scoped project instructions; bind the active chat to a project.",
         instanceKey: auth.principalId,
         auth: {
           credentialOwner: "user",
@@ -36,7 +34,7 @@ export default defineDynamic({
             const token = readPlatformAccessToken(ctx);
             if (!token) {
               throw new Error(
-                "An authenticated user session with a platform JWT is required to manage schedules.",
+                "An authenticated user session with a platform JWT is required to manage projects.",
               );
             }
             return { token };
@@ -45,15 +43,17 @@ export default defineDynamic({
         toolCall: {
           providedArguments: {
             agentId,
+            eveSessionId: (callCtx) => callCtx.session.id,
           },
         },
         operations: {
           allow: [
-            "listSchedules",
-            "createSchedule",
-            "updateSchedule",
-            "deleteSchedule",
-            "getSchedule",
+            "listProjects",
+            "createProject",
+            "getProject",
+            "updateProject",
+            "deleteProject",
+            "bindChatSession",
           ],
         },
       });

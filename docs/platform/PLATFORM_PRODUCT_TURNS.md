@@ -1,0 +1,108 @@
+# Platform product turns (Eve stream)
+
+Cow Eve **product UI** (composer cards, parse pipelines, attachment library) must appear in chat **in order**, **after reload**, and **alongside agent turns** without a second parallel timeline.
+
+Eve does not ship a “card Q&A” widget. The durable contract is the **session NDJSON stream** (`chat_events` mirror). Agent artifacts already use **`dynamic-tool` parts** from tool `publish` / `publish_artifact`. Platform product flows reuse that surface.
+
+## Pattern: Platform Product Turn (PPT)
+
+A PPT is a **synthetic Eve turn** appended by the platform (not the LLM), persisted with the same envelope as runtime events:
+
+| Event | Role |
+|-------|------|
+| `turn.started` | Boundaries the product turn (`turnId = turn_pt_<product>_<id>`). |
+| `platform.product.started` | **User leg (protocol)** — platform payload + file metadata; **not** a user chat message. |
+| `actions.requested` | Synthetic tool call (internal deliver tool). |
+| `action.result` | Assistant leg — same JSON shape as `publish` tool success (`ArtifactSpec`). |
+| `turn.completed` | Closes the turn. |
+| `session.waiting` | Optional — omit when appending during an active Eve turn (platform start while agent is streaming). |
+
+**Idempotency:** one PPT per product instance id (e.g. `captureId`). Before append, scan `chat_events` for `platform.instanceId`.
+
+**Live session:** the Eve client store is seeded from `initialEvents` on mount. After append, the web app **reloads bound session** (`fetchChat` → new `streamIndex` → remount `useEveAgent` via `bound.key`).
+
+**Live status:** the assistant `action.result` carries a snapshot `ArtifactSpec`. Parse progress / retry still keyed by `artifact_id` (= output attachment id) via the attachment library poll — do not rewrite the stream on every parse webhook.
+
+## `platform.product.started` payload
+
+```json
+{
+  "type": "platform.product.started",
+  "data": {
+    "turnId": "turn_pt_audio_<captureId>",
+    "sequence": 0,
+    "title": "Audio transcript",
+    "platform": {
+      "product": "audio_transcript",
+      "version": 1,
+      "instanceId": "<captureId>",
+      "title": "Audio transcript"
+    },
+    "parts": [
+      { "type": "file", "filename": "meeting.m4a", "mediaType": "audio/mp4", "size": 12345 }
+    ],
+    "attachmentRefs": {
+      "product": "audio_transcript",
+      "instanceId": "<captureId>",
+      "outputAttachmentId": "<uuid>",
+      "attachmentIds": ["<output>", "<audioPart>", "…"]
+    }
+  },
+  "meta": { "id": "evt_…", "at": "…" }
+}
+```
+
+Frontend renders the **user-style card** from `GET /audio-captures` + this event’s `instanceId` (UI only). Eve must **not** project this event as `role: user` in chat history.
+
+**Legacy:** older streams used `message.received` with `kind: execution.platform_product`; the web app still interleaves those for reload.
+
+## Assistant leg — reuse artifact tools
+
+Use tool name **`publish`** (or alias `publish_artifact`) in `actions.requested` / `action.result` so `@fde/artifact-ui` `resolveArtifactToolPart` works unchanged.
+
+Set on `ArtifactSpec`:
+
+- `source: "audio_transcript"`
+- `artifact_id`: output attachment id
+- `kind: "content_document"`, `format: "markdown"`
+- `download_url` / paths as today
+
+Optional future: internal tool `platform__deliver_artifact` registered in omni (no LLM exposure) for clearer semantics; renderer registers both names.
+
+## Domain data vs stream
+
+| Concern | Source of truth |
+|---------|-----------------|
+| Turn order & reload | `chat_events` (Eve stream) |
+| Audio bytes, parts, parse jobs | `audio_captures`, `chat_attachments`, `parse_job_runs` |
+| Transcript body | parsed artifact `content_md` (output row created at **Start**, not draft) |
+| Gist | attachment row after parse `ready` |
+
+Do **not** render a second list from `GET /audio-captures` when a PPT exists for that `instanceId` (legacy chats may still use the API-only path until migrated).
+
+## Adding the next product
+
+1. Add `platform.product` enum value + user card component.
+2. Implement `buildXProductTurnEvents()` → call `appendPlatformProductTurn()`.
+3. Register assistant renderer (artifact spec and/or custom `dynamic-tool` tool name).
+4. Hook product “commit” action (e.g. Start, Submit) to append PPT once.
+5. Document in this file.
+
+## Agent context (reload / replay)
+
+Do **not** embed transcript bytes or gist in the stream. Put the id line on the synthetic **`publish` tool output**:
+
+```text
+platform_attachment_refs: "Platform attachment refs: {\"product\":\"audio_transcript\",…}"
+```
+
+- Same JSON shape as `attachmentRefs` on `platform.product.started`; formatted via `formatPlatformAttachmentRefs()`.
+- **Not** `Client context:` — omni does not auto-hydrate full `content_md` on every later turn.
+- Model sees ids on the **assistant tool result** in history and can call `attachment_read` / `attachment_grep` when needed.
+
+## References
+
+- Eve: [Sessions, runs & streaming](https://eve.dev/docs/concepts/sessions-runs-and-streaming) — event types, `meta.id`, reload.
+- Backend: [`platform-product-turn.use-case.ts`](../../backend/platform/application/chat/platform-product-turn.use-case.ts), [`build-audio-transcript-product-turn.ts`](../../backend/platform/application/chat/build-audio-transcript-product-turn.ts).
+- Omni: [`persist-chat.ts`](../../backend/agents/omni/agent/hooks/persist-chat.ts).
+- Frontend: [`platformProductTurns.ts`](../../frontend/src/lib/platformProductTurns.ts), [`resolveArtifactToolPart`](../../packages/artifact-ui/src/resolveToolRenderer.tsx).
