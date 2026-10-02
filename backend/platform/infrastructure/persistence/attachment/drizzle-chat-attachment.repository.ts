@@ -75,7 +75,7 @@ export class DrizzleChatAttachmentRepository implements ChatAttachmentRepository
         sizeBytes: input.sizeBytes,
         storageKey: input.storageKey,
         contentHash: input.contentHash ?? null,
-        parseStatus: input.parseStatus ?? ParseStatus.READY,
+        parseStatus: input.parseStatus ?? ParseStatus.PENDING,
       })
       .returning();
     return toDomain(row);
@@ -113,7 +113,7 @@ export class DrizzleChatAttachmentRepository implements ChatAttachmentRepository
         sizeBytes: input.sizeBytes,
         storageKey: input.storageKey,
         contentHash: input.contentHash ?? null,
-        parseStatus: ParseStatus.READY,
+        parseStatus: ParseStatus.PENDING,
       })
       .returning();
     return toDomain(row);

@@ -13,7 +13,11 @@ import {
   parseableFromWorkspaceFile,
 } from "../../domain/document/parseable-file.js";
 import { ParseStatus } from "../../domain/parse/parse-status.js";
-import { getParsePipelineDispatchMode } from "../../infrastructure/config/parse-pipeline.config.js";
+import {
+  getGithubRepo,
+  getGithubWorkflowFile,
+  getParsePipelineDispatchMode,
+} from "../../infrastructure/config/parse-pipeline.config.js";
 import { dispatchParseGha } from "../../infrastructure/parse-pipeline/dispatch-gha.js";
 import { dispatchParseService } from "../../infrastructure/parse-pipeline/dispatch-service.js";
 import { scheduleGhaRunWatch } from "../../infrastructure/parse-pipeline/gha-watch.js";
@@ -31,6 +35,17 @@ import { createParseJobRun } from "../../infrastructure/persistence/parse/drizzl
 
 export function sha256Bytes(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+export async function markChatAttachmentParseStartFailed(
+  attachmentId: string,
+  message: string,
+): Promise<ChatAttachment | null> {
+  return drizzleChatAttachmentRepository.applyParseWebhook(attachmentId, {
+    status: ParseStatus.FAILED,
+    errorCode: "PARSE_START_FAILED",
+    errorMessage: message,
+  });
 }
 
 export async function finalizeAttachmentParse(
@@ -142,9 +157,21 @@ export async function enqueueParseJob(
   }
 
   const mode = getParsePipelineDispatchMode();
+  console.info("[parse] enqueue", {
+    jobId,
+    pipelineId,
+    mode,
+    attachmentId: row.id,
+    sourceKind: row.sourceKind,
+  });
   try {
     if (mode === "gha") {
       await dispatchParseGha({ jobId, runToken, pipelineId });
+      console.info("[parse] gha dispatch ok", {
+        jobId,
+        repo: getGithubRepo(),
+        workflow: getGithubWorkflowFile(),
+      });
       scheduleGhaRunWatch(jobId);
     } else if (mode === "inline") {
       throw new Error("PARSE_PIPELINE_DISPATCH=inline is deprecated; use service");
@@ -152,10 +179,18 @@ export async function enqueueParseJob(
       await dispatchParseService(payload);
     }
   } catch (err) {
+    const errorMessage =
+      err instanceof Error ? err.message : "Parse dispatch failed";
+    console.error("[parse] dispatch failed", {
+      jobId,
+      mode,
+      attachmentId: row.id,
+      error: errorMessage,
+    });
     const fail = {
       status: ParseStatus.FAILED,
       errorCode: "DISPATCH_FAILED",
-      errorMessage: err instanceof Error ? err.message : "Parse dispatch failed",
+      errorMessage,
     };
     if (row.sourceKind === "workspace_file") {
       await drizzleWorkspaceRepository.applyParseWebhook(row.id, fail);

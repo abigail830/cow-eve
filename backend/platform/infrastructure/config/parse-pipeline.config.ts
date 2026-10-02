@@ -10,6 +10,24 @@ function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
+function asHttpsOrigin(raw: string): string {
+  const trimmed = stripTrailingSlash(raw.trim());
+  if (!trimmed) return "";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return stripTrailingSlash(trimmed);
+  }
+  return `https://${trimmed}`;
+}
+
+/** Vercel-injected host for this deployment (backend must expose /internal/parse). */
+function vercelDeploymentOrigin(): string {
+  const production = trimEnv("VERCEL_PROJECT_PRODUCTION_URL");
+  if (production) return asHttpsOrigin(production);
+  const url = trimEnv("VERCEL_URL");
+  if (url) return asHttpsOrigin(url);
+  return "";
+}
+
 export function getParsePipelineDispatchMode(): "auto" | "service" | "gha" | "inline" {
   const raw = trimEnv("PARSE_PIPELINE_DISPATCH").toLowerCase() || "auto";
   if (raw === "service" || raw === "gha" || raw === "inline") return raw;
@@ -19,7 +37,10 @@ export function getParsePipelineDispatchMode(): "auto" | "service" | "gha" | "in
 
 export function getParsePipelinePublicBaseUrl(): string {
   const explicit = trimEnv("PARSE_PIPELINE_PUBLIC_BASE_URL");
-  if (explicit) return stripTrailingSlash(explicit);
+  if (explicit) return asHttpsOrigin(explicit);
+
+  const vercelOrigin = vercelDeploymentOrigin();
+  if (vercelOrigin) return vercelOrigin;
 
   const mode = getParsePipelineDispatchMode();
   if (mode === "service" || mode === "inline") {
@@ -89,4 +110,40 @@ export function getAttachmentGistMaxOutputTokens(): number {
   const raw = trimEnv("ATTACHMENT_GIST_MAX_OUTPUT_TOKENS");
   const n = raw ? Number.parseInt(raw, 10) : 800;
   return Number.isFinite(n) ? n : 800;
+}
+
+/** Safe snapshot for ops (no secrets). */
+export function getParsePipelineDiagnostics(): {
+  dispatchMode: "auto" | "service" | "gha" | "inline";
+  publicBaseUrlConfigured: boolean;
+  publicBaseUrlHost: string | null;
+  vercelHostInjected: boolean;
+  github: {
+    repo: string | null;
+    tokenConfigured: boolean;
+    workflowFile: string;
+    ref: string;
+  };
+} {
+  const publicBase = getParsePipelinePublicBaseUrl();
+  let publicBaseUrlHost: string | null = null;
+  if (publicBase) {
+    try {
+      publicBaseUrlHost = new URL(publicBase).host;
+    } catch {
+      publicBaseUrlHost = null;
+    }
+  }
+  return {
+    dispatchMode: getParsePipelineDispatchMode(),
+    publicBaseUrlConfigured: Boolean(publicBase),
+    publicBaseUrlHost,
+    vercelHostInjected: Boolean(vercelDeploymentOrigin()),
+    github: {
+      repo: getGithubRepo() || null,
+      tokenConfigured: Boolean(getGithubToken()),
+      workflowFile: getGithubWorkflowFile(),
+      ref: getGithubRef(),
+    },
+  };
 }

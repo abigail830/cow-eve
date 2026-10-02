@@ -64,6 +64,14 @@ curl -X POST http://127.0.0.1:2000/eve/v1/dev/schedules/heartbeat
 | `UPSTASH_REDIS_REST_URL` | Upstash Redis REST URL for Eve memory |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis REST token |
 | `AI_GATEWAY_API_KEY` | Model access when not using Vercel OIDC |
+| `PARSE_PIPELINE_DISPATCH` | `gha` (recommended on Vercel), `service` (local parse-pipeline HTTP), or `auto` (gha when `GITHUB_TOKEN` + `GITHUB_REPO` are set) |
+| `GITHUB_TOKEN` | PAT with **Actions: read and write** on `GITHUB_REPO` (for `workflow_dispatch`) |
+| `GITHUB_REPO` | e.g. `abigail830/cow-eve` |
+| `GITHUB_WORKFLOW_FILE` | Default `parse-pipeline-run-job.yml` |
+| `GITHUB_REF` | Branch for dispatch (default `main`) |
+| `PARSE_PIPELINE_PUBLIC_BASE_URL` | **Backend** origin GHA uses to call `/internal/parse/v1/*` (not the frontend SPA). If unset on Vercel, falls back to `VERCEL_PROJECT_PRODUCTION_URL` / `VERCEL_URL`. |
+
+Logged-in clients can inspect effective parse settings (no secrets) via `GET /api/chat-attachments/upload-policy` → `policy.parsePipeline`.
 
 ## Deploy
 

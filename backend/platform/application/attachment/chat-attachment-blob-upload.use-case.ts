@@ -13,10 +13,14 @@ import {
   blobCommandOptions,
   hasBlobStorageConfigured,
 } from "../../infrastructure/artifact/blob-client.js";
+import { getParsePipelineDiagnostics } from "../../infrastructure/config/parse-pipeline.config.js";
 import { blobPath } from "../../infrastructure/attachment/attachment-storage.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import { drizzleChatRepository } from "../../infrastructure/persistence/chat/drizzle-chat.repository.js";
-import { finalizeAttachmentParse } from "./parse-enqueue.use-case.js";
+import {
+  finalizeAttachmentParse,
+  markChatAttachmentParseStartFailed,
+} from "./parse-enqueue.use-case.js";
 
 export type BlobUploadClientPayload = {
   v: 1;
@@ -91,6 +95,7 @@ export function getAttachmentUploadPolicy() {
     serverMultipartMaxBytes: ATTACHMENT_SERVER_MULTIPART_MAX_BYTES,
     clientBlobUpload: hasBlobStorageConfigured(),
     allowedMediaTypes: [...CHAT_ATTACHMENT_ALLOWED_MEDIA_TYPES],
+    parsePipeline: getParsePipelineDiagnostics(),
   };
 }
 
@@ -243,12 +248,13 @@ export async function finalizeChatAttachmentBlobUpload(input: {
     const parsed = await finalizeAttachmentParse(saved, kind);
     return { attachment: toPublicAttachment(parsed) };
   } catch (parseErr) {
-    const refreshed =
-      (await drizzleChatAttachmentRepository.getByIdOnly(saved.id)) ?? saved;
     const parseMessage =
       parseErr instanceof Error ? parseErr.message : "Parse dispatch failed";
+    const failed =
+      (await markChatAttachmentParseStartFailed(saved.id, parseMessage)) ??
+      saved;
     return {
-      attachment: toPublicAttachment(refreshed),
+      attachment: toPublicAttachment(failed),
       error: `Uploaded, but parse could not start: ${parseMessage}`,
     };
   }

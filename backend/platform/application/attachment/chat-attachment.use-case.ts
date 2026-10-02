@@ -7,6 +7,7 @@ import {
 import { ParseStatus } from "../../domain/parse/parse-status.js";
 import {
   finalizeAttachmentParse,
+  markChatAttachmentParseStartFailed,
   retryAttachmentParse as retryParseJob,
   sha256Bytes,
 } from "./parse-enqueue.use-case.js";
@@ -136,12 +137,13 @@ export async function uploadChatAttachmentForUser(input: {
       const parsed = await finalizeAttachmentParse(saved, kind);
       return { attachment: toPublicAttachment(parsed) };
     } catch (parseErr) {
-      const refreshed =
-        (await drizzleChatAttachmentRepository.getByIdOnly(saved.id)) ?? saved;
       const parseMessage =
         parseErr instanceof Error ? parseErr.message : "Parse dispatch failed";
+      const failed =
+        (await markChatAttachmentParseStartFailed(saved.id, parseMessage)) ??
+        saved;
       return {
-        attachment: toPublicAttachment(refreshed),
+        attachment: toPublicAttachment(failed),
         error: `Uploaded, but parse could not start: ${parseMessage}`,
       };
     }

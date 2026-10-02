@@ -167,7 +167,7 @@ async function uploadChatAttachmentViaBlob(
     throw new Error(finalized.error ?? `Finalize upload failed (${finalizeRes.status})`);
   }
   if (finalized.warning?.trim()) {
-    console.warn("[attachment upload]", finalized.warning);
+    throw new Error(finalized.warning);
   }
   return finalized.attachment;
 }
@@ -209,7 +209,7 @@ async function uploadChatAttachmentViaMultipart(
   }
 
   if (data.warning?.trim()) {
-    console.warn("[attachment upload]", data.warning);
+    throw new Error(data.warning);
   }
 
   return data.attachment;
