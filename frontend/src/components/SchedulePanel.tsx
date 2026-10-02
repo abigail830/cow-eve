@@ -1,11 +1,13 @@
 import {
+  forwardRef,
   useEffect,
+  useImperativeHandle,
   useState,
   type Dispatch,
   type FormEvent,
   type SetStateAction,
 } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   createSchedule,
   deleteSchedule,
@@ -216,10 +218,22 @@ function ScheduleTaskForm({
 
 type Props = {
   agentId?: string;
-  onOpenResultChat?: (chatId: string) => void;
+  onOpenResultChat?: (
+    chatId: string,
+    task: ScheduledTaskPublic,
+  ) => void;
+  showCreateButton?: boolean;
 };
 
-export function SchedulePanel({ agentId = "omni", onOpenResultChat }: Props) {
+export type SchedulePanelHandle = {
+  openCreate: () => void;
+};
+
+export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
+  function SchedulePanel(
+    { agentId = "omni", onOpenResultChat, showCreateButton = true },
+    ref,
+  ) {
   const [schedules, setSchedules] = useState<ScheduledTaskPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -292,6 +306,8 @@ export function SchedulePanel({ agentId = "omni", onOpenResultChat }: Props) {
     setShowCreateForm(true);
   }
 
+  useImperativeHandle(ref, () => ({ openCreate: startCreate }));
+
   function startEdit(task: ScheduledTaskPublic) {
     setShowCreateForm(false);
     setEditingId(task.id);
@@ -330,17 +346,19 @@ export function SchedulePanel({ agentId = "omni", onOpenResultChat }: Props) {
 
   return (
     <div className="schedule-panel">
-      <div className="schedule-panel-toolbar">
-        <button
-          type="button"
-          className="schedule-panel-create"
-          onClick={startCreate}
-          disabled={pending}
-        >
-          <Plus size={15} strokeWidth={2} />
-          New task
-        </button>
-      </div>
+      {showCreateButton ? (
+        <div className="schedule-panel-toolbar">
+          <button
+            type="button"
+            className="schedule-panel-create"
+            onClick={startCreate}
+            disabled={pending}
+          >
+            <Plus size={15} strokeWidth={2} />
+            New task
+          </button>
+        </div>
+      ) : null}
 
       {error ? <p className="chat-error">{error}</p> : null}
 
@@ -366,14 +384,14 @@ export function SchedulePanel({ agentId = "omni", onOpenResultChat }: Props) {
         ) : schedules.length === 0 && !showCreateForm ? (
           <div className="schedule-state-center">
             <p className="schedule-muted">
-              No scheduled tasks yet. Click &ldquo;New task&rdquo; to get started.
+              No scheduled tasks yet.
             </p>
           </div>
         ) : (
           <ul className="schedule-list">
             {schedules.map((task) =>
               editingId === task.id ? (
-                <li key={task.id} className="schedule-item schedule-item-editing">
+                <li key={task.id} className="schedule-card schedule-card-editing">
                   <h4 className="schedule-item-edit-title">Edit task</h4>
                   <ScheduleTaskForm
                     form={form}
@@ -385,70 +403,84 @@ export function SchedulePanel({ agentId = "omni", onOpenResultChat }: Props) {
                   />
                 </li>
               ) : (
-                <li key={task.id} className="schedule-item">
-                  <div className="schedule-item-header">
-                    <div className="schedule-item-title">
-                      <strong>{task.name || "Untitled task"}</strong>
-                      <span
-                        className={
-                          task.enabled
-                            ? "schedule-badge enabled"
-                            : "schedule-badge disabled"
-                        }
-                      >
-                        {task.enabled ? "Enabled" : "Paused"}
-                      </span>
-                      <span
-                        className={`schedule-badge status-${task.lastStatus ?? "none"}`}
-                      >
-                        {statusLabel(task.lastStatus)}
-                      </span>
-                    </div>
-                    <div className="schedule-item-actions">
-                      {task.lastChatId ? (
+                <li key={task.id} className="schedule-card">
+                  <div className="schedule-card-row">
+                    <span className="schedule-card-icon" aria-hidden>
+                      <CalendarClock size={20} strokeWidth={1.75} />
+                    </span>
+                    <div className="schedule-card-main">
+                      <div className="schedule-card-head">
+                        <span className="schedule-card-name">
+                          {task.name || "Untitled task"}
+                        </span>
+                        <div className="schedule-card-actions">
+                          <button
+                            type="button"
+                            className="schedule-card-cta"
+                            onClick={() => startEdit(task)}
+                          >
+                            <Pencil size={14} strokeWidth={2} aria-hidden />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="schedule-card-cta schedule-card-cta-danger"
+                            aria-label={`Delete ${task.name || "task"}`}
+                            disabled={pending}
+                            onClick={() => void handleDelete(task.id)}
+                          >
+                            <Trash2 size={14} strokeWidth={2} aria-hidden />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="schedule-card-desc">{task.prompt}</p>
+                      <p className="schedule-card-meta">
+                        <span
+                          className={
+                            task.enabled
+                              ? "schedule-badge enabled"
+                              : "schedule-badge disabled"
+                          }
+                        >
+                          {task.enabled ? "Enabled" : "Paused"}
+                        </span>
+                        <span
+                          className={`schedule-badge status-${task.lastStatus ?? "none"}`}
+                        >
+                          {statusLabel(task.lastStatus)}
+                        </span>
+                        <span>
+                          {task.everyMinutes == null
+                            ? "One-time"
+                            : `Every ${task.everyMinutes} min`}
+                        </span>
+                        <span>Next {formatDateTime(task.nextRunAt)}</span>
+                      </p>
+                      {task.lastError ? (
+                        <p className="schedule-item-error">{task.lastError}</p>
+                      ) : null}
+                      <div className="schedule-card-footer">
+                        {task.lastChatId ? (
+                          <button
+                            type="button"
+                            className="schedule-card-cta"
+                            onClick={() =>
+                              onOpenResultChat?.(task.lastChatId!, task)
+                            }
+                          >
+                            View result
+                          </button>
+                        ) : null}
                         <button
                           type="button"
-                          onClick={() => onOpenResultChat?.(task.lastChatId!)}
+                          className="schedule-card-cta"
+                          disabled={pending}
+                          onClick={() => void toggleEnabled(task)}
                         >
-                          View result
+                          {task.enabled ? "Pause" : "Enable"}
                         </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => toggleEnabled(task)}
-                        disabled={pending}
-                      >
-                        {task.enabled ? "Pause" : "Enable"}
-                      </button>
-                      <button type="button" onClick={() => startEdit(task)}>
-                        <Pencil size={14} strokeWidth={2} />
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="danger"
-                        onClick={() => void handleDelete(task.id)}
-                        disabled={pending}
-                      >
-                        <Trash2 size={14} strokeWidth={2} />
-                        Delete
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                  <p className="schedule-item-prompt">{task.prompt}</p>
-                  <div className="schedule-item-meta">
-                    <span>Next run: {formatDateTime(task.nextRunAt)}</span>
-                    <span>
-                      {task.everyMinutes == null
-                        ? "One-time"
-                        : `Every ${task.everyMinutes} min`}
-                    </span>
-                    {task.lastRunAt ? (
-                      <span>Last run: {formatDateTime(task.lastRunAt)}</span>
-                    ) : null}
-                    {task.lastError ? (
-                      <span className="schedule-item-error">{task.lastError}</span>
-                    ) : null}
                   </div>
                 </li>
               ),
@@ -458,4 +490,5 @@ export function SchedulePanel({ agentId = "omni", onOpenResultChat }: Props) {
       </section>
     </div>
   );
-}
+},
+);

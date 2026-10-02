@@ -12,6 +12,7 @@ import {
   chatEvents,
   chatSessionBindings,
   chatWorkspaceFileRefs,
+  scheduledTasks,
   workspaceFiles,
   type ChatRow,
 } from "../database";
@@ -163,8 +164,9 @@ export class DrizzleChatRepository implements ChatRepository {
   async listChats(input: {
     userId: string;
     agentId: string;
-    scope?: "generic" | "project";
+    scope?: "generic" | "project" | "schedule";
     projectId?: string;
+    scheduleId?: string;
   }): Promise<Chat[]> {
     const db = requireDb();
     const conditions = [
@@ -180,6 +182,34 @@ export class DrizzleChatRepository implements ChatRepository {
         return [];
       }
       conditions.push(eq(chats.projectId, input.projectId.trim()));
+      conditions.push(isNull(chats.scheduledTaskId));
+    } else if (input.scope === "schedule") {
+      const scheduleId = input.scheduleId?.trim();
+      if (!scheduleId) {
+        return [];
+      }
+      const task = await db.query.scheduledTasks.findFirst({
+        where: and(
+          eq(scheduledTasks.id, scheduleId),
+          eq(scheduledTasks.userId, input.userId),
+        ),
+        columns: { id: true, lastChatId: true },
+      });
+      if (task?.lastChatId) {
+        await db
+          .update(chats)
+          .set({ scheduledTaskId: task.id })
+          .where(
+            and(
+              eq(chats.id, task.lastChatId),
+              eq(chats.userId, input.userId),
+              isNull(chats.scheduledTaskId),
+              isNull(chats.projectId),
+            ),
+          );
+      }
+      conditions.push(eq(chats.scheduledTaskId, scheduleId));
+      conditions.push(isNull(chats.projectId));
     }
 
     const rows = await db

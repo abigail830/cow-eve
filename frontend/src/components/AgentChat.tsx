@@ -12,11 +12,11 @@ import { useEveAgent } from "eve/react";
 import type { MessageStreamEvent } from "eve/client";
 import {
   Brain,
+  Columns3Cog,
   List,
   Loader2,
+  LogOut,
   MessageCirclePlus,
-  Settings2,
-  Target,
   Trash2,
   X,
 } from "lucide-react";
@@ -25,6 +25,8 @@ import {
   fetchChats,
   fetchMemory,
   fetchModelSettings,
+  fetchSchedules,
+  scheduleTaskLabel,
   type AgentInfo,
   type ChatSummary,
   type ModelSettingsPublic,
@@ -86,8 +88,13 @@ type Props = {
   agent: AgentInfo;
   /** When re-selecting this agent, reopen this chat (parent remembers per agent). */
   restoreChatId?: string | null;
-  /** Omni only: open the Automation nav page (scheduled tasks). */
-  onOpenAutomation?: () => void;
+  /** Omni only: open Customize → Schedules. */
+  onOpenSchedules?: () => void;
+  /** Set when opening a scheduled-task result chat. */
+  scheduleView?: { id: string; label: string } | null;
+  onScheduleViewChange?: (
+    next: { id: string; label: string } | null,
+  ) => void;
   /** When set, new sessions bind to this project and history is scoped. */
   projectId?: string | null;
   onProjectIdChange?: (projectId: string | null) => void;
@@ -120,7 +127,9 @@ function AgentChatLoading(_: { agent: AgentInfo }) {
 export function AgentChat({
   agent,
   restoreChatId = null,
-  onOpenAutomation,
+  onOpenSchedules,
+  scheduleView = null,
+  onScheduleViewChange,
   projectId = null,
   onProjectIdChange,
   onActiveChatChange,
@@ -141,15 +150,21 @@ export function AgentChat({
     events: undefined,
     resume: false,
     key: `new-${agent.id}`,
+    source: "generic",
+    projectId: null,
+    scheduledTaskId: null,
   }));
 
-  const chatListOptions = useMemo(
-    () =>
-      projectId
-        ? ({ scope: "project" as const, projectId })
-        : ({ scope: "generic" as const }),
-    [projectId],
-  );
+  const chatListOptions = useMemo(() => {
+    if (projectId) return { scope: "project" as const, projectId };
+    const scheduleId =
+      scheduleView?.id ||
+      (bound.source === "schedule" ? bound.scheduledTaskId : null);
+    if (scheduleId) {
+      return { scope: "schedule" as const, scheduleId };
+    }
+    return { scope: "generic" as const };
+  }, [bound.scheduledTaskId, bound.source, projectId, scheduleView?.id]);
 
   const refreshChats = useCallback(async () => {
     if (!token) return;
@@ -224,15 +239,19 @@ export function AgentChat({
         events: undefined,
         resume: false,
         key: `new-${agent.id}-${Date.now()}`,
+        source: "generic",
+        projectId: null,
+        scheduledTaskId: null,
       });
     }
 
     void (async () => {
       if (!token) return;
 
+      let ignorePrefetchedChats = false;
       const chatsTask = fetchChats(agent.id, chatListOptions)
         .then((res) => {
-          if (cancelled) return res;
+          if (cancelled || ignorePrefetchedChats) return res;
           setChats(res.chats);
           setHistoryError(null);
           return res;
@@ -249,6 +268,9 @@ export function AgentChat({
         try {
           const next = await fetchBoundSession(chatToRestore);
           if (cancelled) return;
+          if (next.source === "schedule" && next.scheduledTaskId) {
+            ignorePrefetchedChats = true;
+          }
           setBound(next);
           setActiveChatId(chatToRestore);
           onActiveChatChangeRef.current?.(chatToRestore);
@@ -281,6 +303,7 @@ export function AgentChat({
   }, [projectId, token, refreshChats]);
 
   const startNewChat = () => {
+    onScheduleViewChange?.(null);
     syncActiveChat(null);
     setBound({
       chatId: null,
@@ -288,6 +311,9 @@ export function AgentChat({
       events: undefined,
       resume: false,
       key: `new-${agent.id}-${Date.now()}`,
+      source: "generic",
+      projectId: null,
+      scheduledTaskId: null,
     });
   };
 
@@ -337,7 +363,9 @@ export function AgentChat({
       onRefreshChats={refreshChats}
       onActiveChatChange={syncActiveChat}
       onStreamingChange={onStreamingChange}
-      onOpenAutomation={onOpenAutomation}
+      onOpenSchedules={onOpenSchedules}
+      scheduleView={scheduleView}
+      onScheduleViewChange={onScheduleViewChange}
       projectId={projectId}
       onProjectIdChange={onProjectIdChange}
       onReloadConversation={(chatId) => void bindChat(chatId)}
@@ -369,7 +397,11 @@ type SessionProps = {
   onDeleteChat: (chatId: string) => Promise<void>;
   onRefreshChats: () => void;
   onActiveChatChange?: (chatId: string | null) => void;
-  onOpenAutomation?: () => void;
+  onOpenSchedules?: () => void;
+  scheduleView: { id: string; label: string } | null;
+  onScheduleViewChange?: (
+    next: { id: string; label: string } | null,
+  ) => void;
   projectId: string | null;
   onProjectIdChange?: (projectId: string | null) => void;
   onReloadConversation?: (chatId: string) => void;
@@ -393,7 +425,9 @@ function AgentChatSession({
   onRefreshChats,
   onActiveChatChange,
   onStreamingChange,
-  onOpenAutomation,
+  onOpenSchedules,
+  scheduleView,
+  onScheduleViewChange,
   projectId,
   onProjectIdChange,
   onReloadConversation,
@@ -403,6 +437,12 @@ function AgentChatSession({
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
   const [projectDetail, setProjectDetail] = useState<ProjectPublic | null>(null);
+  const [scheduleLabel, setScheduleLabel] = useState<string | null>(null);
+  const scheduleChatId =
+    !projectId && (scheduleView?.id ||
+      (bound.source === "schedule" ? bound.scheduledTaskId : null));
+  const scheduleTitle =
+    scheduleView?.label || scheduleLabel;
   const [previewArtifact, setPreviewArtifact] = useState<ArtifactSpec | null>(null);
   const [parseDrawerAttachment, setParseDrawerAttachment] =
     useState<ChatAttachmentPublic | null>(null);
@@ -565,6 +605,35 @@ function AgentChatSession({
       cancelled = true;
     };
   }, [projectId]);
+
+  useEffect(() => {
+    if (!scheduleChatId) {
+      setScheduleLabel(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchSchedules(agent.id)
+      .then((res) => {
+        if (cancelled) return;
+        const task = res.schedules.find((item) => item.id === scheduleChatId);
+        const name = task?.name?.trim();
+        const prompt = task?.prompt?.trim();
+        setScheduleLabel(
+          name ||
+            (prompt
+              ? prompt.length > 42
+                ? `${prompt.slice(0, 42)}…`
+                : prompt
+              : null),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setScheduleLabel(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [agent.id, scheduleChatId]);
 
   useEffect(() => {
     const fromBound = bound.session?.sessionId?.trim();
@@ -967,12 +1036,26 @@ function AgentChatSession({
       return (
         <WorkHubCards
           agentId={agent.id}
-          onOpenSchedules={() => onOpenAutomation?.()}
+          onOpenSchedules={() => onOpenSchedules?.()}
           onOpenProjects={() => {
             setProjectsOpen(true);
           }}
-          onOpenScheduleResult={(chatId) => {
-            void onOpenChat(chatId);
+          onOpenScheduleResult={(task) => {
+            onScheduleViewChange?.({
+              id: task.id,
+              label: scheduleTaskLabel(task),
+            });
+            if (task.lastChatId) {
+              void onOpenChat(task.lastChatId);
+              return;
+            }
+            void fetchChats(agent.id, {
+              scope: "schedule",
+              scheduleId: task.id,
+            }).then((res) => {
+              const latest = res.chats[0];
+              if (latest) void onOpenChat(latest.id);
+            });
           }}
           onEnterProject={enterProject}
         />
@@ -985,8 +1068,9 @@ function AgentChatSession({
     enterProject,
     isBusy,
     isOmni,
-    onOpenAutomation,
+    onOpenSchedules,
     onOpenChat,
+    onScheduleViewChange,
     projectDetail,
     projectId,
     workSurfaceOpen,
@@ -996,45 +1080,81 @@ function AgentChatSession({
     <div className="agent-chat">
       <div className="chat-main-column">
         <header className="chat-header chat-header--toolbar">
-          {projectsOpen && isOmni ? (
-            <h2 className="work-page-title">
-              <span>Work</span>
-              <span className="work-page-title-sep" aria-hidden>
-                |
-              </span>
-              <span>Projects</span>
-            </h2>
-          ) : projectId && projectDetail ? (
-            <div className="chat-header-project">
-              <span className="chat-project-chip">{projectDetail.name}</span>
+          <div className="chat-header-leading">
+            {projectsOpen && isOmni ? (
+              <h2 className="page-title work-page-title">
+                <span>Work</span>
+                <span className="work-page-title-sep" aria-hidden>
+                  |
+                </span>
+                <span>Projects</span>
+              </h2>
+            ) : projectId ? (
+              <h2 className="page-title work-page-title">
+                <span>Work</span>
+                <span className="work-page-title-sep" aria-hidden>
+                  |
+                </span>
+                <span>
+                  {projectDetail ? `Project - ${projectDetail.name}` : "Project"}
+                </span>
+              </h2>
+            ) : scheduleChatId ? (
+              <h2 className="page-title work-page-title">
+                <span>Work</span>
+                <span className="work-page-title-sep" aria-hidden>
+                  |
+                </span>
+                <span>
+                  {scheduleTitle ? `Schedule - ${scheduleTitle}` : "Schedule"}
+                </span>
+              </h2>
+            ) : (
+              <h2 className="page-title work-page-title">Work</h2>
+            )}
+            {projectId ? (
               <IconButton
                 bare
                 size={22}
-                icon={Settings2}
-                label="Project settings"
-                active={projectSettingsOpen}
-                onClick={() => {
-                  setPreviewArtifact(null);
-                  setHistoryOpen(false);
-                  setMemoryOpen(false);
-                  setProjectSettingsOpen((open) => !open);
-                }}
-              />
-              <button
-                type="button"
-                className="chat-project-exit"
+                icon={LogOut}
+                label="Exit project"
                 onClick={() => {
                   closePanels();
                   exitProject();
                 }}
-              >
-                Exit project
-              </button>
-            </div>
-          ) : (
-            <h2 className="work-page-title">Work</h2>
-          )}
+              />
+            ) : scheduleChatId ? (
+              <IconButton
+                bare
+                size={22}
+                icon={LogOut}
+                label="Back to Work"
+                onClick={() => {
+                  closePanels();
+                  onNewChat();
+                }}
+              />
+            ) : null}
+          </div>
           <div className="chat-header-actions">
+            {projectId ? (
+              <>
+                <IconButton
+                  bare
+                  size={22}
+                  icon={Columns3Cog}
+                  label="Project settings"
+                  active={projectSettingsOpen}
+                  onClick={() => {
+                    setPreviewArtifact(null);
+                    setHistoryOpen(false);
+                    setMemoryOpen(false);
+                    setProjectSettingsOpen((open) => !open);
+                  }}
+                />
+                <span className="chat-header-actions-sep" aria-hidden />
+              </>
+            ) : null}
             <IconButton
               bare
               size={22}
@@ -1045,25 +1165,6 @@ function AgentChatSession({
                 onNewChat();
               }}
             />
-            {isOmni ? (
-              <IconButton
-                bare
-                size={22}
-                icon={Target}
-                label="Projects"
-                active={projectsOpen}
-                onClick={() => {
-                  if (projectsOpen) {
-                    setProjectsOpen(false);
-                  } else {
-                    setPreviewArtifact(null);
-                    setHistoryOpen(false);
-                    setMemoryOpen(false);
-                    setProjectsOpen(true);
-                  }
-                }}
-              />
-            ) : null}
             <IconButton
               bare
               size={22}
@@ -1233,6 +1334,13 @@ function AgentChatSession({
           <div className="chat-history-panel-body">
             {historyError ? (
               <p className="chat-history-error">{historyError}</p>
+            ) : null}
+            {projectId ? (
+              <p className="chat-history-empty">Chats in this project.</p>
+            ) : scheduleChatId ? (
+              <p className="chat-history-empty">
+                Chats from this scheduled task.
+              </p>
             ) : null}
             {chats.length === 0 && !historyError ? (
               <p className="chat-history-empty">No saved chats yet</p>

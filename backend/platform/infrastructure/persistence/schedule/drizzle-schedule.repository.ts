@@ -85,6 +85,23 @@ export class DrizzleScheduleRepository implements ScheduleRepository {
       where: and(...whereParts),
       orderBy: desc(scheduledTasks.updatedAt),
     });
+    await Promise.all(
+      rows
+        .filter((row) => row.lastChatId)
+        .map((row) =>
+          db
+            .update(chats)
+            .set({ scheduledTaskId: row.id })
+            .where(
+              and(
+                eq(chats.id, row.lastChatId!),
+                eq(chats.userId, userId),
+                isNull(chats.scheduledTaskId),
+                isNull(chats.projectId),
+              ),
+            ),
+        ),
+    );
     return rows.map(toDomain);
   }
 

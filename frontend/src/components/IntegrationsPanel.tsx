@@ -10,6 +10,8 @@ import "./IntegrationsPanel.css";
 
 type Props = {
   agentId: string;
+  /** Hide the page title when this list sits under the Customize tabs. */
+  embedded?: boolean;
 };
 
 function FieldInput({
@@ -239,7 +241,7 @@ function IntegrationCard({
   );
 }
 
-export function IntegrationsPanel({ agentId }: Props) {
+export function IntegrationsPanel({ agentId, embedded = false }: Props) {
   const [items, setItems] = useState<IntegrationCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -271,14 +273,11 @@ export function IntegrationsPanel({ agentId }: Props) {
     <div className="integrations-panel">
       <div className="integrations-panel-body">
         <section className="integrations-list-column">
-          <header className="integrations-list-header">
-            <div className="integrations-list-header-text">
-              <h2 className="integrations-panel-title">Integrations</h2>
-              <p className="integrations-panel-subtitle">
-                Your credentials are shared across all agents on this account.
-              </p>
-            </div>
-          </header>
+          {embedded ? null : (
+            <header className="integrations-list-header">
+              <h2 className="page-title">Integrations</h2>
+            </header>
+          )}
           <div className="integrations-list-body">
             {loading ? (
               <div className="integrations-state-center" role="status">
@@ -309,6 +308,9 @@ export function IntegrationsPanel({ agentId }: Props) {
               </div>
             )}
           </div>
+          <p className="integrations-account-note">
+            Your credentials are shared across all agents on this account.
+          </p>
         </section>
       </div>
     </div>

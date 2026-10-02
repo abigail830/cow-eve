@@ -6,13 +6,20 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
-import { fetchAgents, type AgentInfo } from "../lib/api";
+import {
+  fetchAgents,
+  scheduleTaskLabel,
+  type AgentInfo,
+  type ScheduledTaskPublic,
+} from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { AgentChat } from "../components/AgentChat";
 import { AgentNav, type AgentNavView } from "../components/AgentNav";
 import { ArtifactsPanel } from "../components/ArtifactsPanel";
-import { IntegrationsPanel } from "../components/IntegrationsPanel";
-import { SchedulePanel } from "../components/SchedulePanel";
+import {
+  CustomizePanel,
+  type CustomizeTab,
+} from "../components/CustomizePanel";
 import { WorkspacePanel } from "../components/WorkspacePanel";
 import {
   createWorkspaceFolder,
@@ -22,6 +29,20 @@ import {
   type WorkspaceFolderPublic,
 } from "../lib/workspace";
 import "./Agent.css";
+
+function customizeTabFromSearch(
+  viewParam: string | null,
+  tabParam: string | null,
+): CustomizeTab {
+  if (viewParam === "automation" || tabParam === "schedules") return "schedules";
+  if (
+    tabParam === "integrations" ||
+    (viewParam === "integrations" && !tabParam)
+  ) {
+    return "integrations";
+  }
+  return "projects";
+}
 
 export function AgentPage() {
   const { agentId } = useParams<{ agentId: string }>();
@@ -33,6 +54,10 @@ export function AgentPage() {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [restoreChatId, setRestoreChatId] = useState<string | null>(null);
+  const [scheduleView, setScheduleView] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
   const [streaming, setStreaming] = useState(false);
 
   const projectId = searchParams.get("project")?.trim() || null;
@@ -56,13 +81,13 @@ export function AgentPage() {
   const view: AgentNavView =
     viewParam === "workspace"
       ? "workspace"
-      : viewParam === "integrations"
-        ? "integrations"
+      : viewParam === "customize" ||
+          viewParam === "integrations" ||
+          viewParam === "automation"
+        ? "customize"
         : viewParam === "artifacts"
           ? "artifacts"
-          : viewParam === "automation"
-            ? "automation"
-            : "work";
+          : "work";
 
   const setView = useCallback(
     (next: AgentNavView) => {
@@ -188,7 +213,10 @@ export function AgentPage() {
 
     if (state.openSchedules || state.restoreChatId) {
       const params = new URLSearchParams(location.search);
-      if (state.openSchedules) params.set("view", "automation");
+      if (state.openSchedules) {
+        params.set("view", "customize");
+        params.set("tab", "schedules");
+      }
       const search = params.toString();
       navigate(`${location.pathname}${search ? `?${search}` : ""}`, {
         replace: true,
@@ -241,23 +269,32 @@ export function AgentPage() {
           <div className="agent-load-error">{loadError}</div>
         ) : !agent ? (
           <div className="agent-load-error">Loading agent…</div>
-        ) : view === "automation" ? (
-          <div className="automation-page">
-            <header className="automation-page-header">
-              <h2 className="automation-page-title">Automation</h2>
-            </header>
-            <div className="automation-page-body">
-              <SchedulePanel
-                agentId={agent.id}
-                onOpenResultChat={(chatId) => {
-                  setRestoreChatId(chatId);
-                  setView("work");
-                }}
-              />
-            </div>
-          </div>
-        ) : view === "integrations" ? (
-          <IntegrationsPanel agentId={agent.id} />
+        ) : view === "customize" ? (
+          <CustomizePanel
+            agentId={agent.id}
+            tab={customizeTabFromSearch(viewParam, searchParams.get("tab"))}
+            onTabChange={(tab: CustomizeTab) => {
+              setSearchParams(
+                tab === "schedules"
+                  ? { view: "customize", tab: "schedules" }
+                  : tab === "integrations"
+                    ? { view: "customize", tab: "integrations" }
+                    : { view: "customize" },
+                { replace: true },
+              );
+            }}
+            onEnterProject={(projectId) => {
+              setSearchParams({ project: projectId }, { replace: true });
+            }}
+            onOpenScheduleResult={(task: ScheduledTaskPublic, chatId: string) => {
+              setScheduleView({
+                id: task.id,
+                label: scheduleTaskLabel(task),
+              });
+              setRestoreChatId(chatId);
+              setView("work");
+            }}
+          />
         ) : view === "artifacts" ? (
           <ArtifactsPanel agentId={agent.id} />
         ) : view === "workspace" ? (
@@ -273,8 +310,16 @@ export function AgentPage() {
           <AgentChat
             agent={agent}
             restoreChatId={restoreChatId}
-            onOpenAutomation={
-              agent.id === "omni" ? () => setView("automation") : undefined
+            scheduleView={scheduleView}
+            onScheduleViewChange={setScheduleView}
+            onOpenSchedules={
+              agent.id === "omni"
+                ? () =>
+                    setSearchParams(
+                      { view: "customize", tab: "schedules" },
+                      { replace: true },
+                    )
+                : undefined
             }
             projectId={projectId}
             onProjectIdChange={setProjectId}

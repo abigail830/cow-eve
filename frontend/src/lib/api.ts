@@ -77,6 +77,8 @@ export type ModelCatalogUpdate = {
   models: ModelEntryUpdate[];
 };
 
+export type ChatOrigin = "generic" | "project" | "schedule";
+
 export type ChatSummary = {
   id: string;
   agentId: string;
@@ -84,6 +86,9 @@ export type ChatSummary = {
   title: string;
   createdAt: string;
   updatedAt: string;
+  source: ChatOrigin;
+  projectId: string | null;
+  scheduledTaskId: string | null;
 };
 
 export type ChatDetail = ChatSummary & {
@@ -187,11 +192,16 @@ export async function saveModelCatalog(update: ModelCatalogUpdate) {
 
 export async function fetchChats(
   agentId: string,
-  options?: { scope?: "generic" | "project"; projectId?: string },
+  options?: {
+    scope?: "generic" | "project" | "schedule";
+    projectId?: string;
+    scheduleId?: string;
+  },
 ) {
   const params = new URLSearchParams({ agentId });
   if (options?.scope) params.set("scope", options.scope);
   if (options?.projectId) params.set("projectId", options.projectId);
+  if (options?.scheduleId) params.set("scheduleId", options.scheduleId);
   return api<{ ok: true; chats: ChatSummary[] }>(
     `/api/chats?${params.toString()}`,
   );
@@ -238,6 +248,17 @@ export async function deleteUser(email: string) {
     `/api/settings/users/${encodeURIComponent(email)}`,
     { method: "DELETE" },
   );
+}
+
+export function scheduleTaskLabel(task: {
+  name: string | null;
+  prompt: string;
+}): string {
+  const name = task.name?.trim();
+  if (name) return name;
+  const prompt = task.prompt.trim();
+  if (!prompt) return "Scheduled task";
+  return prompt.length > 42 ? `${prompt.slice(0, 42)}…` : prompt;
 }
 
 export type ScheduledTaskPublic = {

@@ -45,6 +45,10 @@
   color: var(--color-ink);
 }
 
+.work-hub-card-title svg {
+  color: var(--accent);
+}
+
 .work-hub-card-actions {
   display: flex;
   align-items: center;
@@ -71,15 +75,16 @@
   place-items: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
-  background: var(--surface-muted);
-  color: var(--color-ink);
+  background: var(--surface-raised);
+  color: var(--accent);
   cursor: pointer;
 }
 
 .work-hub-icon-btn:hover {
-  background: var(--nav-hover-bg);
+  background: var(--accent);
+  color: var(--accent-on-accent);
 }
 
 .work-hub-list {
@@ -90,6 +95,7 @@
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  container-type: inline-size;
 }
 
 .work-hub-list-item {
@@ -98,18 +104,22 @@
   border: 1px solid var(--work-item-border, var(--border-subtle));
   border-radius: var(--radius-md);
   background: var(--work-item-bg, var(--surface-raised));
-  padding: 10px 12px;
+  padding: 8px 12px;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
 }
 
 .work-hub-list-item:hover {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
+  border-color: var(--accent);
 }
 
 .work-hub-list-title {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-ink);
@@ -119,8 +129,28 @@
 }
 
 .work-hub-list-meta {
+  flex: 0 0 auto;
+  margin-left: auto;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  white-space: nowrap;
+  text-align: right;
+}
+
+@container (max-width: 320px) {
+  .work-hub-list-item {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .work-hub-list-title {
+    flex-basis: 100%;
+  }
+
+  .work-hub-list-meta {
+    margin-left: 0;
+    text-align: left;
+  }
 }
 
 .work-hub-empty {

@@ -72,10 +72,34 @@
   --radius-composer: 12px;
   --radius-pill: 999px;
 
-  --segment-tab-active-bg: #ffffff;
-  --segment-tab-active-fg: var(--brand-starry);
-  --segment-tab-hover-bg: var(--surface-muted);
-  --segment-tab-hover-fg: var(--text-primary);
+  /* Page titles: Georgia, starry navy, a little tighter tracking. */
+  --page-title-size: 1.125rem;
+  --page-title-weight: 600;
+  --page-title-tracking: -0.02em;
+  --page-title-line-height: 1.25;
+  --page-title-fg: var(--brand-starry);
+
+  /* In-page tabs: medium radius, starry label, creative-blue wash when selected. */
+  --page-tab-size: 0.8125rem;
+  --page-tab-weight: 500;
+  --page-tab-pad-y: 6px;
+  --page-tab-pad-x: 12px;
+  --page-tab-gap: 6px;
+  --page-tab-radius: var(--radius-md);
+  --page-tab-bg: transparent;
+  --page-tab-fg: var(--color-text-secondary);
+  --page-tab-border: transparent;
+  --page-tab-hover-bg: var(--surface-muted);
+  --page-tab-hover-fg: var(--brand-starry);
+  --page-tab-hover-border: transparent;
+  --page-tab-active-bg: var(--accent-muted);
+  --page-tab-active-fg: var(--brand-starry);
+  --page-tab-active-border: color-mix(in srgb, var(--accent) 40%, transparent);
+
+  --segment-tab-active-bg: var(--page-tab-active-bg);
+  --segment-tab-active-fg: var(--page-tab-active-fg);
+  --segment-tab-hover-bg: var(--page-tab-hover-bg);
+  --segment-tab-hover-fg: var(--page-tab-hover-fg);
   --ambient-overlay-opacity: 0.12;
 
   --chat-font-size: 13px;

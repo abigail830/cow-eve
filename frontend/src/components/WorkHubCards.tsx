@@ -26,7 +26,7 @@ type Props = {
   agentId: string;
   onOpenSchedules: () => void;
   onOpenProjects: () => void;
-  onOpenScheduleResult: (chatId: string) => void;
+  onOpenScheduleResult: (task: ScheduledTaskPublic) => void;
   onEnterProject: (projectId: string) => void;
 };
 
@@ -137,10 +137,7 @@ export function WorkHubCards({
                   <button
                     type="button"
                     className="work-hub-list-item"
-                    onClick={() => {
-                      if (task.lastChatId) onOpenScheduleResult(task.lastChatId);
-                      else onOpenSchedules();
-                    }}
+                    onClick={() => onOpenScheduleResult(task)}
                   >
                     <span className="work-hub-list-title">
                       {task.name?.trim() || "Scheduled task"}

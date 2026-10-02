@@ -18,8 +18,9 @@ export interface ChatRepository {
   listChats(input: {
     userId: string;
     agentId: string;
-    scope?: "generic" | "project";
+    scope?: "generic" | "project" | "schedule";
     projectId?: string;
+    scheduleId?: string;
   }): Promise<Chat[]>;
 
   setScheduledTaskIdIfUnset(input: {

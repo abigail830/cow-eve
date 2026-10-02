@@ -171,7 +171,7 @@ export function WorkspacePanel({
 
   const listHeader = (
     <header className="workspace-list-header">
-      <h2 className="workspace-panel-title">
+      <h2 className="page-title workspace-panel-title">
         {selectedFolder ? (
           <>
             <span className="workspace-panel-title-root">Workspace</span>
@@ -187,27 +187,29 @@ export function WorkspacePanel({
         )}
       </h2>
       {selectedFolderId ? (
-        <div className="workspace-panel-actions">
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="workspace-file-input"
-            multiple
-            onChange={onFileInputChange}
-          />
-          <button
-            type="button"
-            className="workspace-btn primary"
-            disabled={uploading}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {uploading ? (
-              <Loader2 size={16} className="spin" aria-hidden />
-            ) : (
-              <Upload size={16} strokeWidth={2} aria-hidden />
-            )}
-            Upload
-          </button>
+        <div className="workspace-toolbar">
+          <div className="workspace-panel-actions">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="workspace-file-input"
+              multiple
+              onChange={onFileInputChange}
+            />
+            <button
+              type="button"
+              className="workspace-btn primary"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploading ? (
+                <Loader2 size={16} className="spin" aria-hidden />
+              ) : (
+                <Upload size={16} strokeWidth={2} aria-hidden />
+              )}
+              Upload
+            </button>
+          </div>
         </div>
       ) : null}
     </header>

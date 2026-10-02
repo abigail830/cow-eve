@@ -117,7 +117,7 @@ export function ProjectSettingsPanel({
           <span>Loading…</span>
         </div>
       ) : (
-        <>
+        <div className="project-settings-body">
           <label className="project-settings-name-field">
             <span>Name</span>
             <input
@@ -129,15 +129,13 @@ export function ProjectSettingsPanel({
             />
           </label>
 
-          <div className="project-settings-tabs" role="tablist">
+          <div className="page-tabs project-settings-tabs" role="tablist">
             <button
               type="button"
               role="tab"
               aria-selected={tab === "instructions"}
               className={
-                tab === "instructions"
-                  ? "project-settings-tab active"
-                  : "project-settings-tab"
+                tab === "instructions" ? "page-tab active" : "page-tab"
               }
               onClick={() => setTab("instructions")}
             >
@@ -147,11 +145,7 @@ export function ProjectSettingsPanel({
               type="button"
               role="tab"
               aria-selected={tab === "context"}
-              className={
-                tab === "context"
-                  ? "project-settings-tab active"
-                  : "project-settings-tab"
-              }
+              className={tab === "context" ? "page-tab active" : "page-tab"}
               onClick={() => setTab("context")}
             >
               Context
@@ -226,7 +220,7 @@ export function ProjectSettingsPanel({
               </ul>
             </div>
           )}
-        </>
+        </div>
       )}
 
       <ComposerWorkspaceImportModal

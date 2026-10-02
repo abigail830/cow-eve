@@ -41,16 +41,20 @@ export function registerChatRoutes(ctx: PlatformRouteContext): RouteDefinition[]
       }
       const scopeParam = url.searchParams.get("scope");
       const scope =
-        scopeParam === "generic" || scopeParam === "project"
+        scopeParam === "generic" ||
+        scopeParam === "project" ||
+        scopeParam === "schedule"
           ? scopeParam
           : undefined;
       const projectId = url.searchParams.get("projectId")?.trim() || undefined;
+      const scheduleId = url.searchParams.get("scheduleId")?.trim() || undefined;
       try {
         const rows = await listChats({
           userId: auth.principalId,
           agentId,
           scope,
           projectId,
+          scheduleId,
         });
         return json(
           { ok: true, chats: rows.map(toChatSummary) },

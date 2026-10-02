@@ -130,65 +130,65 @@ export function ArtifactsPanel({ agentId }: Props) {
           }
         >
           <header className="artifacts-list-header">
-            <div className="artifacts-list-header-text">
-              <h2 className="artifacts-panel-title">Artifacts</h2>
-              <p className="artifacts-panel-subtitle">
-                Published deliverables from your chats with this agent.
-              </p>
-            </div>
-            <div className="artifacts-source-filters" role="group" aria-label="Filter by source">
-              {(
-                [
-                  ["all", "All"],
-                  ["generic", "Generic"],
-                  ["project", "Project"],
-                  ["schedule", "Schedule"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={
-                    sourceFilter === value
-                      ? "artifacts-source-chip active"
-                      : "artifacts-source-chip"
-                  }
-                  aria-pressed={sourceFilter === value}
-                  onClick={() => setSourceFilter(value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="artifacts-header-tools">
-              {searchOpen ? (
-                <div className="artifacts-search-wrap">
-                  <input
-                    ref={searchInputRef}
-                    type="search"
-                    className="artifacts-search-input"
-                    placeholder="Search by filename…"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search artifacts"
-                  />
-                </div>
-              ) : null}
-              <button
-                type="button"
-                className="artifacts-search-toggle"
-                aria-label={searchOpen ? "Close search" : "Search artifacts"}
-                aria-pressed={searchOpen}
-                title={searchOpen ? "Close search" : "Search"}
-                onClick={() => {
-                  setSearchOpen((v) => {
-                    if (v) setSearchQuery("");
-                    return !v;
-                  });
-                }}
+            <h2 className="page-title">Artifacts</h2>
+            <div className="artifacts-toolbar">
+              <div
+                className="page-tabs"
+                role="tablist"
+                aria-label="Filter by source"
               >
-                <Search size={18} strokeWidth={2} />
-              </button>
+                {(
+                  [
+                    ["all", "All"],
+                    ["generic", "Generic"],
+                    ["project", "Project"],
+                    ["schedule", "Schedule"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    className={
+                      sourceFilter === value ? "page-tab active" : "page-tab"
+                    }
+                    aria-selected={sourceFilter === value}
+                    onClick={() => setSourceFilter(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="artifacts-header-tools">
+                {searchOpen ? (
+                  <div className="artifacts-search-wrap">
+                    <input
+                      ref={searchInputRef}
+                      type="search"
+                      className="artifacts-search-input"
+                      placeholder="Search by filename…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      aria-label="Search artifacts"
+                    />
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="artifacts-search-toggle"
+                  aria-label={searchOpen ? "Close search" : "Search artifacts"}
+                  aria-pressed={searchOpen}
+                  title={searchOpen ? "Close search" : "Search"}
+                  onClick={() => {
+                    setSearchOpen((v) => {
+                      if (v) setSearchQuery("");
+                      return !v;
+                    });
+                  }}
+                >
+                  <Search size={18} strokeWidth={2} />
+                </button>
+              </div>
             </div>
           </header>
 
@@ -206,9 +206,15 @@ export function ArtifactsPanel({ agentId }: Props) {
                   </p>
                 ) : (
                   <p className="artifacts-muted">
-                    {items.length === 0
-                      ? "No artifacts yet. Published deliverables from chats will appear here."
-                      : "No artifacts match your search."}
+                    {searchQuery.trim()
+                      ? "No artifacts match your search."
+                      : sourceFilter === "project"
+                        ? "No project artifacts yet."
+                        : sourceFilter === "schedule"
+                          ? "No scheduled task artifacts yet."
+                          : sourceFilter === "generic"
+                            ? "No chat artifacts yet."
+                            : "No artifacts yet."}
                   </p>
                 )}
               </div>

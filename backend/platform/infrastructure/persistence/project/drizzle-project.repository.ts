@@ -164,6 +164,19 @@ export async function upsertChatSessionBinding(input: {
         userId: input.userId,
       },
     });
+
+  if (!input.projectId) return;
+  await db
+    .update(chats)
+    .set({ projectId: input.projectId, updatedAt: new Date() })
+    .where(
+      and(
+        eq(chats.eveSessionId, input.eveSessionId),
+        eq(chats.userId, input.userId),
+        isNull(chats.projectId),
+        isNull(chats.scheduledTaskId),
+      ),
+    );
 }
 
 export async function getChatSessionBinding(eveSessionId: string): Promise<{

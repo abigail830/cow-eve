@@ -33,10 +33,21 @@ export function registerArtifactRoutes(
           request,
         );
       }
+      const url = new URL(request.url);
+      const sourceParam = url.searchParams.get("source");
+      const source =
+        sourceParam === "generic" ||
+        sourceParam === "project" ||
+        sourceParam === "schedule"
+          ? sourceParam
+          : undefined;
       try {
         const artifacts = await listAgentArtifactsForUser({
           userId: auth.principalId,
           agentId: params.agentId,
+          source,
+          projectId: url.searchParams.get("projectId")?.trim() || undefined,
+          scheduleId: url.searchParams.get("scheduleId")?.trim() || undefined,
         });
         return json({ ok: true, artifacts }, 200, request);
       } catch (err) {

@@ -27,8 +27,9 @@ export async function persistStreamEvent(input: {
 export async function listChats(input: {
   userId: string;
   agentId: string;
-  scope?: "generic" | "project";
+  scope?: "generic" | "project" | "schedule";
   projectId?: string;
+  scheduleId?: string;
 }): Promise<Chat[]> {
   return drizzleChatRepository.listChats(input);
 }

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import {
   chatArtifacts,
   chats,
@@ -68,13 +68,15 @@ export async function listChatArtifactsForAgent(input: {
     conditions.push(isNull(chats.projectId));
     conditions.push(isNull(chats.scheduledTaskId));
   } else if (input.source === "project") {
+    conditions.push(isNotNull(chats.projectId));
+    conditions.push(isNull(chats.scheduledTaskId));
     const projectId = input.projectId?.trim();
-    if (!projectId) return [];
-    conditions.push(eq(chats.projectId, projectId));
+    if (projectId) conditions.push(eq(chats.projectId, projectId));
   } else if (input.source === "schedule") {
+    conditions.push(isNotNull(chats.scheduledTaskId));
+    conditions.push(isNull(chats.projectId));
     const scheduleId = input.scheduleId?.trim();
-    if (!scheduleId) return [];
-    conditions.push(eq(chats.scheduledTaskId, scheduleId));
+    if (scheduleId) conditions.push(eq(chats.scheduledTaskId, scheduleId));
   }
 
   const rows = await db

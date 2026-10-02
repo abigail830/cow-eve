@@ -1,5 +1,5 @@
 import type { ClientSessionState, MessageStreamEvent } from "eve/client";
-import { fetchChat } from "./api";
+import { fetchChat, type ChatOrigin } from "./api";
 import { resolveHistorySession } from "./chat-stream";
 
 export type BoundSession = {
@@ -8,6 +8,9 @@ export type BoundSession = {
   events: readonly MessageStreamEvent[] | undefined;
   resume: boolean;
   key: string;
+  source: ChatOrigin;
+  projectId: string | null;
+  scheduledTaskId: string | null;
 };
 
 /** Load conversation from DB — no client-side cache. */
@@ -25,5 +28,8 @@ export async function fetchBoundSession(chatId: string): Promise<BoundSession> {
     events: history.events,
     resume: history.resume,
     key: `chat-${chatId}`,
+    source: res.chat.source ?? "generic",
+    projectId: res.chat.projectId ?? null,
+    scheduledTaskId: res.chat.scheduledTaskId ?? null,
   };
 }

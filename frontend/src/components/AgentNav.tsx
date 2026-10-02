@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FolderOpen,
+  Blocks,
   BotMessageSquare,
-  CalendarClock,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
-  Plug,
   Plus,
   Boxes,
   Trash2,
@@ -20,9 +19,8 @@ import "./AgentNav.css";
 
 export type AgentNavView =
   | "work"
-  | "automation"
+  | "customize"
   | "workspace"
-  | "integrations"
   | "artifacts";
 
 type Props = {
@@ -108,19 +106,19 @@ export function AgentNav({
           {!collapsed ? <span>Work</span> : null}
         </button>
 
-        {agent.id === "omni" ? (
-          <button
-            type="button"
-            className={
-              view === "automation" ? "agent-nav-item active" : "agent-nav-item"
-            }
-            title="Automation"
-            onClick={() => onViewChange("automation")}
-          >
-            <CalendarClock size={18} strokeWidth={2} aria-hidden />
-            {!collapsed ? <span>Automation</span> : null}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className={
+            view === "customize"
+              ? "agent-nav-item active"
+              : "agent-nav-item"
+          }
+          title="Customize"
+          onClick={() => onViewChange("customize")}
+        >
+          <Blocks size={18} strokeWidth={2} aria-hidden />
+          {!collapsed ? <span>Customize</span> : null}
+        </button>
 
         <button
           type="button"
@@ -132,20 +130,6 @@ export function AgentNav({
         >
           <Boxes size={18} strokeWidth={2} aria-hidden />
           {!collapsed ? <span>Artifacts</span> : null}
-        </button>
-
-        <button
-          type="button"
-          className={
-            view === "integrations"
-              ? "agent-nav-item active"
-              : "agent-nav-item"
-          }
-          title="Integrations"
-          onClick={() => onViewChange("integrations")}
-        >
-          <Plug size={18} strokeWidth={2} aria-hidden />
-          {!collapsed ? <span>Integrations</span> : null}
         </button>
 
         <div className="agent-nav-hub">

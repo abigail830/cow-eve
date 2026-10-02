@@ -1,5 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
+import { Loader2, Plus, Target, Trash2 } from "lucide-react";
 import {
   createProject,
   deleteProject,
@@ -11,9 +17,18 @@ import "./ProjectListPanel.css";
 type Props = {
   agentId: string;
   onEnterProject: (projectId: string) => void;
+  showCreateButton?: boolean;
 };
 
-export function ProjectListPanel({ agentId, onEnterProject }: Props) {
+export type ProjectListHandle = {
+  openCreate: () => void;
+};
+
+export const ProjectListPanel = forwardRef<ProjectListHandle, Props>(
+  function ProjectListPanel(
+    { agentId, onEnterProject, showCreateButton = true },
+    ref,
+  ) {
   const [projects, setProjects] = useState<ProjectPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +50,7 @@ export function ProjectListPanel({ agentId, onEnterProject }: Props) {
     void reload();
   }, [reload]);
 
-  async function handleCreate() {
+  const handleCreate = useCallback(async () => {
     const name = window.prompt("Project name");
     if (!name?.trim()) return;
     setPending(true);
@@ -49,7 +64,17 @@ export function ProjectListPanel({ agentId, onEnterProject }: Props) {
     } finally {
       setPending(false);
     }
-  }
+  }, [agentId, onEnterProject, reload]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      openCreate: () => {
+        void handleCreate();
+      },
+    }),
+    [handleCreate],
+  );
 
   async function handleDelete(project: ProjectPublic) {
     if (
@@ -73,17 +98,19 @@ export function ProjectListPanel({ agentId, onEnterProject }: Props) {
 
   return (
     <div className="project-list-panel">
-      <div className="project-list-toolbar">
-        <button
-          type="button"
-          className="project-list-create"
-          disabled={pending}
-          onClick={() => void handleCreate()}
-        >
-          <Plus size={16} strokeWidth={2} aria-hidden />
-          New project
-        </button>
-      </div>
+      {showCreateButton ? (
+        <div className="project-list-toolbar">
+          <button
+            type="button"
+            className="project-list-create"
+            disabled={pending}
+            onClick={() => void handleCreate()}
+          >
+            <Plus size={16} strokeWidth={2} aria-hidden />
+            New project
+          </button>
+        </div>
+      ) : null}
       {error ? (
         <p className="project-list-error" role="alert">
           {error}
@@ -100,32 +127,51 @@ export function ProjectListPanel({ agentId, onEnterProject }: Props) {
         </div>
       ) : (
         <ul className="project-list">
-          {projects.map((project) => (
-            <li key={project.id} className="project-list-item">
-              <button
-                type="button"
-                className="project-list-item-main"
-                disabled={pending}
-                onClick={() => onEnterProject(project.id)}
-              >
-                <strong>{project.name}</strong>
-                <span className="project-list-item-meta">
-                  Updated {new Date(project.lastActivityAt).toLocaleString()}
-                </span>
-              </button>
-              <button
-                type="button"
-                className="project-list-item-delete danger"
-                aria-label={`Delete project ${project.name}`}
-                disabled={pending}
-                onClick={() => void handleDelete(project)}
-              >
-                <Trash2 size={15} strokeWidth={2} />
-              </button>
-            </li>
-          ))}
+          {projects.map((project) => {
+            const summary = project.instructions.trim();
+            return (
+              <li key={project.id} className="project-card">
+                <div className="project-card-row">
+                  <span className="project-card-icon" aria-hidden>
+                    <Target size={20} strokeWidth={1.75} />
+                  </span>
+                  <div className="project-card-main">
+                    <div className="project-card-head">
+                      <span className="project-card-name">{project.name}</span>
+                      <div className="project-card-actions">
+                        <button
+                          type="button"
+                          className="project-card-cta"
+                          disabled={pending}
+                          onClick={() => onEnterProject(project.id)}
+                        >
+                          Open
+                        </button>
+                        <button
+                          type="button"
+                          className="project-card-cta project-card-cta-danger"
+                          aria-label={`Delete project ${project.name}`}
+                          disabled={pending}
+                          onClick={() => void handleDelete(project)}
+                        >
+                          <Trash2 size={14} strokeWidth={2} aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="project-card-desc">
+                      {summary || "No instructions yet."}
+                    </p>
+                    <p className="project-card-meta">
+                      Updated {new Date(project.lastActivityAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
   );
-}
+},
+);
