@@ -432,7 +432,8 @@ export function WorkspacePanel({
       <div className="workspace-panel-body">
         {previewOpen ? (
           <ResizableAside
-            defaultWidth={420}
+            persistKey="workspace-preview-list-width"
+            defaultWidthRatio={0.4}
             minWidth={280}
             maxWidthRatio={0.55}
             handlePlacement="inside"
