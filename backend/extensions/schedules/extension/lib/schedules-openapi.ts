@@ -78,7 +78,7 @@ export const schedulesOpenApiSpec = {
         },
       },
     },
-    "/api/schedules/{id}": {
+    "/api/schedules/detail/{id}": {
       parameters: [
         {
           name: "id",
@@ -102,6 +102,22 @@ export const schedulesOpenApiSpec = {
           "401": { description: "Unauthorized" },
         },
       },
+    },
+    "/api/schedules/{id}": {
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+        },
+        {
+          name: "agentId",
+          in: "query",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
       put: {
         operationId: "updateSchedule",
         summary: "Update, pause, or resume a scheduled agent task.",

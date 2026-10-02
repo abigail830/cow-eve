@@ -23,7 +23,8 @@ export function registerScheduleRoutes(
   return [
     preflight("/api/schedules"),
     preflight("/api/schedules/summary"),
-    // Do not preflight `/api/schedules/:id` — GET/PUT/DELETE on same path (Eve compile).
+    preflight("/api/schedules/detail/:id"),
+    // Do not preflight `/api/schedules/:id` — PUT/DELETE only (Eve compile).
 
     GET("/api/schedules/summary", async (request) => {
       const auth = await requireUser(request);
@@ -177,7 +178,7 @@ export function registerScheduleRoutes(
       }
     }),
 
-    GET("/api/schedules/:id", async (request, { params }) => {
+    GET("/api/schedules/detail/:id", async (request, { params }) => {
       const auth = await requireUser(request);
       if (!auth) {
         return json({ ok: false, error: "Unauthorized" }, 401, request);
