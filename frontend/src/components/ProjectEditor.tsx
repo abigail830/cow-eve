@@ -139,16 +139,18 @@ export function ProjectEditor({
       }
     >
       <div className="project-editor-toolbar">
-        <label className="project-editor-name-field">
-          <span className="project-editor-name-label">Name</span>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={() => void handleSaveInstructions()}
-            disabled={saving}
-          />
-        </label>
+        {!isPanel ? (
+          <label className="project-editor-name-field">
+            <span className="project-editor-name-label">Name</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => void handleSaveInstructions()}
+              disabled={saving}
+            />
+          </label>
+        ) : null}
         <div className="project-editor-tab-bar">
           <div className="page-tabs project-editor-tabs" role="tablist">
             <button
