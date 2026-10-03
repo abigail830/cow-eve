@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { migrateModelSettingsCatalog } from "./migrate-model-settings-catalog.js";
 
 const url = process.env.DATABASE_URL?.trim();
 if (!url) {
@@ -27,4 +28,5 @@ const sql = neon(url);
 const db = drizzle(sql);
 
 await migrate(db, { migrationsFolder });
+await migrateModelSettingsCatalog(url);
 console.log("Migrations applied successfully");

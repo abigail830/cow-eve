@@ -17,7 +17,7 @@
     "@fde/question-ui": "file:../packages/question-ui",
     "@silurus/ooxml": "^0.87.0",
     "@vercel/blob": "^2.8.0",
-    "eve": "^0.62.0",
+    "eve": "^0.70.2",
     "lucide-react": "^1.47.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

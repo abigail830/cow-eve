@@ -327,6 +327,55 @@ function dedupeIds(models: ModelEntry[]): ModelEntry[] {
   });
 }
 
+/** JSON persisted in `platform_settings.payload` for id = "model". */
+export type ModelCatalogStoredPayload = {
+  models: ModelEntry[];
+  defaultId: string;
+  updatedAt: string | null;
+};
+
+export function modelCatalogToStoredPayload(
+  catalog: ModelCatalog,
+): ModelCatalogStoredPayload {
+  return {
+    models: catalog.models,
+    defaultId: catalog.defaultId,
+    updatedAt: catalog.updatedAt,
+  };
+}
+
+function modelEntryHasLegacyPresetShape(entry: ModelEntry): boolean {
+  const upgraded = upgradeLegacyModelEntry(entry);
+  return (
+    upgraded.presetId !== entry.presetId ||
+    upgraded.modelId !== entry.modelId ||
+    upgraded.contextWindowTokens !== entry.contextWindowTokens
+  );
+}
+
+/** True when DB/file still holds legacy single-model JSON or pre-migration catalog rows. */
+export function modelSettingsPayloadNeedsMigration(raw: unknown): boolean {
+  if (!isRecord(raw) || !Array.isArray(raw.models) || raw.models.length === 0) {
+    return true;
+  }
+  if (typeof raw.defaultId !== "string" || !raw.defaultId.trim()) {
+    return true;
+  }
+  if (typeof raw.modelId === "string" && typeof raw.baseURL === "string") {
+    return true;
+  }
+  const allowedTopLevel = new Set(["models", "defaultId", "updatedAt"]);
+  if (Object.keys(raw).some((key) => !allowedTopLevel.has(key))) {
+    return true;
+  }
+  for (let index = 0; index < raw.models.length; index += 1) {
+    const entry = normalizeModelEntry(raw.models[index], index);
+    if (!entry) return true;
+    if (modelEntryHasLegacyPresetShape(entry)) return true;
+  }
+  return false;
+}
+
 /** Accepts the current catalog or the legacy single-model payload. */
 export function normalizeModelCatalog(raw: unknown): ModelCatalog {
   if (isRecord(raw) && Array.isArray(raw.models)) {

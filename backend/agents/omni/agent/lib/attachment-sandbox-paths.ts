@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
-/** Matches Eve inbound attachment staging under `/workspace/attachments`. */
-export const ATTACHMENTS_ROOT = "/workspace/attachments";
+/** Eve inbound attachment staging (see eve docs: inbound attachments). */
+export const ATTACHMENTS_ROOT = "/workspace/.eve/attachments";
 
 const UNSAFE_FILENAME_CHARS = /[^\w.\-()+ ]+/g;
 

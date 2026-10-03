@@ -558,10 +558,10 @@ function AgentChatSession({
     };
   }, [sessionWorkspaceIdsKey]);
 
-  // Eve status contract (frontend overview + scaffold agent-chat):
+  // Eve status contract (0.70+): approvals/questions hold the turn open — the store
+  // stays `streaming` while `turn.waiting`; `respond()` is valid during that window.
   // - submitted | streaming → active turn: Stop calls cancel(); draft send uses steer
   // - resuming → catch-up only: no Stop, no send
-  // - cancel keeps the stream attached through turn.cancelled → session.waiting
   const isBusy = status === "submitted" || status === "streaming";
   const isResuming = status === "resuming";
   const pendingHitl = useMemo(
@@ -569,11 +569,11 @@ function AgentChatSession({
     [data.messages],
   );
   const hitlAwaitingAnswer =
-    pendingHitl.length > 0 && !isBusy && !isResuming && !hitlResponding;
+    pendingHitl.length > 0 && !isResuming && !hitlResponding;
 
   const handleHitlRespond = useCallback(
     async (responses: InputResponse[]) => {
-      if (isResuming || hitlResponding || isBusy) return;
+      if (isResuming || hitlResponding) return;
       setHitlResponding(true);
       try {
         await respond(responses);
@@ -581,12 +581,11 @@ function AgentChatSession({
         setHitlResponding(false);
       }
     },
-    [respond, isResuming, hitlResponding, isBusy],
+    [respond, isResuming, hitlResponding],
   );
-  /** Legacy partial streams only — full history renders from initialEvents without blocking UI. */
   const conversationLoading =
     bound.resume &&
-    bound.events === undefined &&
+    (bound.events?.length ?? 0) === 0 &&
     data.messages.length === 0 &&
     (isResuming || status === "ready");
   const turnFailure =
@@ -1642,6 +1641,7 @@ function latestTurnFailure(
     if (
       event?.type === "turn.completed" ||
       event?.type === "turn.cancelled" ||
+      event?.type === "turn.waiting" ||
       event?.type === "message.received"
     ) {
       return undefined;
