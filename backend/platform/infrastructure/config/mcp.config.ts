@@ -4,15 +4,29 @@ const HYBRID_SEARCH_MCP_SUFFIX = "/api/mcp/hybrid-search";
 export const DEFAULT_HYBRID_SEARCH_MCP_URL =
   "https://cow-platform-ii.vercel.app/api/mcp/hybrid-search";
 
+/** Bare email / login strings must not become `https://user@host` MCP URLs. */
+function looksLikeBareEmailOrLogin(value: string): boolean {
+  if (/^https?:\/\//i.test(value)) return false;
+  return /^[^\s/]+@[^\s/]+\.[^\s/]+/.test(value);
+}
+
 export function normalizeHttpUrl(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  for (const candidate of [trimmed, `https://${trimmed}`]) {
+  if (looksLikeBareEmailOrLogin(trimmed)) return null;
+
+  const candidates = trimmed.includes("://")
+    ? [trimmed]
+    : [trimmed, `https://${trimmed}`];
+
+  for (const candidate of candidates) {
     try {
       const parsed = new URL(candidate);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-        return parsed.href.replace(/\/+$/, "") || null;
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        continue;
       }
+      if (!parsed.hostname) continue;
+      return parsed.href.replace(/\/+$/, "") || null;
     } catch {
       /* try next */
     }

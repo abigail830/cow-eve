@@ -8,6 +8,8 @@ export type IntegrationFieldDefinition = {
   label: string;
   description?: string;
   placeholder?: string;
+  /** Shown in the UI when the user has not set a value (optional fields). */
+  defaultValue?: string;
   required: boolean;
   /** Non-secret fields stored in user_integrations.config */
   storeInConfig?: boolean;
@@ -57,7 +59,10 @@ export const INTEGRATION_CATALOG: readonly IntegrationDefinition[] = [
         key: "mcpUrl",
         kind: "url",
         label: "MCP URL",
-        description: "Hybrid search MCP endpoint. Leave blank to use the platform default.",
+        description:
+          "Hybrid search MCP endpoint. Edit only if you use a different OpenKMS host.",
+        defaultValue:
+          "https://cow-platform-ii.vercel.app/api/mcp/hybrid-search",
         storeInConfig: true,
         required: false,
       },

@@ -33,14 +33,16 @@ export function ProjectEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [tab, setTab] = useState<"instructions" | "context">("instructions");
+  const [tab, setTab] = useState<
+    "instructions" | "workspace" | "knowledge"
+  >("instructions");
   const [instructionsView, setInstructionsView] = useState<"edit" | "preview">(
     "edit",
   );
   const kbScope = useKbScope({
     agentId,
     projectId,
-    active: tab === "context",
+    active: tab === "knowledge",
   });
 
   const reload = useCallback(async () => {
@@ -102,10 +104,10 @@ export function ProjectEditor({
         saved.length === 0 ? [] : await lookupWorkspaceFiles(saved),
       );
       onProjectUpdated?.();
-      showToast("success", "Project context saved.");
+      showToast("success", "Workspace files saved.");
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : "Could not save project context";
+        err instanceof Error ? err.message : "Could not save workspace files";
       setError(message);
       showToast("error", message);
     } finally {
@@ -153,11 +155,20 @@ export function ProjectEditor({
             <button
               type="button"
               role="tab"
-              aria-selected={tab === "context"}
-              className={tab === "context" ? "page-tab active" : "page-tab"}
-              onClick={() => setTab("context")}
+              aria-selected={tab === "workspace"}
+              className={tab === "workspace" ? "page-tab active" : "page-tab"}
+              onClick={() => setTab("workspace")}
             >
-              Context
+              Workspace files
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "knowledge"}
+              className={tab === "knowledge" ? "page-tab active" : "page-tab"}
+              onClick={() => setTab("knowledge")}
+            >
+              Knowledge bases
             </button>
           </div>
           {tab === "instructions" ? (
@@ -242,23 +253,14 @@ export function ProjectEditor({
               </footer>
             ) : null}
           </>
-        ) : (
-          <div className="project-editor-pane project-editor-pane--context">
-            <p className="project-editor-context-hint">
-              Workspace files and knowledge base selection apply to every chat in
-              this project.
-            </p>
-            <KbScopeList
-              variant="inline"
-              loading={kbScope.loading}
-              saving={kbScope.saving}
-              error={kbScope.error}
-              connected={kbScope.connected}
-              message={kbScope.message}
-              items={kbScope.items}
-              onToggle={kbScope.toggleOne}
-              onSetAll={kbScope.setAll}
-            />
+        ) : tab === "workspace" ? (
+          <div className="project-editor-pane project-editor-pane--scroll">
+            <header className="project-editor-section-head">
+              <h2 className="project-editor-section-title">Workspace files</h2>
+              <p className="project-editor-section-desc">
+                Files attached here are included in every chat in this project.
+              </p>
+            </header>
             <button
               type="button"
               className="project-editor-save project-editor-import-btn"
@@ -271,7 +273,7 @@ export function ProjectEditor({
             <ul className="project-editor-context-list">
               {contextFiles.length === 0 ? (
                 <li className="project-editor-context-empty">
-                  No workspace files in project context yet.
+                  No workspace files linked to this project yet.
                 </li>
               ) : (
                 contextFiles.map((file) => (
@@ -282,7 +284,7 @@ export function ProjectEditor({
                     <button
                       type="button"
                       className="project-editor-context-remove"
-                      aria-label={`Remove ${file.filename} from project context`}
+                      aria-label={`Remove ${file.filename} from project`}
                       disabled={saving}
                       onClick={() => void handleRemoveContext(file.id)}
                     >
@@ -292,6 +294,28 @@ export function ProjectEditor({
                 ))
               )}
             </ul>
+          </div>
+        ) : (
+          <div className="project-editor-pane project-editor-pane--scroll">
+            <header className="project-editor-section-head">
+              <h2 className="project-editor-section-title">Knowledge bases</h2>
+              <p className="project-editor-section-desc">
+                Default hybrid-search scope for chats in this project. You can
+                still adjust scope per chat in the composer.
+              </p>
+            </header>
+            <KbScopeList
+              variant="inline"
+              showHeader={false}
+              loading={kbScope.loading}
+              saving={kbScope.saving}
+              error={kbScope.error}
+              connected={kbScope.connected}
+              message={kbScope.message}
+              items={kbScope.items}
+              onToggle={kbScope.toggleOne}
+              onSetAll={kbScope.setAll}
+            />
           </div>
         )}
       </div>

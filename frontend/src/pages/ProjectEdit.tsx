@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { fetchAgents, type AgentInfo } from "../lib/api";
+import {
+  getCachedAgents,
+  loadAgentsCatalog,
+  placeholderAgent,
+  type AgentInfo,
+} from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { AgentShell } from "../components/AgentShell";
 import { ProjectEditor } from "../components/ProjectEditor";
@@ -20,7 +25,7 @@ export function ProjectEditPage() {
   const { token, user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [agents, setAgents] = useState<AgentInfo[]>([]);
+  const [agents, setAgents] = useState<AgentInfo[]>(() => getCachedAgents());
   const [loadError, setLoadError] = useState<string | null>(null);
   const [workspaceFolders, setWorkspaceFolders] = useState<
     WorkspaceFolderPublic[]
@@ -30,9 +35,9 @@ export function ProjectEditPage() {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    fetchAgents()
-      .then((res) => {
-        if (!cancelled) setAgents(res.agents);
+    loadAgentsCatalog()
+      .then((list) => {
+        if (!cancelled) setAgents(list);
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -67,17 +72,22 @@ export function ProjectEditPage() {
     return <Navigate to="/" replace />;
   }
 
-  const agent = agents.find((a) => a.id === agentId);
+  const agentRecord = agents.find((a) => a.id === agentId);
+  const agent =
+    agentRecord ?? (agentId ? placeholderAgent(agentId) : undefined);
 
-  if (agents.length > 0 && !agent) {
+  if (agents.length > 0 && agentId && !agentRecord) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!agent) {
     return <Navigate to="/" replace />;
   }
 
   return (
     <AgentShell
       nav={
-        agent
-          ? {
+        {
               agent,
               view: "customize",
               onViewChange: (view) => {
@@ -105,13 +115,10 @@ export function ProjectEditPage() {
               onOpenSettings: () => navigate("/settings"),
               onLogout: logout,
             }
-          : null
       }
     >
         {loadError ? (
           <div className="agent-load-error">{loadError}</div>
-        ) : !agent ? (
-          <div className="agent-load-error">Loading agent…</div>
         ) : (
           <div className="project-edit-page">
             <header className="project-edit-header">

@@ -14,6 +14,15 @@ type Props = {
   embedded?: boolean;
 };
 
+function configFieldDisplayValue(
+  config: Record<string, string>,
+  field: IntegrationFieldPublic,
+): string {
+  const stored = config[field.key]?.trim();
+  if (stored) return stored;
+  return field.defaultValue ?? "";
+}
+
 function FieldInput({
   field,
   value,
@@ -109,7 +118,11 @@ function IntegrationCard({
       const configPayload: Record<string, string | undefined> = {};
       for (const field of item.fields) {
         if (!field.storeInConfig) continue;
-        configPayload[field.key] = config[field.key]?.trim() ?? "";
+        let next = configFieldDisplayValue(config, field).trim();
+        if (field.defaultValue && next === field.defaultValue.trim()) {
+          next = "";
+        }
+        configPayload[field.key] = next;
       }
       const next = await saveIntegration(item.id, {
         secrets: secretPayload,
@@ -198,7 +211,7 @@ function IntegrationCard({
                 <FieldInput
                   key={field.key}
                   field={field}
-                  value={config[field.key] ?? ""}
+                  value={configFieldDisplayValue(config, field)}
                   hint={null}
                   onChange={(v) =>
                     setConfig((prev) => ({ ...prev, [field.key]: v }))

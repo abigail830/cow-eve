@@ -7,6 +7,7 @@ export type IntegrationFieldPublic = {
   label: string;
   description?: string;
   placeholder?: string;
+  defaultValue?: string;
   required: boolean;
   storeInConfig?: boolean;
 };

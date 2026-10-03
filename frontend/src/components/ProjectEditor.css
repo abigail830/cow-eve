@@ -111,9 +111,39 @@
   overflow: hidden;
 }
 
-.project-editor-pane--context {
+.project-editor-pane--scroll {
   overflow-y: auto;
-  gap: 12px;
+  gap: 14px;
+}
+
+.project-editor-section-head {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.project-editor-section-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.project-editor-section-desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  max-width: 52ch;
+}
+
+.kb-scope-header--actions-only {
+  justify-content: flex-end;
+}
+
+.kb-scope-header--actions-only .kb-scope-actions {
+  margin-left: auto;
 }
 
 .project-editor-instructions {
@@ -200,13 +230,6 @@
 .project-editor-save:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.project-editor-context-hint {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  line-height: 1.45;
 }
 
 .project-editor-context-list {

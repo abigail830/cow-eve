@@ -7,7 +7,9 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import {
-  fetchAgents,
+  getCachedAgents,
+  loadAgentsCatalog,
+  placeholderAgent,
   scheduleTaskLabel,
   type AgentInfo,
   type ScheduledTaskPublic,
@@ -52,7 +54,7 @@ export function AgentPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [agents, setAgents] = useState<AgentInfo[]>([]);
+  const [agents, setAgents] = useState<AgentInfo[]>(() => getCachedAgents());
   const [loadError, setLoadError] = useState<string | null>(null);
   const [restoreChatId, setRestoreChatId] = useState<string | null>(null);
   const [scheduleView, setScheduleView] = useState<{
@@ -182,9 +184,9 @@ export function AgentPage() {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    fetchAgents()
-      .then((res) => {
-        if (!cancelled) setAgents(res.agents);
+    loadAgentsCatalog()
+      .then((list) => {
+        if (!cancelled) setAgents(list);
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -233,17 +235,22 @@ export function AgentPage() {
 
   if (!token || !user) return <Navigate to="/login" replace />;
 
-  const agent = agents.find((a) => a.id === agentId);
+  const agentRecord = agents.find((a) => a.id === agentId);
+  const agent =
+    agentRecord ?? (agentId ? placeholderAgent(agentId) : undefined);
 
-  if (agents.length > 0 && !agent) {
+  if (agents.length > 0 && agentId && !agentRecord) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!agentId || !agent) {
     return <Navigate to="/" replace />;
   }
 
   return (
     <AgentShell
       nav={
-        agent
-          ? {
+        {
               agent,
               view,
               onViewChange: setView,
@@ -262,13 +269,10 @@ export function AgentPage() {
               onOpenSettings: () => navigate("/settings"),
               onLogout: logout,
             }
-          : null
       }
     >
         {loadError ? (
           <div className="agent-load-error">{loadError}</div>
-        ) : !agent ? (
-          <div className="agent-load-error">Loading agent…</div>
         ) : view === "customize" ? (
           <CustomizePanel
             agentId={agent.id}

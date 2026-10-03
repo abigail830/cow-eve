@@ -11,6 +11,8 @@ type Props = {
   onSetAll: (enabled: boolean) => void;
   /** Compact styling for composer popover. */
   variant?: "popover" | "inline";
+  /** When false, omit the built-in "Knowledge bases" title row (parent supplies section heading). */
+  showHeader?: boolean;
 };
 
 function formatKbMeta(item: KnowledgeBaseItem): string | null {
@@ -31,15 +33,29 @@ export function KbScopeList({
   onToggle,
   onSetAll,
   variant = "inline",
+  showHeader = true,
 }: Props) {
   const rootClass =
     variant === "popover" ? "kb-scope-popover-body" : "kb-scope-inline";
 
   return (
     <div className={rootClass}>
-      <div className="kb-scope-header">
-        <div className="kb-scope-title">Knowledge bases</div>
-        {connected && items.length > 0 ? (
+      {showHeader ? (
+        <div className="kb-scope-header">
+          <div className="kb-scope-title">Knowledge bases</div>
+          {connected && items.length > 0 ? (
+            <div className="kb-scope-actions">
+              <button type="button" onClick={() => onSetAll(true)} disabled={loading}>
+                All on
+              </button>
+              <button type="button" onClick={() => onSetAll(false)} disabled={loading}>
+                All off
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : connected && items.length > 0 ? (
+        <div className="kb-scope-header kb-scope-header--actions-only">
           <div className="kb-scope-actions">
             <button type="button" onClick={() => onSetAll(true)} disabled={loading}>
               All on
@@ -48,8 +64,8 @@ export function KbScopeList({
               All off
             </button>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
       {loading && items.length === 0 ? (
         <p className="kb-scope-status">Loading…</p>
       ) : null}

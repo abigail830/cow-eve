@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   normalizeHybridSearchApiKey,
+  normalizeHttpUrl,
   resolveHybridSearchApiBase,
 } from "./mcp.config.js";
 
@@ -12,6 +13,21 @@ describe("resolveHybridSearchApiBase", () => {
         "https://cow-platform-ii.vercel.app/api/mcp/hybrid-search",
       ),
       "https://cow-platform-ii.vercel.app",
+    );
+  });
+});
+
+describe("normalizeHttpUrl", () => {
+  it("rejects bare email addresses", () => {
+    assert.equal(normalizeHttpUrl("abigail830@163.com"), null);
+  });
+
+  it("accepts hostnames and MCP paths", () => {
+    assert.equal(
+      normalizeHttpUrl(
+        "https://cow-platform-ii.vercel.app/api/mcp/hybrid-search",
+      ),
+      "https://cow-platform-ii.vercel.app/api/mcp/hybrid-search",
     );
   });
 });

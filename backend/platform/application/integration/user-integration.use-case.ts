@@ -16,6 +16,7 @@ import {
   getHybridSearchApiKey,
   getZhipuApiKey,
   normalizeHybridSearchApiKey,
+  normalizeHttpUrl,
   resolveFirstHttpUrl,
 } from "../../infrastructure/config/mcp.config.js";
 import { drizzleUserIntegrationRepository } from "../../infrastructure/persistence/integration/drizzle-user-integration.repository.js";
@@ -26,6 +27,7 @@ export type IntegrationFieldPublic = {
   label: string;
   description?: string;
   placeholder?: string;
+  defaultValue?: string;
   required: boolean;
   storeInConfig?: boolean;
 };
@@ -60,6 +62,7 @@ function toFieldPublic(field: IntegrationFieldDefinition): IntegrationFieldPubli
     label: field.label,
     description: field.description,
     placeholder: field.placeholder,
+    defaultValue: field.defaultValue,
     required: field.required,
     storeInConfig: field.storeInConfig,
   };
@@ -175,6 +178,12 @@ export async function saveUserIntegration(
     const trimmed = next.trim();
     if (!trimmed) {
       delete config[field.key];
+    } else if (field.kind === "url") {
+      const normalized = normalizeHttpUrl(trimmed);
+      if (!normalized) {
+        throw new Error(`${field.label} must be a valid http(s) URL.`);
+      }
+      config[field.key] = normalized;
     } else {
       config[field.key] = trimmed;
     }

@@ -161,6 +161,35 @@ export async function login(email: string, password: string) {
   });
 }
 
+let agentsCatalogCache: AgentInfo[] | null = null;
+
+export function getCachedAgents(): AgentInfo[] {
+  return agentsCatalogCache ?? [];
+}
+
+/** Placeholder so agent routes render nav/content while `/api/agents` is in flight. */
+export function placeholderAgent(agentId: string): AgentInfo {
+  const hit = agentsCatalogCache?.find((row) => row.id === agentId);
+  if (hit) return hit;
+  const id = agentId.trim() || "omni";
+  return {
+    id,
+    category: id === "omni" ? "omni" : "domain",
+    displayName: id === "omni" ? "Omni" : id,
+    description: "",
+    avatar: "",
+    eveAgent: id,
+    defaultDevUrl: "",
+  };
+}
+
+export async function loadAgentsCatalog(): Promise<AgentInfo[]> {
+  if (agentsCatalogCache) return agentsCatalogCache;
+  const res = await fetchAgents();
+  agentsCatalogCache = res.agents;
+  return agentsCatalogCache;
+}
+
 export async function fetchAgents() {
   return api<{ ok: true; agents: AgentInfo[] }>("/api/agents");
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Settings } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { fetchAgents, type AgentInfo } from "../lib/api";
+import { getCachedAgents, loadAgentsCatalog, type AgentInfo } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { PlatformAmbient } from "../components/PlatformAmbient";
 import { PlatformBrand } from "../components/PlatformBrand";
@@ -21,7 +21,10 @@ function firstName(displayName: string): string {
 export function HomePage() {
   const { token, user, logout } = useAuth();
   const navigate = useNavigate();
-  const [agents, setAgents] = useState<AgentInfo[]>([]);
+  const [agents, setAgents] = useState<AgentInfo[]>(() => getCachedAgents());
+  const [agentsLoading, setAgentsLoading] = useState(
+    () => getCachedAgents().length === 0,
+  );
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const greeting = useMemo(() => greetingForHour(new Date().getHours()), []);
@@ -29,9 +32,9 @@ export function HomePage() {
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    fetchAgents()
-      .then((res) => {
-        if (!cancelled) setAgents(res.agents);
+    loadAgentsCatalog()
+      .then((list) => {
+        if (!cancelled) setAgents(list);
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -39,6 +42,9 @@ export function HomePage() {
             err instanceof Error ? err.message : "Failed to load agents",
           );
         }
+      })
+      .finally(() => {
+        if (!cancelled) setAgentsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -84,8 +90,10 @@ export function HomePage() {
           <p className="home-error" role="alert">
             {loadError}
           </p>
-        ) : agents.length === 0 ? (
+        ) : agentsLoading && agents.length === 0 ? (
           <p className="home-muted">Loading agents…</p>
+        ) : agents.length === 0 ? (
+          <p className="home-muted">No agents available.</p>
         ) : (
           <div className="home-agent-row-wrap">
             <div className="home-agent-row">
