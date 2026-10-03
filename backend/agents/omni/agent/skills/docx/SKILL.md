@@ -41,7 +41,7 @@ Do **not** assume `/home/user/.agents/...` exists before the skill is loaded and
 5. Optionally spot-check structure with `pandoc -t markdown output.docx` (headings, order, obvious gaps).
 6. **`publish`** on the final `.docx` — not PDF previews or validate scratch files.
 
-`docx` is preinstalled. Do not run `npm install` unless `require('docx')` fails.
+The `docx` package is **pre-installed globally** in the Content Studio E2B image (`/usr/local/lib/node_modules`). Omni session bootstrap sets **`NODE_PATH`** so `require('docx')` works from scripts under `/workspace/content-studio/`. Do not run `npm install` unless require still fails (then use `NODE_PATH=/usr/local/lib/node_modules node your-script.js`).
 
 **Do not** require PDF render + image inspection for normal create-and-deliver requests. Fix formatting in the generator; use pandoc for a quick text/structure check if unsure.
 

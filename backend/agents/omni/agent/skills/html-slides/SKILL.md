@@ -73,7 +73,9 @@ Each reference contains:
 
 ## Skill resources (how to read)
 
-Theme references and brand PNGs live in the sandbox (preinstalled in Content Studio). **Always `read` the sandbox path** — do not guess packaged-skill paths.
+Theme references and brand PNGs live in the sandbox (symlinked into Content Studio). **Always `read` the sandbox path** — do not guess packaged-skill paths.
+
+**Node:** HTML deliverables are static files; one-liners may use Node `fs` only. If you add a build script that `require`s npm packages, run it from `/workspace/content-studio/` — omni sets **`NODE_PATH=/usr/local/lib/node_modules`** for global deps (same as pptx/docx).
 
 | Resource | Sandbox path (`read` / embed) |
 |----------|-------------------------------|

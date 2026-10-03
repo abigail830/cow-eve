@@ -47,4 +47,4 @@ See `scripts/` for OXML helpers when modifying existing files.
 
 ## Dependencies
 
-Node.js + `pptxgenjs` (preinstalled). Optional: Python `markitdown[pptx]`, `defusedxml`, `Pillow`.
+Node.js + `pptxgenjs` (global npm in Content Studio E2B; omni sets `NODE_PATH`). Optional: Python `markitdown[pptx]`, `defusedxml`, `Pillow`.

@@ -366,15 +366,24 @@ export function contentStudioTemplate(): string {
   return process.env.E2B_CONTENT_STUDIO_TEMPLATE?.trim() || "okf-content-studio";
 }
 
+/** Global npm modules in the Content Studio E2B image (pptxgenjs, docx, sharp, …). */
+export function contentStudioNodePath(): string {
+  return (
+    process.env.CONTENT_STUDIO_NODE_PATH?.trim() || "/usr/local/lib/node_modules"
+  );
+}
+
 function readAutoPause(): boolean {
   const raw = process.env.E2B_AUTO_PAUSE?.trim().toLowerCase();
   return raw === "true" || raw === "1" || raw === "yes";
 }
 
 export function contentStudioEnvironmentOptions(): E2bEnvironmentOptions {
+  const nodePath = contentStudioNodePath();
   return {
     template: contentStudioTemplate(),
     autoPause: readAutoPause(),
+    envs: { NODE_PATH: nodePath },
   };
 }
 

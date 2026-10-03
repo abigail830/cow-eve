@@ -36,6 +36,8 @@ const pptxgen = require("pptxgenjs");
 
 **Do not:** top-level `await` in a plain `.js` file; `writeFile()` without `await`; layout name `LAYOUT_16X9` (wrong casing).
 
+**Node modules:** `pptxgenjs` and icon deps are installed **globally** in the Content Studio E2B image (`/usr/local/lib/node_modules`). Omni sets **`NODE_PATH`** at sandbox start — run from `/workspace/content-studio/` with `node build-deck.js` (no `npm install`). If `require('pptxgenjs')` fails, retry: `NODE_PATH=/usr/local/lib/node_modules node build-deck.js`.
+
 ---
 
 ## Layout dimensions
@@ -289,7 +291,7 @@ slide.addImage({
 
 ### Icon Libraries
 
-All icon packages (`react-icons`, `react`, `react-dom`, `sharp`) are **pre-installed** in the E2B sandbox — no install step needed in the generated script. For local development outside E2B: `npm install pptxgenjs react react-dom react-icons sharp`.
+All icon packages (`react-icons`, `react`, `react-dom`, `sharp`) are **pre-installed globally** in the Content Studio E2B sandbox (via `NODE_PATH` above) — no install step in the generated script. For local development outside E2B: `npm install pptxgenjs react react-dom react-icons sharp`.
 
 Popular icon sets in react-icons:
 - `react-icons/fa` - Font Awesome
