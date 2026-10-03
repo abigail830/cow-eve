@@ -1,11 +1,96 @@
+const HYBRID_SEARCH_MCP_SUFFIX = "/api/mcp/hybrid-search";
+
+/** Platform default when env and user config omit MCP URL (see Integrations copy). */
+export const DEFAULT_HYBRID_SEARCH_MCP_URL =
+  "https://cow-platform-ii.vercel.app/api/mcp/hybrid-search";
+
+export function normalizeHttpUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  for (const candidate of [trimmed, `https://${trimmed}`]) {
+    try {
+      const parsed = new URL(candidate);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        return parsed.href.replace(/\/+$/, "") || null;
+      }
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
+/** First valid http(s) URL among candidates. */
+export function resolveFirstHttpUrl(
+  ...candidates: (string | null | undefined)[]
+): string | null {
+  for (const value of candidates) {
+    if (typeof value !== "string") continue;
+    const normalized = normalizeHttpUrl(value);
+    if (normalized) return normalized;
+  }
+  return null;
+}
+
 export function getHybridSearchMcpUrl(): string | null {
-  const url = process.env.HYBRID_SEARCH_MCP_URL?.trim();
-  return url || null;
+  const fromEnv = process.env.HYBRID_SEARCH_MCP_URL?.trim();
+  return (
+    resolveFirstHttpUrl(fromEnv, DEFAULT_HYBRID_SEARCH_MCP_URL) ?? null
+  );
+}
+
+export function normalizeHybridSearchApiKey(
+  raw: string | null | undefined,
+): string | null {
+  if (raw == null) return null;
+  let key = raw.trim();
+  if (/^bearer\s+/i.test(key)) {
+    key = key.replace(/^bearer\s+/i, "").trim();
+  }
+  return key || null;
 }
 
 export function getHybridSearchApiKey(): string | null {
-  const key = process.env.HYBRID_SEARCH_API_KEY?.trim();
-  return key || null;
+  return normalizeHybridSearchApiKey(process.env.HYBRID_SEARCH_API_KEY);
+}
+
+/**
+ * OpenKMS HTTP base for KB list (`/api/knowledge/knowledge-bases`).
+ * Matches agent-platform `resolve_hybrid_search_api_base`: server env only
+ * (HYBRID_SEARCH_API_BASE or HYBRID_SEARCH_MCP_URL), not per-user Integrations MCP URL.
+ */
+export function resolveHybridSearchApiBase(
+  mcpUrlHint?: string | null,
+): string | null {
+  const explicit = process.env.HYBRID_SEARCH_API_BASE?.trim();
+  if (explicit) {
+    return normalizeHttpUrl(explicit)?.replace(/\/+$/, "") ?? null;
+  }
+
+  const mcp = resolveFirstHttpUrl(
+    mcpUrlHint ?? process.env.HYBRID_SEARCH_MCP_URL,
+    DEFAULT_HYBRID_SEARCH_MCP_URL,
+  )?.replace(/\/+$/, "");
+  if (!mcp) return null;
+  if (mcp.endsWith(HYBRID_SEARCH_MCP_SUFFIX)) {
+    const base = mcp
+      .slice(0, -HYBRID_SEARCH_MCP_SUFFIX.length)
+      .replace(/\/+$/, "");
+    return base || null;
+  }
+  try {
+    const parsed = new URL(mcp);
+    if (parsed.protocol && parsed.host) {
+      return `${parsed.protocol}//${parsed.host}`;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+export function getHybridSearchApiBase(): string | null {
+  return resolveHybridSearchApiBase(process.env.HYBRID_SEARCH_MCP_URL);
 }
 
 export function getZhipuWebSearchMcpUrl(): string | null {

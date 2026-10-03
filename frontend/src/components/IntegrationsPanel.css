@@ -166,15 +166,42 @@
   gap: 12px;
 }
 
-.integration-card-name {
+.integration-card-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   flex: 1;
   min-width: 0;
+}
+
+.integration-card-name {
   margin: 0;
   font-size: 0.9375rem;
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.01em;
   color: var(--color-ink);
+}
+
+.integration-status-badge {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill, 999px);
+  letter-spacing: 0.02em;
+}
+
+.integration-status-badge-on {
+  background: var(--badge-success-bg, #ecfdf3);
+  color: var(--badge-success-fg, #067647);
+}
+
+.integration-status-badge-off {
+  background: var(--badge-muted-bg, #f2f4f7);
+  color: var(--badge-muted-fg, #667085);
 }
 
 .integration-card-cta {
@@ -224,22 +251,6 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.integration-card-meta {
-  margin: 2px 0 0;
-  font-size: 0.75rem;
-  line-height: 1.3;
-  color: var(--color-text-muted);
-}
-
-.integration-meta-status {
-  color: var(--color-text-muted);
-}
-
-.integration-meta-status-on {
-  color: #1a7f4b;
-  font-weight: 500;
 }
 
 .integration-action-btn {

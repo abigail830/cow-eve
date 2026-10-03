@@ -172,6 +172,29 @@ export const projects = pgTable(
   ],
 );
 
+export const userAgentKbPreferences = pgTable(
+  "user_agent_kb_preferences",
+  {
+    userId: text("user_id").notNull(),
+    agentId: text("agent_id").notNull(),
+    disabledKbIds: jsonb("disabled_kb_ids").notNull().default([]),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.agentId] })],
+);
+
+export const projectKbPreferences = pgTable("project_kb_preferences", {
+  projectId: uuid("project_id")
+    .primaryKey()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  disabledKbIds: jsonb("disabled_kb_ids").notNull().default([]),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export const projectWorkspaceFileRefs = pgTable(
   "project_workspace_file_refs",
   {

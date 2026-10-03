@@ -48,6 +48,7 @@ import { ComposerAttachmentMention } from "./ComposerAttachmentMention";
 import { ComposerStagedChips } from "./ComposerStagedChips";
 import { ComposerWorkspaceChips } from "./ComposerWorkspaceChips";
 import { ComposerWorkspaceImportModal } from "./ComposerWorkspaceImportModal";
+import { KbScopePopover } from "./KbScopePopover";
 import "./Composer.css";
 
 export type ComposerSendPayload = {
@@ -86,6 +87,10 @@ type Props = {
   onCaptureStarted?: (capture: import("../lib/audioCapture").AudioCapturePublic) => void;
   /** Workspace files referenced earlier in this chat (for @ mentions). */
   sessionWorkspaceFiles?: readonly WorkspaceFilePublic[];
+  /** When set, KB toggles persist to this project instead of agent-wide prefs. */
+  projectId?: string | null;
+  /** Show hybrid-search KB scope control (Omni work). */
+  showKbScope?: boolean;
   onSend: (payload: ComposerSendPayload) => void | Promise<void>;
   onStop: () => void;
 };
@@ -130,6 +135,8 @@ export function Composer({
   onCaptureChatLinked,
   onCaptureStarted,
   sessionWorkspaceFiles = [],
+  projectId = null,
+  showKbScope = false,
   onSend,
   onStop,
 }: Props) {
@@ -947,6 +954,13 @@ export function Composer({
             >
               <FolderOpen size={18} strokeWidth={2} />
             </button>
+            {showKbScope ? (
+              <KbScopePopover
+                agentId={agentId}
+                projectId={projectId}
+                disabled={inputLocked}
+              />
+            ) : null}
           </div>
           <div className="composer-right">
             {modelLabel ? <span className="model-tag">{modelLabel}</span> : null}

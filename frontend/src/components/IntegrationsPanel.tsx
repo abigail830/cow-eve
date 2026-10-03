@@ -140,7 +140,18 @@ function IntegrationCard({
         </span>
         <div className="integration-card-main">
           <div className="integration-card-head">
-            <span className="integration-card-name">{item.name}</span>
+            <div className="integration-card-title-row">
+              <span className="integration-card-name">{item.name}</span>
+              <span
+                className={
+                  item.configured
+                    ? "integration-status-badge integration-status-badge-on"
+                    : "integration-status-badge integration-status-badge-off"
+                }
+              >
+                {item.configured ? "Connected" : "Not connected"}
+              </span>
+            </div>
             <button
               type="button"
               className={
@@ -157,17 +168,6 @@ function IntegrationCard({
             </button>
           </div>
           <p className="integration-card-desc">{item.description}</p>
-          <p className="integration-card-meta">
-            <span
-              className={
-                item.configured
-                  ? "integration-meta-status integration-meta-status-on"
-                  : "integration-meta-status"
-              }
-            >
-              {item.configured ? "Connected" : "Not connected"}
-            </span>
-          </p>
         </div>
       </div>
 

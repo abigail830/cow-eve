@@ -1,0 +1,133 @@
+.kb-scope-popover-root {
+  position: relative;
+}
+
+.composer-icon-btn-active {
+  color: var(--accent, #c45c26);
+  background: var(--surface-muted, rgba(0, 0, 0, 0.06));
+}
+
+.kb-scope-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(360px, 50vh);
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--composer-border, rgba(0, 0, 0, 0.12));
+  background: var(--composer-bg, #fff);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.kb-scope-inline {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+}
+
+.kb-scope-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.kb-scope-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary, #111);
+}
+
+.kb-scope-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.kb-scope-actions button {
+  font: inherit;
+  font-size: 0.6875rem;
+  padding: 2px 8px;
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.12));
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted, #666);
+}
+
+.kb-scope-actions button:hover:not(:disabled) {
+  background: var(--surface-muted, rgba(0, 0, 0, 0.04));
+}
+
+.kb-scope-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kb-scope-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kb-scope-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8125rem;
+}
+
+.kb-scope-item:hover {
+  background: var(--surface-muted, rgba(0, 0, 0, 0.04));
+}
+
+.kb-scope-item input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.kb-scope-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kb-scope-item-name {
+  font-weight: 500;
+  color: var(--text-primary, #111);
+  word-break: break-word;
+}
+
+.kb-scope-item-meta {
+  font-size: 0.6875rem;
+  color: var(--text-muted, #666);
+}
+
+.kb-scope-status,
+.kb-scope-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.kb-scope-status {
+  color: var(--text-muted, #666);
+}
+
+.kb-scope-error {
+  color: var(--danger, #b42318);
+}
+
+.kb-scope-saving {
+  margin-top: 6px;
+}

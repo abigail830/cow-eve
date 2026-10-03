@@ -1,0 +1,37 @@
+---
+description: Drizzle SQL migrations with Neon HTTP — one statement per batch
+globs: backend/platform/infrastructure/persistence/database/migrations/**/*.sql
+alwaysApply: false
+---
+
+# Neon HTTP + Drizzle migrations
+
+This repo runs migrations via `@neondatabase/serverless` HTTP (`migrate.ts` → `drizzle-orm/neon-http/migrator`). **Each migration file must be split into one SQL statement per executed batch.** Multiple statements in a single batch fail with:
+
+`NeonDbError: cannot insert multiple commands into a prepared statement` (SQLSTATE `42601`).
+
+## Required pattern
+
+Separate every statement with Drizzle’s breakpoint marker (same as existing migrations, e.g. `0017_work_hub_projects.sql`):
+
+```sql
+CREATE TABLE IF NOT EXISTS "example" (
+  "id" uuid PRIMARY KEY NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "example_idx" ON "example" ("id");
+--> statement-breakpoint
+ALTER TABLE "other" ADD CONSTRAINT "other_example_id_fk" FOREIGN KEY ("example_id") REFERENCES "public"."example"("id") ON DELETE cascade ON UPDATE no action;
+```
+
+## Do not
+
+- Put several `CREATE TABLE`, `ALTER TABLE`, or `CREATE INDEX` statements in one block **without** `--> statement-breakpoint` between them.
+- Rely on semicolon-separated “scripts” in a single migration step.
+
+## When adding a migration
+
+1. Add `NNNN_description.sql` under `migrations/`.
+2. One logical SQL statement, then `--> statement-breakpoint`, repeat.
+3. Register the tag in `migrations/meta/_journal.json`.
+4. Verify locally: `cd backend && npm run db:migrate`.

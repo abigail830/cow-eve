@@ -1352,6 +1352,8 @@ function AgentChatSession({
               setAudioCaptureRefreshKey((k) => k + 1);
             }}
             sessionWorkspaceFiles={sessionWorkspaceFiles}
+            projectId={projectId}
+            showKbScope={isOmni}
             onSend={handleSend}
             onStop={requestCancellation}
           />

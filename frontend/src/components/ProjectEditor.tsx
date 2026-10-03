@@ -10,6 +10,8 @@ import { lookupWorkspaceFiles, type WorkspaceFilePublic } from "../lib/workspace
 import { ComposerWorkspaceImportModal } from "./ComposerWorkspaceImportModal";
 import { MarkdownContent } from "./MarkdownContent";
 import { showToast } from "../hooks/useToast";
+import { useKbScope } from "../hooks/useKbScope";
+import { KbScopeList } from "./KbScopeList";
 import "./ProjectEditor.css";
 
 type Props = {
@@ -35,6 +37,11 @@ export function ProjectEditor({
   const [instructionsView, setInstructionsView] = useState<"edit" | "preview">(
     "edit",
   );
+  const kbScope = useKbScope({
+    agentId,
+    projectId,
+    active: tab === "context",
+  });
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -238,9 +245,20 @@ export function ProjectEditor({
         ) : (
           <div className="project-editor-pane project-editor-pane--context">
             <p className="project-editor-context-hint">
-              Imported workspace files stay attached to this project across
-              chats.
+              Workspace files and knowledge base selection apply to every chat in
+              this project.
             </p>
+            <KbScopeList
+              variant="inline"
+              loading={kbScope.loading}
+              saving={kbScope.saving}
+              error={kbScope.error}
+              connected={kbScope.connected}
+              message={kbScope.message}
+              items={kbScope.items}
+              onToggle={kbScope.toggleOne}
+              onSetAll={kbScope.setAll}
+            />
             <button
               type="button"
               className="project-editor-save project-editor-import-btn"

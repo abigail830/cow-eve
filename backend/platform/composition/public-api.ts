@@ -196,6 +196,14 @@ export {
   saveUserIntegration,
   type IntegrationCatalogItemPublic,
 } from "../application/integration/user-integration.use-case.js";
+export {
+  getKbPreferencesForUser,
+  getKbScopeInstructionForChat,
+  listKnowledgeBasesForUser,
+  setKbPreferencesForUser,
+  type KnowledgeBaseListPublic,
+  type KnowledgeBasePublic,
+} from "../application/kb/kb-preference.use-case.js";
 export { resolveChatIdForEveSession } from "../application/chat/chat-session.use-case";
 export { scheduleChatTitleOnce } from "../application/chat/chat-title-scheduler";
 export { renameChatTitleForUser } from "../application/chat/chat-title.use-case";

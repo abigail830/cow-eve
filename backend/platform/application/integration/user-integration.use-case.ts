@@ -15,6 +15,8 @@ import {
   getHybridSearchMcpUrl,
   getHybridSearchApiKey,
   getZhipuApiKey,
+  normalizeHybridSearchApiKey,
+  resolveFirstHttpUrl,
 } from "../../infrastructure/config/mcp.config.js";
 import { drizzleUserIntegrationRepository } from "../../infrastructure/persistence/integration/drizzle-user-integration.repository.js";
 
@@ -229,14 +231,12 @@ export async function resolveHybridSearchCredentials(userId: string | null): Pro
       userId,
       INTEGRATION_HYBRID_SEARCH,
     );
-    const apiKey = readSecret(row, "apiKey");
+    const apiKey = normalizeHybridSearchApiKey(readSecret(row, "apiKey"));
     const configUrl =
-      typeof row?.config.mcpUrl === "string" ? row.config.mcpUrl.trim() : "";
+      typeof row?.config?.mcpUrl === "string" ? row.config.mcpUrl : "";
     if (apiKey) {
-      return {
-        url: configUrl || getHybridSearchMcpUrl(),
-        apiKey,
-      };
+      const url = resolveFirstHttpUrl(configUrl, getHybridSearchMcpUrl());
+      return { url, apiKey };
     }
   }
   const url = getHybridSearchMcpUrl();

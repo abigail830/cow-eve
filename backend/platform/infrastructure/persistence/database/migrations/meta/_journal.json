@@ -120,6 +120,13 @@
       "when": 1789800500000,
       "tag": "0017_work_hub_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789800600000,
+      "tag": "0018_kb_preferences",
+      "breakpoints": true
     }
   ]
 }
