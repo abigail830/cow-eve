@@ -52,8 +52,11 @@ const REASONING_OPTIONS: ModelReasoning[] = [
 ];
 
 function formatDateTime(iso: string | null) {
-  if (!iso) return "从未登录";
-  return new Date(iso).toLocaleString();
+  if (!iso) return "Never";
+  return new Date(iso).toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 export function SettingsPage() {
@@ -155,7 +158,7 @@ function UsersSettingsTab() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "加载用户失败");
+          setError(err instanceof Error ? err.message : "Failed to load users");
         }
       })
       .finally(() => {
@@ -178,9 +181,9 @@ function UsersSettingsTab() {
       setEmail("");
       setPassword("");
       setShowAdd(false);
-      setMessage("用户已添加");
+      setMessage("User added.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "添加用户失败");
+      setError(err instanceof Error ? err.message : "Failed to add user");
     } finally {
       setPending(false);
     }
@@ -189,7 +192,9 @@ function UsersSettingsTab() {
   async function onDeleteUser(target: PlatformUserPublic) {
     if (pending) return;
     if (
-      !window.confirm(`确定删除用户 ${target.email}？此操作不可撤销。`)
+      !window.confirm(
+        `Delete user ${target.email}? This cannot be undone.`,
+      )
     ) {
       return;
     }
@@ -199,16 +204,16 @@ function UsersSettingsTab() {
     try {
       await deleteUser(target.email);
       await loadUsers();
-      setMessage("用户已删除");
+      setMessage("User deleted.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除用户失败");
+      setError(err instanceof Error ? err.message : "Failed to delete user");
     } finally {
       setPending(false);
     }
   }
 
   if (loading) {
-    return <p className="settings-muted">加载用户列表…</p>;
+    return <p className="settings-muted">Loading users…</p>;
   }
 
   return (
@@ -216,7 +221,8 @@ function UsersSettingsTab() {
       <div className="model-form-intro">
         <h2>Users</h2>
         <p>
-          管理平台登录账号。可添加或删除用户，不支持编辑；密码会以 bcrypt 加密后存储。
+          Manage platform login accounts. You can add or remove users (no
+          editing). Passwords are stored with bcrypt hashing.
         </p>
       </div>
 
@@ -235,7 +241,7 @@ function UsersSettingsTab() {
           disabled={pending || showAdd}
         >
           <Plus size={15} strokeWidth={2} />
-          添加用户
+          Add user
         </button>
       </div>
 
@@ -243,10 +249,10 @@ function UsersSettingsTab() {
         <table className="model-table">
           <thead>
             <tr>
-              <th>用户名</th>
-              <th>显示名</th>
-              <th>上次登录</th>
-              <th>创建时间</th>
+              <th>Username</th>
+              <th>Display name</th>
+              <th>Last login</th>
+              <th>Created</th>
               <th />
             </tr>
           </thead>
@@ -267,10 +273,10 @@ function UsersSettingsTab() {
                         icon={Trash2}
                         label={
                           isSelf
-                            ? "不能删除当前登录账号"
+                            ? "Cannot delete the signed-in account"
                             : isLast
-                              ? "至少保留一个用户"
-                              : `删除 ${item.email}`
+                              ? "Keep at least one user"
+                              : `Delete ${item.email}`
                         }
                         size={16}
                         className="danger"
@@ -288,10 +294,10 @@ function UsersSettingsTab() {
 
       {showAdd ? (
         <form className="model-editor" onSubmit={onAddUser} autoComplete="off">
-          <h3>添加用户</h3>
+          <h3>Add user</h3>
           <div className="model-editor-grid">
             <label className="wide">
-              用户名（邮箱）
+              Username (email)
               <input
                 type="email"
                 value={email}
@@ -302,12 +308,12 @@ function UsersSettingsTab() {
               />
             </label>
             <label className="wide">
-              密码
+              Password
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="至少 8 位"
+                placeholder="At least 8 characters"
                 autoComplete="new-password"
                 minLength={8}
                 required
@@ -316,7 +322,7 @@ function UsersSettingsTab() {
           </div>
           <div className="model-editor-actions">
             <button type="submit" disabled={pending}>
-              {pending ? "添加中…" : "添加"}
+              {pending ? "Adding…" : "Add"}
             </button>
             <button
               type="button"
@@ -328,7 +334,7 @@ function UsersSettingsTab() {
               }}
               disabled={pending}
             >
-              取消
+              Cancel
             </button>
           </div>
         </form>
