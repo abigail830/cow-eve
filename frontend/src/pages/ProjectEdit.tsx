@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import {
   getCachedAgents,
@@ -24,6 +24,7 @@ export function ProjectEditPage() {
   }>();
   const { token, user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [agents, setAgents] = useState<AgentInfo[]>(() => getCachedAgents());
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -63,8 +64,15 @@ export function ProjectEditPage() {
 
   const backToProjects = useCallback(() => {
     if (!agentId) return;
+    const returnTo = (
+      location.state as { returnTo?: string } | null
+    )?.returnTo?.trim();
+    if (returnTo) {
+      navigate(returnTo);
+      return;
+    }
     navigate(`/agents/${agentId}?view=customize`);
-  }, [agentId, navigate]);
+  }, [agentId, location.state, navigate]);
 
   if (!token || !user) return <Navigate to="/login" replace />;
 

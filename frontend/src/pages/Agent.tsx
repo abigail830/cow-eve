@@ -291,7 +291,11 @@ export function AgentPage() {
               setSearchParams({ project: projectId }, { replace: true });
             }}
             onEditProject={(id) => {
-              navigate(`/agents/${agent.id}/projects/${id}/edit`);
+              navigate(`/agents/${agent.id}/projects/${id}/edit`, {
+                state: {
+                  returnTo: `/agents/${agent.id}?view=customize`,
+                },
+              });
             }}
             onOpenScheduleResult={(task: ScheduledTaskPublic, chatId: string) => {
               setScheduleView({

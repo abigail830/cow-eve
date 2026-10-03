@@ -1,5 +1,6 @@
 import { Brain, X } from "lucide-react";
 import type { UserMemorySnapshot } from "../lib/api";
+import "./AgentAsidePanel.css";
 import "./MemoryPanel.css";
 
 type Props = {
@@ -18,23 +19,23 @@ export function MemoryPanel({
   onClose,
 }: Props) {
   return (
-    <aside className="memory-panel">
-        <div className="memory-panel-header">
-          <div className="memory-panel-title">
-            <Brain size={18} strokeWidth={2} aria-hidden />
+    <aside className="agent-aside-panel memory-panel">
+        <div className="agent-aside-panel-header">
+          <div className="agent-aside-panel-title">
+            <Brain size={16} strokeWidth={2} aria-hidden />
             <h3>Memory</h3>
           </div>
           <button
             type="button"
-            className="memory-panel-close"
-            aria-label="Close"
+            className="agent-aside-panel-close"
+            aria-label="Close memory"
             onClick={onClose}
           >
             <X size={18} strokeWidth={2} />
           </button>
         </div>
 
-        <div className="memory-panel-body">
+        <div className="agent-aside-panel-body memory-panel-body">
           {loading ? <p className="memory-muted">Loading memory…</p> : null}
           {error ? <p className="memory-error">{error}</p> : null}
 

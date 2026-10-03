@@ -79,9 +79,12 @@ import { ResizableAside } from "./ResizableAside";
 import { useBindChatSession } from "../hooks/useBindChatSession";
 import { fetchProject, type ProjectPublic } from "../lib/projects";
 import { ProjectListPanel } from "./ProjectListPanel";
+import { ProjectEditor } from "./ProjectEditor";
 import { WorkHubCards } from "./WorkHubCards";
+import "./AgentAsidePanel.css";
 import "./AgentChat.css";
 import "./ProjectListPanel.css";
+import "./ProjectEditor.css";
 import "./WorkHubCards.css";
 
 type Props = {
@@ -453,6 +456,7 @@ function AgentChatSession({
   const lastPreviewArtifactRef = useRef<ArtifactSpec | null>(null);
   if (previewArtifact) lastPreviewArtifactRef.current = previewArtifact;
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [memory, setMemory] = useState<UserMemorySnapshot | null>(null);
   const [memoryLoading, setMemoryLoading] = useState(false);
@@ -630,6 +634,10 @@ function AgentChatSession({
   }, [projectId, agent.id]);
 
   useEffect(() => {
+    setProjectSettingsOpen(false);
+  }, [projectId]);
+
+  useEffect(() => {
     if (!scheduleChatId) {
       setScheduleLabel(null);
       return;
@@ -687,6 +695,7 @@ function AgentChatSession({
       setProjectsOpen(false);
       setPreviewArtifact(null);
       setHistoryOpen(false);
+      setProjectSettingsOpen(false);
       setMemoryOpen(false);
       onNewChat();
     },
@@ -1071,16 +1080,25 @@ function AgentChatSession({
 
   const handlePreviewArtifact = useCallback((spec: ArtifactSpec) => {
     setHistoryOpen(false);
+    setProjectSettingsOpen(false);
     setMemoryOpen(false);
     setPreviewArtifact(spec);
   }, []);
 
   function closePanels() {
     setHistoryOpen(false);
+    setProjectSettingsOpen(false);
     setMemoryOpen(false);
     setPreviewArtifact(null);
     setProjectsOpen(false);
   }
+
+  const refreshProjectDetail = useCallback(() => {
+    if (!projectId) return;
+    void fetchProject(projectId, agent.id)
+      .then(setProjectDetail)
+      .catch(() => undefined);
+  }, [projectId, agent.id]);
 
   const streamEmptyState = useMemo(() => {
     if (workSurfaceOpen || conversationLoading || isBusy) return undefined;
@@ -1204,12 +1222,13 @@ function AgentChatSession({
                   bare
                   size={22}
                   icon={Pencil}
-                  label="Edit project"
+                  label="Project settings"
+                  active={projectSettingsOpen}
                   onClick={() => {
-                    closePanels();
-                    navigate(
-                      `/agents/${agent.id}/projects/${projectId}/edit`,
-                    );
+                    setPreviewArtifact(null);
+                    setHistoryOpen(false);
+                    setMemoryOpen(false);
+                    setProjectSettingsOpen((open) => !open);
                   }}
                 />
                 <span className="chat-header-actions-sep" aria-hidden />
@@ -1234,6 +1253,7 @@ function AgentChatSession({
               onClick={() => {
                 setPreviewArtifact(null);
                 setHistoryOpen(false);
+                setProjectSettingsOpen(false);
                 setMemoryOpen((open) => !open);
               }}
             />
@@ -1246,6 +1266,7 @@ function AgentChatSession({
               onClick={() => {
                 setPreviewArtifact(null);
                 setMemoryOpen(false);
+                setProjectSettingsOpen(false);
                 setHistoryOpen((open) => !open);
               }}
             />
@@ -1280,7 +1301,9 @@ function AgentChatSession({
                 agentId={agent.id}
                 onEnterProject={enterProject}
                 onEditProject={(id) =>
-                  navigate(`/agents/${agent.id}/projects/${id}/edit`)
+                  navigate(`/agents/${agent.id}/projects/${id}/edit`, {
+                    state: { returnTo: `/agents/${agent.id}` },
+                  })
                 }
               />
             ) : (
@@ -1385,21 +1408,51 @@ function AgentChatSession({
         </ResizableAside>
       ) : null}
 
+      {projectId && projectSettingsOpen ? (
+        <ResizableAside defaultWidth={480} minWidth={360} showHandleDivider={false}>
+          <aside className="agent-aside-panel project-settings-panel">
+            <div className="agent-aside-panel-header">
+              <div className="agent-aside-panel-title">
+                <h3>Project settings</h3>
+              </div>
+              <button
+                type="button"
+                className="agent-aside-panel-close"
+                aria-label="Close project settings"
+                onClick={() => setProjectSettingsOpen(false)}
+              >
+                <X size={18} strokeWidth={2} />
+              </button>
+            </div>
+            <div className="agent-aside-panel-body project-settings-panel-body">
+              <ProjectEditor
+                variant="panel"
+                projectId={projectId}
+                agentId={agent.id}
+                onProjectUpdated={refreshProjectDetail}
+              />
+            </div>
+          </aside>
+        </ResizableAside>
+      ) : null}
+
       {historyOpen ? (
         <ResizableAside defaultWidth={320} showHandleDivider={false}>
-        <aside className="chat-history-panel">
-          <div className="chat-history-panel-header">
-            <h3>Chat History ({chats.length})</h3>
+        <aside className="agent-aside-panel chat-history-panel">
+          <div className="agent-aside-panel-header">
+            <div className="agent-aside-panel-title">
+              <h3>Chat history ({chats.length})</h3>
+            </div>
             <button
               type="button"
-              className="chat-history-close"
-              aria-label="Close"
+              className="agent-aside-panel-close"
+              aria-label="Close chat history"
               onClick={() => setHistoryOpen(false)}
             >
               <X size={18} strokeWidth={2} />
             </button>
           </div>
-          <div className="chat-history-panel-body">
+          <div className="agent-aside-panel-body chat-history-panel-body">
             {historyError ? (
               <p className="chat-history-error">{historyError}</p>
             ) : null}

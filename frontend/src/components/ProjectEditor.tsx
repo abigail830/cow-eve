@@ -18,13 +18,17 @@ type Props = {
   projectId: string;
   agentId: string;
   onProjectUpdated?: () => void;
+  /** Narrow right-rail in Work | Project (stacked tabs + Edit/Preview row). */
+  variant?: "page" | "panel";
 };
 
 export function ProjectEditor({
   projectId,
   agentId,
   onProjectUpdated,
+  variant = "page",
 }: Props) {
+  const isPanel = variant === "panel";
   const [name, setName] = useState("");
   const [instructions, setInstructions] = useState("");
   const [contextIds, setContextIds] = useState<string[]>([]);
@@ -129,7 +133,11 @@ export function ProjectEditor({
   }
 
   return (
-    <div className="project-editor">
+    <div
+      className={
+        isPanel ? "project-editor project-editor--panel" : "project-editor"
+      }
+    >
       <div className="project-editor-toolbar">
         <label className="project-editor-name-field">
           <span className="project-editor-name-label">Name</span>
@@ -159,7 +167,7 @@ export function ProjectEditor({
               className={tab === "workspace" ? "page-tab active" : "page-tab"}
               onClick={() => setTab("workspace")}
             >
-              Workspace files
+              {isPanel ? "Workspace" : "Workspace files"}
             </button>
             <button
               type="button"
@@ -168,10 +176,10 @@ export function ProjectEditor({
               className={tab === "knowledge" ? "page-tab active" : "page-tab"}
               onClick={() => setTab("knowledge")}
             >
-              Knowledge bases
+              {isPanel ? "Knowledge" : "Knowledge bases"}
             </button>
           </div>
-          {tab === "instructions" ? (
+          {tab === "instructions" && !isPanel ? (
             <div
               className="project-editor-instructions-mode"
               role="tablist"
@@ -206,6 +214,43 @@ export function ProjectEditor({
             </div>
           ) : null}
         </div>
+        {tab === "instructions" && isPanel ? (
+          <div className="project-editor-mode-row">
+            <span className="project-editor-mode-label">Instructions</span>
+            <div
+              className="project-editor-instructions-mode"
+              role="tablist"
+              aria-label="Instructions view"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={instructionsView === "edit"}
+                className={
+                  instructionsView === "edit"
+                    ? "project-editor-mode-tab active"
+                    : "project-editor-mode-tab"
+                }
+                onClick={() => setInstructionsView("edit")}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={instructionsView === "preview"}
+                className={
+                  instructionsView === "preview"
+                    ? "project-editor-mode-tab active"
+                    : "project-editor-mode-tab"
+                }
+                onClick={() => setInstructionsView("preview")}
+              >
+                Preview
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {error ? (

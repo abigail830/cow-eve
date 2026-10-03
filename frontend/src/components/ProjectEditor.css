@@ -323,6 +323,71 @@
   border: 0;
 }
 
+/* Work | Project right-rail */
+.project-editor--panel {
+  gap: 8px;
+}
+
+.project-editor--panel .project-editor-name-field {
+  max-width: none;
+}
+
+.project-editor--panel .project-editor-tab-bar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.project-editor--panel .project-editor-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 4px;
+}
+
+.project-editor--panel .project-editor-tabs .page-tab {
+  flex: 1 1 calc(33.333% - 4px);
+  min-width: 5.5rem;
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  text-align: center;
+  justify-content: center;
+}
+
+.project-editor-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.project-editor-mode-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.project-editor--panel .project-editor-instructions-mode {
+  flex-shrink: 0;
+}
+
+.project-editor--panel .project-editor-workspace {
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.project-editor--panel .project-editor-pane {
+  padding: 12px;
+}
+
+.project-editor--panel .project-editor-footer {
+  padding: 10px 12px;
+}
+
 @media (max-width: 720px) {
   .project-editor-name-field {
     max-width: none;
