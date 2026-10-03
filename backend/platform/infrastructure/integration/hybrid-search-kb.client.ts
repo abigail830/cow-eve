@@ -1,41 +1,33 @@
 import dns from "node:dns";
+import { Agent, fetch as undiciFetch } from "undici";
 import {
   getHybridSearchApiBase,
   normalizeHybridSearchApiKey,
 } from "../config/mcp.config.js";
+import { listVisibleKnowledgeBasesViaMcp } from "./hybrid-search-kb-via-mcp.js";
+import {
+  HybridSearchKbClientError,
+  parseKnowledgeBaseItemsPayload,
+  type KnowledgeBaseListItem,
+} from "./hybrid-search-kb.types.js";
 
-/** Prefer IPv4 when both A and AAAA exist (avoids some local "fetch failed" cases). */
+export {
+  HybridSearchKbClientError,
+  type KnowledgeBaseListItem,
+} from "./hybrid-search-kb.types.js";
+
 dns.setDefaultResultOrder("ipv4first");
 
-/** Align with agent-platform `MCP_HTTP_REQUEST_TIMEOUT` default (seconds). */
-const KB_LIST_TIMEOUT_MS = 60_000;
+const CONNECT_TIMEOUT_MS = 20_000;
+const READ_TIMEOUT_MS = 45_000;
 
-export class HybridSearchKbClientError extends Error {
-  statusCode: number | null;
+const kbListDispatcher = new Agent({
+  connectTimeout: CONNECT_TIMEOUT_MS,
+  headersTimeout: READ_TIMEOUT_MS,
+  bodyTimeout: READ_TIMEOUT_MS,
+});
 
-  constructor(message: string, statusCode: number | null = null) {
-    super(message);
-    this.name = "HybridSearchKbClientError";
-    this.statusCode = statusCode;
-  }
-}
-
-export type KnowledgeBaseListItem = {
-  id: string;
-  name: string;
-  description?: string | null;
-  type?: string | null;
-  item_count?: number | null;
-  is_configured?: boolean | null;
-};
-
-/**
- * OpenKMS management API — same host as hybrid-search MCP, different path.
- * MCP (agent tools): `{base}/api/mcp/hybrid-search`
- * KB list (UI):       `{base}/api/knowledge/knowledge-bases`
- * Both use `Authorization: Bearer okf_…` (see agent-platform `kb_client.py`).
- */
-export async function listVisibleKnowledgeBases(input: {
+async function listVisibleKnowledgeBasesRest(input: {
   apiKey: string;
 }): Promise<KnowledgeBaseListItem[]> {
   const apiKey = normalizeHybridSearchApiKey(input.apiKey);
@@ -51,13 +43,16 @@ export async function listVisibleKnowledgeBases(input: {
   }
 
   const url = `${base}/api/knowledge/knowledge-bases`;
-  let response: Response;
+  let response;
   try {
-    response = await fetch(url, {
+    response = await undiciFetch(url, {
       method: "GET",
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: "application/json",
+      },
       redirect: "follow",
-      signal: AbortSignal.timeout(KB_LIST_TIMEOUT_MS),
+      dispatcher: kbListDispatcher,
     });
   } catch (err) {
     throw new HybridSearchKbClientError(
@@ -85,31 +80,38 @@ export async function listVisibleKnowledgeBases(input: {
   }
 
   const payload = (await response.json()) as unknown;
-  const items =
-    payload && typeof payload === "object" && "items" in payload
-      ? (payload as { items?: unknown }).items
-      : payload;
-  if (!Array.isArray(items)) return [];
+  return parseKnowledgeBaseItemsPayload(payload);
+}
 
-  const out: KnowledgeBaseListItem[] = [];
-  for (const item of items) {
-    if (!item || typeof item !== "object") continue;
-    const record = item as Record<string, unknown>;
-    const kbId = String(record.id ?? "").trim();
-    if (!kbId) continue;
-    out.push({
-      id: kbId,
-      name: String(record.name ?? kbId),
-      description:
-        typeof record.description === "string" ? record.description : null,
-      type: typeof record.type === "string" ? record.type : null,
-      item_count:
-        typeof record.item_count === "number" ? item.item_count : null,
-      is_configured:
-        typeof record.is_configured === "boolean"
-          ? record.is_configured
-          : null,
+/**
+ * MCP first (same transport as Eve chat — often works when local REST to Vercel is slow),
+ * then REST (agent-platform `kb_client.py`) as fallback.
+ */
+export async function listVisibleKnowledgeBases(input: {
+  apiKey: string;
+  hybridSearchMcpUrl?: string | null;
+}): Promise<KnowledgeBaseListItem[]> {
+  let mcpErr: HybridSearchKbClientError | null = null;
+  try {
+    return await listVisibleKnowledgeBasesViaMcp({
+      apiKey: input.apiKey,
+      mcpUrl: input.hybridSearchMcpUrl,
     });
+  } catch (err) {
+    mcpErr =
+      err instanceof HybridSearchKbClientError
+        ? err
+        : new HybridSearchKbClientError(
+            err instanceof Error ? err.message : String(err),
+          );
+    if (mcpErr.statusCode === 401 || mcpErr.statusCode === 403) {
+      throw mcpErr;
+    }
   }
-  return out;
+
+  try {
+    return await listVisibleKnowledgeBasesRest(input);
+  } catch (restErr) {
+    throw mcpErr ?? restErr;
+  }
 }

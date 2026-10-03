@@ -1,9 +1,9 @@
 import { and, eq, isNull } from "drizzle-orm";
+import { listVisibleKnowledgeBases } from "../../infrastructure/integration/hybrid-search-kb.client.js";
 import {
   HybridSearchKbClientError,
-  listVisibleKnowledgeBases,
   type KnowledgeBaseListItem,
-} from "../../infrastructure/integration/hybrid-search-kb.client.js";
+} from "../../infrastructure/integration/hybrid-search-kb.types.js";
 import { resolveHybridSearchCredentials } from "../integration/user-integration.use-case.js";
 import {
   getProjectDisabledKbIds,
@@ -49,6 +49,7 @@ export type KnowledgeBaseListPublic = {
 async function fetchVisibleCached(
   userId: string,
   apiKey: string,
+  hybridSearchMcpUrl: string | null,
   forceRefresh = false,
 ): Promise<KnowledgeBaseListItem[]> {
   const key = cacheKey(userId);
@@ -57,7 +58,10 @@ async function fetchVisibleCached(
     const hit = visibleCache.get(key);
     if (hit && now - hit.at < VISIBLE_TTL_MS) return hit.items;
   }
-  const items = await listVisibleKnowledgeBases({ apiKey });
+  const items = await listVisibleKnowledgeBases({
+    apiKey,
+    hybridSearchMcpUrl,
+  });
   visibleCache.set(key, { at: now, items });
   return items;
 }
@@ -111,7 +115,8 @@ export async function listKnowledgeBasesForUser(input: {
   projectId?: string | null;
 }): Promise<KnowledgeBaseListPublic> {
   const disabled = await resolveDisabledKbIds(input);
-  const { apiKey } = await resolveHybridSearchCredentials(input.userId);
+  const { apiKey, url: hybridSearchMcpUrl } =
+    await resolveHybridSearchCredentials(input.userId);
   if (!apiKey) {
     return {
       connected: false,
@@ -122,7 +127,11 @@ export async function listKnowledgeBasesForUser(input: {
   }
 
   try {
-    const raw = await fetchVisibleCached(input.userId, apiKey);
+    const raw = await fetchVisibleCached(
+      input.userId,
+      apiKey,
+      hybridSearchMcpUrl,
+    );
     return {
       connected: true,
       items: toPublicItems(raw, disabled),
@@ -219,12 +228,17 @@ export async function getKbScopeInstructionForChat(input: {
   });
   if (disabled.length === 0) return null;
 
-  const { apiKey } = await resolveHybridSearchCredentials(input.userId);
+  const { apiKey, url: hybridSearchMcpUrl } =
+    await resolveHybridSearchCredentials(input.userId);
   if (!apiKey) return null;
 
   let raw: KnowledgeBaseListItem[];
   try {
-    raw = await fetchVisibleCached(input.userId, apiKey);
+    raw = await fetchVisibleCached(
+      input.userId,
+      apiKey,
+      hybridSearchMcpUrl,
+    );
   } catch {
     return null;
   }

@@ -18,12 +18,19 @@ export type KnowledgeBaseListResult = {
   message: string | null;
 };
 
+const KB_API_TIMEOUT_MS = 90_000;
+
 async function kbFetch(path: string, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", "application/json");
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  return fetch(`${API_URL}${path}`, { ...init, headers });
+  const signal =
+    init?.signal ??
+    (typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(KB_API_TIMEOUT_MS)
+      : undefined);
+  return fetch(`${API_URL}${path}`, { ...init, headers, signal });
 }
 
 function projectQuery(projectId: string | null | undefined): string {

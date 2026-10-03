@@ -58,7 +58,7 @@ export function useKbScope(input: {
         }
       }
 
-      if (!opts?.silent && !cached) {
+      if (!opts?.silent || !cached) {
         setLoading(true);
       }
       setError(null);
