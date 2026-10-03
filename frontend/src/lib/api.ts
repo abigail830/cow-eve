@@ -317,7 +317,7 @@ export async function updateSchedule(
   },
 ) {
   return api<{ ok: true; schedule: ScheduledTaskPublic }>(
-    `/api/schedules/${encodeURIComponent(id)}?agentId=${encodeURIComponent(agentId)}`,
+    `/api/schedules/detail/${encodeURIComponent(id)}?agentId=${encodeURIComponent(agentId)}`,
     {
       method: "PUT",
       body: JSON.stringify(input),
@@ -327,7 +327,7 @@ export async function updateSchedule(
 
 export async function deleteSchedule(id: string, agentId: string) {
   return api<{ ok: true }>(
-    `/api/schedules/${encodeURIComponent(id)}?agentId=${encodeURIComponent(agentId)}`,
+    `/api/schedules/detail/${encodeURIComponent(id)}?agentId=${encodeURIComponent(agentId)}`,
     {
       method: "DELETE",
     },

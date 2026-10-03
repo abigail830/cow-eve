@@ -28,7 +28,6 @@ export function registerProjectRoutes(
     preflight("/api/chat-sessions/bind"),
     preflight("/api/projects/detail/:id"),
     preflight("/api/project-workspace-file-refs/:projectId"),
-    // No preflight on `/api/projects/:id` (PUT/DELETE only — Eve compile).
 
     GET("/api/projects/summary", async (request) => {
       const auth = await requireUser(request);
@@ -251,7 +250,7 @@ export function registerProjectRoutes(
       }
     }),
 
-    PUT("/api/projects/:id", async (request, { params }) => {
+    PUT("/api/projects/detail/:id", async (request, { params }) => {
       const auth = await requireUser(request);
       if (!auth) {
         return json({ ok: false, error: "Unauthorized" }, 401, request);
@@ -295,7 +294,7 @@ export function registerProjectRoutes(
       }
     }),
 
-    DELETE("/api/projects/:id", async (request, { params }) => {
+    DELETE("/api/projects/detail/:id", async (request, { params }) => {
       const auth = await requireUser(request);
       if (!auth) {
         return json({ ok: false, error: "Unauthorized" }, 401, request);

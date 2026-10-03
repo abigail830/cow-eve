@@ -96,7 +96,7 @@ export async function updateProject(
   patch: { name?: string; instructions?: string },
 ): Promise<ProjectPublic> {
   const res = await projectFetch(
-    `/api/projects/${encodeURIComponent(projectId)}?agentId=${encodeURIComponent(agentId)}`,
+    `/api/projects/detail/${encodeURIComponent(projectId)}?agentId=${encodeURIComponent(agentId)}`,
     {
       method: "PUT",
       body: JSON.stringify(patch),
@@ -118,7 +118,7 @@ export async function deleteProject(
   agentId: string,
 ): Promise<void> {
   const res = await projectFetch(
-    `/api/projects/${encodeURIComponent(projectId)}?agentId=${encodeURIComponent(agentId)}`,
+    `/api/projects/detail/${encodeURIComponent(projectId)}?agentId=${encodeURIComponent(agentId)}`,
     {
       method: "DELETE",
     },

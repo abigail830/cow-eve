@@ -104,22 +104,6 @@ export const projectsOpenApiSpec = {
           "401": { description: "Unauthorized" },
         },
       },
-    },
-    "/api/projects/{id}": {
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string", format: "uuid" },
-        },
-        {
-          name: "agentId",
-          in: "query",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
       put: {
         operationId: "updateProject",
         summary: "Update project name and/or standing instructions.",

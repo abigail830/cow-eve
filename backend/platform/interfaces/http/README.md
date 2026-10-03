@@ -18,3 +18,4 @@ Eve rejects duplicate `OPTIONS` for the same path pattern (`compile/channel-rout
 - Prefer co-locating `preflight(...)` with the routes in each `register-*-routes.ts` file.
 - Static paths (e.g. `/api/projects/summary`) must be registered before param routes (`/:id`) in the same module.
 - Do **not** register both `GET /api/foo/summary` and `GET /api/foo/:id` — Eve treats them as duplicate `GET /api/foo/:id`. Use `GET /api/foo/detail/:id` for single-resource reads instead.
+- Browser **PUT/DELETE** from the frontend must use the same `/api/foo/detail/:id` path as GET so the existing `preflight("/api/foo/detail/:id")` covers CORS. Do not expose mutations on bare `/api/foo/:id` (no preflight; Eve auto-OPTIONS conflicts if you add one).
