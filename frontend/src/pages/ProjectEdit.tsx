@@ -3,7 +3,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { fetchAgents, type AgentInfo } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { AgentNav } from "../components/AgentNav";
+import { AgentShell } from "../components/AgentShell";
 import { ProjectEditor } from "../components/ProjectEditor";
 import {
   fetchWorkspaceFolders,
@@ -74,41 +74,40 @@ export function ProjectEditPage() {
   }
 
   return (
-    <div className="agent-shell">
-      {agent ? (
-        <AgentNav
-          agent={agent}
-          view="customize"
-          onViewChange={(view) => {
-            if (view === "work") {
-              navigate(`/agents/${agentId}`);
-              return;
+    <AgentShell
+      nav={
+        agent
+          ? {
+              agent,
+              view: "customize",
+              onViewChange: (view) => {
+                if (view === "work") {
+                  navigate(`/agents/${agentId}`);
+                  return;
+                }
+                if (view === "customize") {
+                  navigate(`/agents/${agentId}?view=customize`);
+                  return;
+                }
+                navigate(`/agents/${agentId}?view=${view}`);
+              },
+              workspaceFolders,
+              selectedFolderId,
+              onSelectFolder: (id) => {
+                setSelectedFolderId(id);
+                navigate(`/agents/${agentId}?view=workspace`);
+              },
+              onCreateFolder: () => undefined,
+              onRenameFolder: () => undefined,
+              onDeleteFolder: () => undefined,
+              userName: user.displayName,
+              userEmail: user.email,
+              onOpenSettings: () => navigate("/settings"),
+              onLogout: logout,
             }
-            if (view === "customize") {
-              navigate(`/agents/${agentId}?view=customize`);
-              return;
-            }
-            navigate(`/agents/${agentId}?view=${view}`);
-          }}
-          workspaceFolders={workspaceFolders}
-          selectedFolderId={selectedFolderId}
-          onSelectFolder={(id) => {
-            setSelectedFolderId(id);
-            navigate(`/agents/${agentId}?view=workspace`);
-          }}
-          onCreateFolder={() => undefined}
-          onRenameFolder={() => undefined}
-          onDeleteFolder={() => undefined}
-          userName={user.displayName}
-          userEmail={user.email}
-          onOpenSettings={() => navigate("/settings")}
-          onLogout={logout}
-        />
-      ) : (
-        <aside className="agent-nav agent-nav-loading" aria-hidden />
-      )}
-
-      <main className="agent-main">
+          : null
+      }
+    >
         {loadError ? (
           <div className="agent-load-error">{loadError}</div>
         ) : !agent ? (
@@ -131,7 +130,6 @@ export function ProjectEditPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+    </AgentShell>
   );
 }

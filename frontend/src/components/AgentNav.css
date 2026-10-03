@@ -324,3 +324,41 @@
   background: var(--nav-hover-bg, rgba(0, 0, 0, 0.06));
   color: var(--nav-hover-fg-icon, #555);
 }
+
+/* Pad portrait and phone: nav overlays the page so the conversation keeps the width. */
+@media (max-width: 960px) {
+  .agent-nav.drawer {
+    position: fixed;
+    z-index: 60;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(300px, 86vw);
+    height: 100dvh;
+    max-height: 100dvh;
+    transform: translateX(-105%);
+    visibility: hidden;
+    pointer-events: none;
+    box-shadow: none;
+    transition:
+      transform 0.22s ease,
+      visibility 0s linear 0.22s;
+  }
+
+  .agent-nav.drawer.drawer-open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    box-shadow: 12px 0 40px rgba(0, 0, 0, 0.18);
+    transition:
+      transform 0.22s ease,
+      visibility 0s;
+  }
+}
+
+@media (max-width: 960px) and (prefers-reduced-motion: reduce) {
+  .agent-nav.drawer,
+  .agent-nav.drawer.drawer-open {
+    transition: none;
+  }
+}

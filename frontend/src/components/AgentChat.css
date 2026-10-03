@@ -78,6 +78,51 @@
   flex-shrink: 0;
 }
 
+@media (max-width: 960px) {
+  .chat-header {
+    padding-top: 10px;
+    padding-right: 10px;
+    padding-bottom: 8px;
+    gap: 6px;
+  }
+
+  .chat-header-leading {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .work-page-title {
+    flex-wrap: nowrap;
+  }
+
+  .work-page-title > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .chat-body {
+    padding: 16px 14px 12px;
+  }
+
+  .agent-chat > .resizable-aside {
+    max-width: min(400px, 46vw);
+  }
+}
+
+@media (max-width: 768px) {
+  .agent-chat > .resizable-aside {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    width: 100% !important;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
 .chat-header-actions-sep {
   width: 1px;
   height: 16px;

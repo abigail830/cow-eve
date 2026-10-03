@@ -14,7 +14,8 @@ import {
 } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { AgentChat } from "../components/AgentChat";
-import { AgentNav, type AgentNavView } from "../components/AgentNav";
+import { AgentShell } from "../components/AgentShell";
+import { type AgentNavView } from "../components/AgentNav";
 import { ArtifactsPanel } from "../components/ArtifactsPanel";
 import {
   CustomizePanel,
@@ -239,32 +240,31 @@ export function AgentPage() {
   }
 
   return (
-    <div className="agent-shell">
-      {agent ? (
-        <AgentNav
-          agent={agent}
-          view={view}
-          onViewChange={setView}
-          streaming={streaming}
-          workspaceFolders={workspaceFolders}
-          selectedFolderId={selectedFolderId}
-          onSelectFolder={(id) => {
-            setSelectedFolderId(id);
-            setView("workspace");
-          }}
-          onCreateFolder={() => void handleCreateWorkspaceFolder()}
-          onRenameFolder={() => void handleRenameWorkspaceFolder()}
-          onDeleteFolder={() => void handleDeleteWorkspaceFolder()}
-          userName={user.displayName}
-          userEmail={user.email}
-          onOpenSettings={() => navigate("/settings")}
-          onLogout={logout}
-        />
-      ) : (
-        <aside className="agent-nav agent-nav-loading" aria-hidden />
-      )}
-
-      <main className="agent-main">
+    <AgentShell
+      nav={
+        agent
+          ? {
+              agent,
+              view,
+              onViewChange: setView,
+              streaming,
+              workspaceFolders,
+              selectedFolderId,
+              onSelectFolder: (id) => {
+                setSelectedFolderId(id);
+                setView("workspace");
+              },
+              onCreateFolder: () => void handleCreateWorkspaceFolder(),
+              onRenameFolder: () => void handleRenameWorkspaceFolder(),
+              onDeleteFolder: () => void handleDeleteWorkspaceFolder(),
+              userName: user.displayName,
+              userEmail: user.email,
+              onOpenSettings: () => navigate("/settings"),
+              onLogout: logout,
+            }
+          : null
+      }
+    >
         {loadError ? (
           <div className="agent-load-error">{loadError}</div>
         ) : !agent ? (
@@ -332,7 +332,6 @@ export function AgentPage() {
             onStreamingChange={setStreaming}
           />
         )}
-      </main>
-    </div>
+    </AgentShell>
   );
 }

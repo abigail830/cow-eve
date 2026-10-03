@@ -282,6 +282,21 @@
   animation: msg-user-attachment-spin 0.9s linear infinite;
 }
 
+@media (max-width: 720px) {
+  .msg-bubble.user {
+    max-width: 92%;
+  }
+
+  .msg-assistant {
+    max-width: 100%;
+  }
+
+  .msg-file-label,
+  .msg-user-attachment-name {
+    max-width: 46vw;
+  }
+}
+
 @keyframes msg-user-attachment-spin {
   to {
     transform: rotate(360deg);

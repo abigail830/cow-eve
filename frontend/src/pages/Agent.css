@@ -14,12 +14,54 @@
 }
 
 .agent-main {
+  position: relative;
   flex: 1;
   min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--surface-canvas);
+}
+
+.agent-nav-open {
+  position: absolute;
+  z-index: 5;
+  top: 8px;
+  left: 8px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: var(--surface-raised, #fff);
+  color: var(--color-ink, #222);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.agent-nav-open:hover {
+  background: var(--nav-hover-bg, rgba(0, 0, 0, 0.05));
+}
+
+.agent-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: rgba(16, 18, 24, 0.42);
+  cursor: pointer;
+}
+
+.agent-shell.compact .chat-header,
+.agent-shell.compact .customize-page-header,
+.agent-shell.compact .workspace-list-header,
+.agent-shell.compact .artifacts-list-header,
+.agent-shell.compact .project-edit-header,
+.agent-shell.compact .agent-load-error {
+  padding-left: 56px;
 }
 
 .agent-load-error {
