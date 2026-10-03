@@ -6,11 +6,13 @@ import { LoginPage } from "./pages/Login";
 import { SchedulesPage } from "./pages/Schedules";
 import { ProjectEditPage } from "./pages/ProjectEdit";
 import { SettingsPage } from "./pages/Settings";
+import { ToastHost } from "./components/ToastHost";
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ToastHost />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/settings" element={<SettingsPage />} />

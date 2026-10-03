@@ -9,6 +9,7 @@ import {
 import { lookupWorkspaceFiles, type WorkspaceFilePublic } from "../lib/workspace";
 import { ComposerWorkspaceImportModal } from "./ComposerWorkspaceImportModal";
 import { MarkdownContent } from "./MarkdownContent";
+import { showToast } from "../hooks/useToast";
 import "./ProjectEditor.css";
 
 type Props = {
@@ -73,8 +74,12 @@ export function ProjectEditor({
         instructions,
       });
       onProjectUpdated?.();
+      showToast("success", "Project saved.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not save");
+      const message =
+        err instanceof Error ? err.message : "Could not save instructions";
+      setError(message);
+      showToast("error", message);
     } finally {
       setSaving(false);
     }
@@ -90,8 +95,12 @@ export function ProjectEditor({
         saved.length === 0 ? [] : await lookupWorkspaceFiles(saved),
       );
       onProjectUpdated?.();
+      showToast("success", "Project context saved.");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not save context");
+      const message =
+        err instanceof Error ? err.message : "Could not save project context";
+      setError(message);
+      showToast("error", message);
     } finally {
       setSaving(false);
     }
