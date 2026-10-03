@@ -11,32 +11,30 @@
 .project-editor-toolbar {
   flex-shrink: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px 20px;
-}
-
-.project-editor-toolbar-end {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-  margin-left: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
 }
 
 .project-editor-name-field {
-  display: grid;
-  gap: 6px;
-  min-width: min(100%, 280px);
-  max-width: 360px;
-  flex: 1 1 200px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: min(100%, 420px);
+  min-width: 0;
+}
+
+.project-editor-name-label {
+  flex-shrink: 0;
   font-size: 0.82rem;
+  font-weight: 500;
   color: var(--color-text-secondary);
 }
 
 .project-editor-name-field input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   height: 36px;
   box-sizing: border-box;
   border: 1px solid var(--border-subtle);
@@ -50,6 +48,15 @@
 .project-editor-name-field input:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border-subtle));
+}
+
+.project-editor-tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
 }
 
 .project-editor-tabs {
@@ -294,20 +301,15 @@
 }
 
 @media (max-width: 720px) {
-  .project-editor-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .project-editor-toolbar-end {
-    margin-left: 0;
-    justify-content: space-between;
-  }
-
   .project-editor-name-field {
-    flex: 0 0 auto;
-    width: 100%;
     max-width: none;
-    min-width: 0;
+  }
+
+  .project-editor-tab-bar {
+    flex-wrap: wrap;
+  }
+
+  .project-editor-instructions-mode {
+    margin-left: auto;
   }
 }

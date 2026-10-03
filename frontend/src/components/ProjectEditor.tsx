@@ -123,7 +123,7 @@ export function ProjectEditor({
     <div className="project-editor">
       <div className="project-editor-toolbar">
         <label className="project-editor-name-field">
-          <span>Name</span>
+          <span className="project-editor-name-label">Name</span>
           <input
             type="text"
             value={name}
@@ -132,7 +132,7 @@ export function ProjectEditor({
             disabled={saving}
           />
         </label>
-        <div className="project-editor-toolbar-end">
+        <div className="project-editor-tab-bar">
           <div className="page-tabs project-editor-tabs" role="tablist">
             <button
               type="button"
