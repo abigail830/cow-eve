@@ -29,7 +29,7 @@ const failFast =
 export const MAX_RETRIEVE_CALLS_PER_TURN = failFast ? 2 : 6;
 export const MAX_WEB_CALLS_PER_TURN = failFast ? 2 : 8;
 export const MAX_PARALLEL_RETRIEVE = failFast ? 1 : 2;
-export const MAX_WEB_PER_RETRIEVE = failFast ? 1 : 2;
+export const MAX_WEB_PER_RETRIEVE = failFast ? 1 : 3;
 export const MAX_KB_PER_RETRIEVE = 1;
 
 export const researchFailFastEnabled = failFast;

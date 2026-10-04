@@ -22,9 +22,13 @@ Use **`med`** for medium confidence — never write `"medium"`. Lowercase only: 
 - **toolsUsed**: count MCP/tool calls you actually made in this turn (honest counts).
 - **status**: `blocked` if sources failed or budget prevented progress; `partial` if some gaps remain.
 
+## Time scope
+
+When the parent message includes a **research window** (ISO dates or “rolling N months ending …”), treat it as a hard filter for **recency**: prefer sources and claims inside the window; if the only material is older, note that in **gaps** rather than presenting it as “recent”.
+
 ## Budget
 
-Respect the parent message **hard budget** for web and KB calls. Stop when the budget is spent.
+Respect the parent message **hard budget** for web and KB calls. **Stop before** the next web call would exceed the limit; return **`partial`** with findings so far. Never exceed the stated web/KB caps in `toolsUsed`.
 
 ## Search heuristics
 

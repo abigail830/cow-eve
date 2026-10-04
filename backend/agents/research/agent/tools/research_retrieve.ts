@@ -8,6 +8,7 @@ import { parseRetrieveAgentResult } from "../lib/research-retrieve-parse.js";
 import {
   MAX_KB_PER_RETRIEVE,
   MAX_WEB_PER_RETRIEVE,
+  type RetrieveResult,
 } from "../lib/research-schemas.js";
 
 const AllowedSourceSchema = z.enum(["web", "kb", "hubspot", "workspace"]);
@@ -29,7 +30,7 @@ function buildRetrieveMessage(input: {
     input.allowedSources.join(", "),
     "",
     "## Budget (hard)",
-    `- Web MCP calls: at most ${input.budget.maxWeb}`,
+    `- Web MCP calls: at most ${input.budget.maxWeb} (stop before exceeding; return partial if needed)`,
     `- KB hybrid_search calls: at most ${input.budget.maxKb}`,
     "",
     "## Plan context",
@@ -41,15 +42,20 @@ function buildRetrieveMessage(input: {
   ].join("\n");
 }
 
-function assertPerRetrieveWebBudget(
+/** Keep findings; do not throw — hard throws leave the turn open and invite useless reruns. */
+function applyPerRetrieveWebBudget(
+  data: RetrieveResult,
   budgetMaxWeb: number,
-  webUsed: number,
-): void {
-  if (webUsed > budgetMaxWeb) {
-    throw new Error(
-      `Retrieve used ${webUsed} web calls; budget was ${budgetMaxWeb}.`,
-    );
-  }
+): RetrieveResult {
+  if (data.toolsUsed.web <= budgetMaxWeb) return data;
+  return {
+    ...data,
+    status: data.status === "done" ? "partial" : data.status,
+    gaps: [
+      ...data.gaps,
+      `Subagent reported ${data.toolsUsed.web} web calls; per-retrieve budget was ${budgetMaxWeb}. Findings kept; do not rerun the same sub-question unless you raise budget.maxWeb.`,
+    ],
+  };
 }
 
 export default defineWorkflowTool({
@@ -79,22 +85,22 @@ export default defineWorkflowTool({
     const data = parseRetrieveAgentResult(turn, input.subQuestionId);
 
     // Turn-level budgets are enforced in sync_research_ledger (defineState — not available in workflow steps).
-    assertPerRetrieveWebBudget(input.budget.maxWeb, data.toolsUsed.web);
+    const bounded = applyPerRetrieveWebBudget(data, input.budget.maxWeb);
 
     const ledger = await persistRetrieveLedgerInToolContext(
       ctx as unknown as LedgerWriteContext,
-      data,
+      bounded,
     );
 
     if (!ledger.ledgerWritten) {
       return {
-        subQuestionId: data.subQuestionId,
-        status: data.status,
-        findingCount: data.findings.length,
+        subQuestionId: bounded.subQuestionId,
+        status: bounded.status,
+        findingCount: bounded.findings.length,
         duplicateSkipped: 0,
         evidenceLines: 0,
-        gaps: data.gaps,
-        toolsUsed: data.toolsUsed,
+        gaps: bounded.gaps,
+        toolsUsed: bounded.toolsUsed,
         ledgerWritten: false as const,
         pendingRetrieve: ledger.pendingRetrieve,
         ledgerError: ledger.ledgerError,
@@ -104,13 +110,13 @@ export default defineWorkflowTool({
     }
 
     return {
-      subQuestionId: data.subQuestionId,
-      status: data.status,
+      subQuestionId: bounded.subQuestionId,
+      status: bounded.status,
       findingCount: ledger.findingCount,
       duplicateSkipped: ledger.duplicateSkipped,
       evidenceLines: ledger.evidenceLines,
-      gaps: data.gaps,
-      toolsUsed: data.toolsUsed,
+      gaps: bounded.gaps,
+      toolsUsed: bounded.toolsUsed,
       ledgerWritten: true as const,
       syncHint: "Call sync_research_ledger before reading evidence files.",
     };

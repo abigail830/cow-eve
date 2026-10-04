@@ -19,6 +19,8 @@ Before substantial retrieval, output:
 **Assumptions:** …
 **Audience / use:** … (e.g. pre-meeting brief, market scan)
 
+**Research window:** … (required when the user gives *relative* time, e.g. “recent 1–2 years” / “最近一两年”). Anchor to **today’s date** (from context or a brief date check)—**never** silently assume fixed years like 2024–2025. Write explicit **ISO dates** (start–end) and one line on how you computed the window (e.g. “rolling 24 months ending YYYY-MM-DD”).
+
 ### Sub-questions
 1. …
 2. …
@@ -43,7 +45,8 @@ Do **not** call MCP search tools from the parent agent. Retrieval goes through *
 ## 2. Retrieve
 
 - For each sub-question, call **`research_retrieve`** with `subQuestionId`, `objective`, `allowedSources`, and a short `contextFromPlan`.
-- **Budget (per turn):** at most **6** `research_retrieve` calls; **8** web MCP calls total across the turn (enforced in workflow state).
+- When the job is time-bounded, repeat the **Research window** dates inside `contextFromPlan` and ask the retrieve subagent to **prioritize sources and facts within that window** (and flag anything outside it).
+- **Budget (per turn):** at most **6** `research_retrieve` calls; **8** web MCP calls total across the turn (enforced in `sync_research_ledger`). Default **3** web calls per retrieve (`budget.maxWeb`); raise only when the plan justifies it.
 - **Parallelism:** at most **2** overlapping retrieve tasks; use **`task_wait`** while multiple retrieves run, then **`sync_research_ledger`**.
 - After each retrieve (or batch), call **`sync_research_ledger`** so `evidence.jsonl` and `progress.md` match session state.
 
