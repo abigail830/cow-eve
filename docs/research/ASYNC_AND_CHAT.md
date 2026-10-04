@@ -1,4 +1,4 @@
-# Deep Research — long turns and leaving the window
+# Deep Researcher(Ann) — long turns and leaving the window
 
 The research agent uses the same **chat + Eve session** model as omni.
 

@@ -21,7 +21,7 @@ export const AGENT_REGISTRY: readonly AgentRegistryEntry[] = [
   {
     id: "omni",
     category: "omni",
-    displayName: "HaoYu",
+    displayName: "HaoYu FDE",
     description: "Unified entry for light tasks, knowledge Q&A, and content generation",
     avatar: "/agents/haoyu-grey.png",
     eveAgent: "omni",
@@ -30,7 +30,7 @@ export const AGENT_REGISTRY: readonly AgentRegistryEntry[] = [
   {
     id: "research",
     category: "domain",
-    displayName: "Deep Research",
+    displayName: "Ann Researcher",
     description: "Multi-source research plans and published reports for any topic, including client and sales enablement",
     avatar: "/agents/avatar11.png",
     eveAgent: "research",
