@@ -4,7 +4,8 @@ import { getHubspotMcpOAuthConfig } from "../../../infrastructure/config/integra
 export const INTEGRATION_HUBSPOT = "hubspot";
 
 const HUBSPOT_RESOURCE = "https://mcp.hubspot.com";
-const HUBSPOT_AUTHORIZE_URL = "https://mcp.hubspot.com/oauth/authorize";
+const HUBSPOT_AUTHORIZE_URL =
+  "https://mcp.hubspot.com/oauth/authorize/user";
 const HUBSPOT_TOKEN_URL = "https://mcp.hubspot.com/oauth/v3/token";
 
 export function hubspotMcpUrl(): string {

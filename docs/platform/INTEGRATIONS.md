@@ -22,16 +22,27 @@ Customize → Integrations always requires `agentId`. Eve resolves the active ag
 
 ## OAuth setup (Notion / HubSpot)
 
-1. Register an OAuth app with the provider for the hosted MCP endpoints ([Notion MCP](https://developers.notion.com/guides/mcp/get-started-with-mcp), HubSpot MCP).
-2. Set redirect URI on the provider to the **platform backend** callback:
-   - `https://<backend-host>/api/integrations/notion/callback`
-   - `https://<backend-host>/api/integrations/hubspot/callback`
-3. Configure [`backend/.env.example`](../../backend/.env.example) variables (`NOTION_MCP_*`, `HUBSPOT_MCP_*`, optional `INTEGRATION_SUCCESS_REDIRECT` for the frontend after callback).
+### Notion MCP (dynamic client registration)
+
+1. From `backend/`: `npm run register:notion-mcp` (or POST to `https://mcp.notion.com/register` with your redirect URI).
+2. Copy printed `NOTION_MCP_*` lines into `backend/.env`.
+3. Redirect must be the **platform backend** callback, e.g. `http://127.0.0.1:2000/api/integrations/notion/callback` (local) or `https://<backend-host>/api/integrations/notion/callback` (prod).
+
+### HubSpot MCP (MCP Auth App in HubSpot — no DCR)
+
+1. In your HubSpot account: **Development** → **Create MCP auth app** ([remote MCP guide](https://developers.hubspot.com/docs/apps/developer-platform/build-apps/integrate-with-the-remote-hubspot-mcp-server)).
+2. Set **Redirect URL** to the same pattern as Notion but `hubspot` in the path, e.g. `http://127.0.0.1:2000/api/integrations/hubspot/callback`. Add a second URL for production backend if needed.
+3. On the app details page, copy **Client ID** and **Client secret** into `backend/.env` as `HUBSPOT_MCP_CLIENT_*` (see [`.env.example`](../../backend/.env.example)).
+4. Optional: `INTEGRATION_SUCCESS_REDIRECT` (frontend after callback, e.g. `http://127.0.0.1:5273`).
+
+**Quote `DATABASE_URL` in `.env` if it contains `&`**, so `source .env` during `./scripts/restart.sh omni` loads all variables.
+
+Restart omni after env changes. Users connect per agent under Customize → Integrations (agent-scoped credentials).
 
 ## Eve runtime (source of truth for “which agent gets which integration”)
 
 1. Add or remove a file under `backend/agents/<eveAgent>/agent/connections/` (Eve connections — see `eve` package docs under `connections/`).
-2. Platform maps the filename to a catalog id (`notion.ts` → `notion`, `hybrid-search.ts` → `hybrid_search`) and uses that set for **Customize → Integrations** and runtime token scope for that sidebar agent ([`AGENT_REGISTRY`](../../backend/platform/domain/registry/agent.entity.ts) `id` → `eveAgent` directory).
+2. Platform maps the filename to a catalog id (`notion.ts` → `notion`, `hybrid-search.ts` → `hybrid_search`) and uses that set for **Customize → Integrations** and runtime token scope for that sidebar agent ([`AGENT_REGISTRY`](../../backend/platform/domain/registry/agent.entity.ts) `id` → `eveAgent` directory). On **Vercel/serverless**, the repo `agents/` tree is not on disk at runtime; `npm run build` runs `sync:integrations` to refresh [`wired-integrations.manifest.ts`](../../backend/platform/infrastructure/agents/wired-integrations.manifest.ts) from connection files (local dev still prefers a live directory scan when present).
 
 Catalog [`integration-catalog.ts`](../../backend/platform/domain/integration/integration-catalog.ts) holds display copy, auth kind, and OAuth/API field definitions only — not per-agent visibility.
 

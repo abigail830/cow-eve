@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { findBackendRoot } from "../config/backend-root.js";
 import { getAgent } from "../../domain/registry/agent.entity.js";
+import { WIRED_INTEGRATION_IDS_BY_EVE_AGENT } from "./wired-integrations.manifest.js";
 
 /** `agent/connections/notion.ts` → catalog id `notion`; `hybrid-search.ts` → `hybrid_search`. */
 export function connectionFilenameToIntegrationId(filename: string): string {
@@ -12,16 +13,11 @@ export function connectionFilenameToIntegrationId(filename: string): string {
 /**
  * Integration ids wired in Eve for a platform sidebar agent (via registry → agents/<eveAgent>/agent/connections/).
  */
-export function listWiredIntegrationIdsForPlatformAgent(
-  platformAgentId: string,
-): readonly string[] {
-  const entry = getAgent(platformAgentId);
-  if (!entry) return [];
-
+function scanConnectionsDir(eveAgent: string): string[] {
   const connectionsDir = path.join(
     findBackendRoot(),
     "agents",
-    entry.eveAgent,
+    eveAgent,
     "agent",
     "connections",
   );
@@ -33,4 +29,16 @@ export function listWiredIntegrationIdsForPlatformAgent(
     ids.push(connectionFilenameToIntegrationId(name));
   }
   return ids;
+}
+
+export function listWiredIntegrationIdsForPlatformAgent(
+  platformAgentId: string,
+): readonly string[] {
+  const entry = getAgent(platformAgentId);
+  if (!entry) return [];
+
+  const fromDisk = scanConnectionsDir(entry.eveAgent);
+  if (fromDisk.length > 0) return fromDisk;
+
+  return WIRED_INTEGRATION_IDS_BY_EVE_AGENT[entry.eveAgent] ?? [];
 }

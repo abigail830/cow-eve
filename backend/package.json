@@ -8,7 +8,9 @@
   },
   "scripts": {
     "build:extensions": "npm run build --prefix extensions/knowledge && npm run build --prefix extensions/schedules && npm run build --prefix extensions/projects",
-    "build": "npm run db:migrate && npm run build:extensions && eve build",
+    "register:notion-mcp": "tsx scripts/register-notion-mcp-oauth.ts",
+    "sync:integrations": "tsx scripts/sync-wired-integrations-manifest.ts",
+    "build": "npm run db:migrate && npm run sync:integrations && npm run build:extensions && eve build",
     "deploy": "eve deploy",
     "dev": "eve dev --agent omni --no-ui --port 2000",
     "dev:omni": "eve dev --agent omni --no-ui --port 2000",
