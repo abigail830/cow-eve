@@ -1,11 +1,21 @@
 import type { SandboxSession } from "eve/sandbox";
 import {
+  appendRetrieveResultToSandbox,
+  parseProgressTable,
+} from "./research-ledger-sandbox-write.js";
+import {
   EVIDENCE_JSONL_PATH,
   PLAN_PATH,
   PROGRESS_PATH,
   RESEARCH_DIR,
 } from "./research-paths.js";
-import { researchRunState, type ProgressRow, type StoredFinding } from "./research-run-state.js";
+import {
+  researchRunState,
+  type ProgressRow,
+  type StoredFinding,
+} from "./research-run-state.js";
+
+export { appendRetrieveResultToSandbox, parseProgressTable };
 
 const PROGRESS_HEADER = `# Research progress
 

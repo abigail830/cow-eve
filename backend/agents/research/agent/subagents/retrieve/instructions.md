@@ -16,6 +16,8 @@ Your **final message for the turn** must be **only** a JSON object (no markdown 
 }
 ```
 
+Use **`med`** for medium confidence — never write `"medium"`. Lowercase only: **`high`**, **`med`**, **`low`**.
+
 - **findings**: short claims with a concrete **source** string (URL, KB id, CRM object id, or workspace path).
 - **toolsUsed**: count MCP/tool calls you actually made in this turn (honest counts).
 - **status**: `blocked` if sources failed or budget prevented progress; `partial` if some gaps remain.

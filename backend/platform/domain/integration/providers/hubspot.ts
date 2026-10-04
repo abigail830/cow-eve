@@ -1,5 +1,6 @@
 import type { OAuthTokenBundle } from "../oauth/types.js";
 import { getHubspotMcpOAuthConfig } from "../../../infrastructure/config/integration-oauth.config.js";
+import { normalizeHubspotMcpUrl } from "../../../infrastructure/config/mcp.config.js";
 
 export const INTEGRATION_HUBSPOT = "hubspot";
 
@@ -9,8 +10,7 @@ const HUBSPOT_AUTHORIZE_URL =
 const HUBSPOT_TOKEN_URL = "https://mcp.hubspot.com/oauth/v3/token";
 
 export function hubspotMcpUrl(): string {
-  const fromEnv = process.env.HUBSPOT_MCP_URL?.trim();
-  return fromEnv || "https://mcp.hubspot.com/mcp";
+  return normalizeHubspotMcpUrl(process.env.HUBSPOT_MCP_URL);
 }
 
 export function isHubspotOAuthConfigured(): boolean {

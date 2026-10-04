@@ -7,6 +7,9 @@ import {
 import { defineOAuthMcpConnection } from "../../../lib/oauth-mcp-connection.js";
 import { resolveAgentIdForSession } from "../../../lib/resolve-agent-id.js";
 
+/** Platform sidebar id for Ann Researcher (this connection only ships on research/retrieve). */
+const RESEARCH_PLATFORM_AGENT_ID = "research";
+
 const HUBSPOT_TOOL_ALLOW = [
   "get_user_details",
   "search_crm_objects",
@@ -21,16 +24,39 @@ const HUBSPOT_TOOL_ALLOW = [
 function eveSessionIdForIntegrations(ctx: {
   session: {
     id: string;
-    parent?: { rootSessionId?: string } | null;
+    parent?: { rootSessionId?: string; sessionId?: string } | null;
   };
 }): string {
-  return ctx.session.parent?.rootSessionId ?? ctx.session.id;
+  return (
+    ctx.session.parent?.rootSessionId ??
+    ctx.session.parent?.sessionId ??
+    ctx.session.id
+  );
+}
+
+async function resolvePlatformAgentId(ctx: {
+  session: {
+    id: string;
+    parent?: { rootSessionId?: string; sessionId?: string } | null;
+    auth: { current?: { principalType?: string; principalId?: string } | null };
+  };
+}): Promise<string | null> {
+  const caller = ctx.session.auth.current;
+  if (caller?.principalType !== "user" || !caller.principalId) {
+    return null;
+  }
+  const eveSessionId = eveSessionIdForIntegrations(ctx);
+  const fromChat = await resolveAgentIdForSession({
+    userId: caller.principalId,
+    eveSessionId,
+  });
+  return fromChat ?? RESEARCH_PLATFORM_AGENT_ID;
 }
 
 async function hubspotConnectionsForSession(ctx: {
   session: {
     id: string;
-    parent?: { rootSessionId?: string } | null;
+    parent?: { rootSessionId?: string; sessionId?: string } | null;
     auth: { current?: { principalType?: string; principalId?: string } | null };
   };
 }) {
@@ -38,17 +64,23 @@ async function hubspotConnectionsForSession(ctx: {
   if (caller?.principalType !== "user" || !caller.principalId) {
     return null;
   }
-  const agentId = await resolveAgentIdForSession({
-    userId: caller.principalId,
-    eveSessionId: eveSessionIdForIntegrations(ctx),
-  });
+  const agentId = await resolvePlatformAgentId(ctx);
   if (!agentId) return null;
+
   const token = await resolveIntegrationMcpAccessToken(
     caller.principalId,
     agentId,
     INTEGRATION_HUBSPOT,
   );
-  if (!token) return null;
+  if (!token) {
+    console.warn(
+      "[retrieve/hubspot] OAuth token missing for agent",
+      agentId,
+      "(Customize → Integrations on Ann Researcher)",
+    );
+    return null;
+  }
+
   return {
     hubspot: defineOAuthMcpConnection({
       integrationId: INTEGRATION_HUBSPOT,

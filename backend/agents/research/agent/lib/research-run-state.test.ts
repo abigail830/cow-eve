@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { findingId } from "./research-run-state.js";
+import { findingId } from "./research-finding-id.js";
 
 describe("research-run-state", () => {
   it("findingId is stable for the same inputs", () => {

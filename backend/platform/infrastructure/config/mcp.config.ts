@@ -123,6 +123,17 @@ export function getNotionMcpUrl(): string {
   return process.env.NOTION_MCP_URL?.trim() || "https://mcp.notion.com/mcp";
 }
 
+/** HubSpot remote MCP (Streamable HTTP) — see HubSpot MCP auth app docs. */
+export function normalizeHubspotMcpUrl(raw: string | null | undefined): string {
+  const trimmed = raw?.trim();
+  if (!trimmed) return "https://mcp.hubspot.com";
+  let url = trimmed.replace(/\/+$/, "") || trimmed;
+  if (url.endsWith("/mcp")) {
+    url = url.slice(0, -"/mcp".length).replace(/\/+$/, "") || "https://mcp.hubspot.com";
+  }
+  return url;
+}
+
 export function getHubspotMcpUrl(): string {
-  return process.env.HUBSPOT_MCP_URL?.trim() || "https://mcp.hubspot.com/mcp";
+  return normalizeHubspotMcpUrl(process.env.HUBSPOT_MCP_URL);
 }

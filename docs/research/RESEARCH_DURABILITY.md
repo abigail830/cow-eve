@@ -17,11 +17,17 @@ Artifacts nav lists only **`publish`** outputs, not these files.
 | Tool | Role |
 |------|------|
 | **`init_research_files`** | Write `plan.md` and initialize ledger after the chat plan |
-| **`research_retrieve`** | Workflow tool: delegate to `retrieve` subagent; flush ledger to sandbox files; **`sync_research_ledger`** hydrates parent session state from files |
-| **`sync_research_ledger`** | Flush state → `evidence.jsonl` + `progress.md` |
+| **`research_retrieve`** | Workflow tool: delegate to `retrieve` subagent; **append** findings to sandbox after the budget step (not inside `"use step"` — sandbox is unavailable there) |
+| **`sync_research_ledger`** | Hydrate parent session state **from** sandbox files, then rewrite files from state |
 | **`publish`** | Requires plan + evidence (state or jsonl) |
 
 Parent agent **must not** use root MCP connections. MCP runs only on the **`retrieve`** subagent (`tool: false` on the subagent; callable via workflow).
+
+**Web, KB (hybrid-search), HubSpot, and workspace** all use the same **`research_retrieve`** → **`retrieve`** path. There is no separate “HubSpot retrieve tool”; if you see *not registered as a workflow*, every source fails until workflow registration / session is fixed—not just web search.
+
+**HubSpot vs web/KB on the retrieve subagent:** Zhipu and hybrid-search use **API keys** (env or Integrations) and mount on `session.started` without a platform `agentId`. HubSpot uses **OAuth scoped to the sidebar agent** (`research`). The retrieve child session often has **no chat row** for its Eve session id, so OAuth lookup used to fail silently and the subagent only saw web+KB. **`subagents/retrieve/connections/hubspot.ts`** now falls back to platform agent id **`research`** when chat lookup misses (same Integrations card you use on Ann Researcher).
+
+**HubSpot MCP URL:** Use **`https://mcp.hubspot.com`** (Streamable HTTP root). The old default **`…/mcp`** could yield *MCP SSE Transport Error: 404* during client init. If `HUBSPOT_MCP_URL` is set in env, drop the trailing `/mcp` unless HubSpot docs for your app say otherwise.
 
 ## Budgets (per user message / turn)
 
@@ -33,8 +39,8 @@ Parent agent **must not** use root MCP connections. MCP runs only on the **`retr
 ## Durability notes
 
 - Heavy MCP work runs in the **`retrieve` child session**; the parent turn waits on each **`research_retrieve`** call.
-- **`research_retrieve` stays a workflow tool** because only workflows may **`await ctx.agent("retrieve")`** synchronously. **`defineState` updated in `init_research_files` does not reliably match the workflow execution context** — treat **`/workspace/research/*.md` + `evidence.jsonl`** as source of truth; **`sync_research_ledger`** rehydrates parent state from disk. [Eve #3740](https://github.com/vercel/eve/issues/3740) still requires the workflow-id patch on workspace-member builds.
-- Finding dedup uses **`findingId`** hash in session state.
+- **`research_retrieve` stays a workflow tool** because only workflows may **`await ctx.agent("retrieve")`** synchronously. Parent and workflow-step **`defineState` are not shared** — without writing sandbox files, tool output could show **`findingCount` > 0** while **`evidence.jsonl` stayed empty** and **`sync_research_ledger`** returned **`evidenceLines: 0`**. The workflow step now **appends deduped rows to `evidence.jsonl`**; **`sync_research_ledger`** hydrates parent state from disk when **`plan.md`** exists. [Eve #3740](https://github.com/vercel/eve/issues/3740) still requires the workflow-id patch on workspace-member builds.
+- Finding dedup uses **`findingId`** hash (session state and jsonl append).
 - A **new user message** in the same chat can abort an in-flight retrieve—see [ASYNC_AND_CHAT.md](./ASYNC_AND_CHAT.md).
 
 ## Local dev
@@ -54,6 +60,8 @@ Call **`init_research_files`** before **`research_retrieve`**. **`init_research_
 ### Retrieve schema errors
 
 If the subagent reply is prose or fenced JSON, Eve `outputSchema` fails with *could not produce a result matching the requested schema*. **`research_retrieve`** parses the subagent’s final message as JSON instead; invalid replies become a **`blocked`** ledger row with a gap (turn continues). Retry with a simpler `objective` or one retrieve at a time if many `blocked` rows appear.
+
+**Confidence field:** retrieve JSON requires `confidence` **`high` | `med` | `low`**. Models often emit `"medium"` — the parser normalizes aliases (`medium` → `med`, etc.) before validation so KB findings are not dropped on first pass. Subagent instructions forbid `"medium"`.
 
 ## Smoke checklist
 

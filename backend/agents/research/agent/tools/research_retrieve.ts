@@ -1,6 +1,9 @@
 import { defineWorkflowTool } from "eve/tools";
 import { z } from "zod";
-import { persistRetrieveResultStep } from "../lib/research-retrieve-steps.js";
+import {
+  persistRetrieveLedgerInToolContext,
+  type LedgerWriteContext,
+} from "../lib/persist-retrieve-ledger.js";
 import { parseRetrieveAgentResult } from "../lib/research-retrieve-parse.js";
 import {
   MAX_KB_PER_RETRIEVE,
@@ -32,14 +35,33 @@ function buildRetrieveMessage(input: {
     "## Plan context",
     input.contextFromPlan,
     "",
-    `Your final reply must be a single JSON object. Set "subQuestionId" to exactly "${input.subQuestionId}".`,
+    "## JSON rules",
+    `- Set "subQuestionId" to exactly "${input.subQuestionId}".`,
+    '- Each finding "confidence" must be exactly one of: high, med, low (not "medium").',
   ].join("\n");
+}
+
+async function gateRetrieveBudgetStep(
+  budgetMaxWeb: number,
+  webUsed: number,
+): Promise<void> {
+  "use step";
+  const { assertRetrieveBudget, markInitialized } = await import(
+    "../lib/research-run-state.js"
+  );
+  markInitialized();
+  assertRetrieveBudget(budgetMaxWeb);
+  if (webUsed > budgetMaxWeb) {
+    throw new Error(
+      `Retrieve used ${webUsed} web calls; budget was ${budgetMaxWeb}.`,
+    );
+  }
 }
 
 export default defineWorkflowTool({
   description:
-    "Run one bounded retrieve sub-task (web/KB/HubSpot/workspace). Results are recorded in the session ledger automatically. " +
-    "Call sync_research_ledger after retrieve to refresh sandbox files. " +
+    "Run one bounded retrieve sub-task (web/KB/HubSpot/workspace). Results are recorded in the session ledger when possible. " +
+    "If the tool returns ledgerWritten false, call sync_research_ledger with the same pendingRetrieve payload. " +
     "Do not call MCP search tools directly from the parent agent.",
   inputSchema: z.object({
     subQuestionId: z.string().min(1).max(32),
@@ -62,14 +84,39 @@ export default defineWorkflowTool({
     const turn = await response.result();
     const data = parseRetrieveAgentResult(turn, input.subQuestionId);
 
-    const summary = await persistRetrieveResultStep(
-      ctx,
-      input.budget.maxWeb,
+    await gateRetrieveBudgetStep(input.budget.maxWeb, data.toolsUsed.web);
+
+    const ledger = await persistRetrieveLedgerInToolContext(
+      ctx as unknown as LedgerWriteContext,
       data,
     );
 
+    if (!ledger.ledgerWritten) {
+      return {
+        subQuestionId: data.subQuestionId,
+        status: data.status,
+        findingCount: data.findings.length,
+        duplicateSkipped: 0,
+        evidenceLines: 0,
+        gaps: data.gaps,
+        toolsUsed: data.toolsUsed,
+        ledgerWritten: false as const,
+        pendingRetrieve: ledger.pendingRetrieve,
+        ledgerError: ledger.ledgerError,
+        syncHint:
+          "Call sync_research_ledger with pendingRetrieve copied from this tool result.",
+      };
+    }
+
     return {
-      ...summary,
+      subQuestionId: data.subQuestionId,
+      status: data.status,
+      findingCount: ledger.findingCount,
+      duplicateSkipped: ledger.duplicateSkipped,
+      evidenceLines: ledger.evidenceLines,
+      gaps: data.gaps,
+      toolsUsed: data.toolsUsed,
+      ledgerWritten: true as const,
       syncHint: "Call sync_research_ledger before reading evidence files.",
     };
   },

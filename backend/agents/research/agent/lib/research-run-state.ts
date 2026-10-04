@@ -1,5 +1,8 @@
 import { defineState } from "eve/context";
+import { findingId } from "./research-finding-id.js";
 import type { ResearchFinding, RetrieveResult } from "./research-schemas.js";
+
+export { findingId };
 import {
   MAX_RETRIEVE_CALLS_PER_TURN,
   MAX_WEB_CALLS_PER_TURN,
@@ -41,20 +44,6 @@ function initialState(): ResearchRunState {
 }
 
 export const researchRunState = defineState("research.run.v1", initialState);
-
-/** Pure hash for workflow-safe bundles (no Node builtins). */
-export function findingId(
-  subQuestionId: string,
-  claim: string,
-  source: string,
-): string {
-  let h = 5381;
-  const s = `${subQuestionId}\0${claim}\0${source}`;
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) + h) ^ s.charCodeAt(i);
-  }
-  return (h >>> 0).toString(16).padStart(8, "0");
-}
 
 export function assertReadyForRetrieve(): void {
   const state = researchRunState.get();

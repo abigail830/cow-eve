@@ -42,6 +42,7 @@ import {
   assistantMessageCopyText,
   userMessageCopyText,
 } from "../lib/messageCopy";
+import { dynamicToolStepLabel } from "../lib/toolStepLabel";
 import "./MessageStream.css";
 
 type Props = {
@@ -154,6 +155,11 @@ function PartView({
         state === "input-available" ||
         state === "approval-requested");
 
+    const stepLabel = dynamicToolStepLabel(
+      name,
+      "input" in part ? part.input : null,
+    );
+
     return (
       <details
         className={[
@@ -162,7 +168,6 @@ function PartView({
         ]
           .filter(Boolean)
           .join(" ")}
-        open={toolInProgress}
       >
         <summary>
           <StepChevron />
@@ -178,7 +183,7 @@ function PartView({
               aria-hidden
             />
           ) : null}
-          <span>{name}</span>
+          <span>{stepLabel}</span>
           {toolInProgress ? (
             <span className="step-running">Running…</span>
           ) : null}

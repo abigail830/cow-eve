@@ -1,3 +1,4 @@
+import { normalizeRetrievePayload } from "./normalize-retrieve-json.js";
 import {
   RetrieveResultSchema,
   type RetrieveResult,
@@ -28,6 +29,7 @@ function coerceRetrieveResult(
   if (typeof raw === "string") {
     value = extractJsonObject(raw);
   }
+  value = normalizeRetrievePayload(value);
   const parsed = RetrieveResultSchema.safeParse(value);
   if (!parsed.success) {
     throw new Error(

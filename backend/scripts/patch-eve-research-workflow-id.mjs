@@ -17,12 +17,14 @@ const ROOTS = [
   path.join(BACKEND_ROOT, "agents", RESEARCH_AGENT, ".output"),
   path.join(BACKEND_ROOT, "agents", RESEARCH_AGENT, ".eve"),
   path.join(BACKEND_ROOT, ".eve", "vercel-services", `eve-${RESEARCH_AGENT}`),
+  path.join(BACKEND_ROOT, ".vercel", "output"),
 ];
 
 const SKIP_DIR_NAMES = new Set([
   ".workflow-data",
   "traces",
   "node_modules",
+  "dev-hosts",
 ]);
 
 function walk(dir, out = []) {
@@ -47,9 +49,18 @@ function patchText(text) {
 
 let filesPatched = 0;
 
+function readTextSafe(file) {
+  try {
+    return fs.readFileSync(file, "utf8");
+  } catch {
+    return null;
+  }
+}
+
 for (const root of ROOTS) {
   for (const file of walk(root)) {
-    const text = fs.readFileSync(file, "utf8");
+    const text = readTextSafe(file);
+    if (text === null) continue;
     const next = patchText(text);
     if (next === null) continue;
     fs.writeFileSync(file, next, "utf8");
@@ -63,4 +74,19 @@ if (filesPatched > 0) {
   );
 } else {
   console.log("No research workflow id mismatch found (already patched or not built).");
+}
+
+let stale = 0;
+for (const root of ROOTS) {
+  for (const file of walk(root)) {
+    const text = readTextSafe(file);
+    if (text === null) continue;
+    if (text.includes(WRONG_PREFIX)) stale += 1;
+  }
+}
+if (stale > 0) {
+  console.error(
+    `ERROR: ${stale} file(s) still contain ${WRONG_PREFIX} after patch — research_retrieve will fail on Vercel (#3740).`,
+  );
+  process.exit(1);
 }
