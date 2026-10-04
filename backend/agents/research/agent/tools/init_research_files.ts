@@ -26,9 +26,9 @@ export default defineTool({
     if (resetLedger) {
       resetResearchRunState();
     }
+    markInitialized();
     const sandbox = await ctx.getSandbox();
     await writePlanFile(sandbox, planMarkdown);
-    markInitialized();
     const synced = await writeLedgerFilesFromState(sandbox);
     return {
       status: "ok",

@@ -1,10 +1,10 @@
 import { defineWorkflowTool } from "eve/tools";
 import { z } from "zod";
 import { persistRetrieveResultStep } from "../lib/research-retrieve-steps.js";
+import { parseRetrieveAgentResult } from "../lib/research-retrieve-parse.js";
 import {
   MAX_KB_PER_RETRIEVE,
   MAX_WEB_PER_RETRIEVE,
-  RetrieveResultSchema,
 } from "../lib/research-schemas.js";
 
 const AllowedSourceSchema = z.enum(["web", "kb", "hubspot", "workspace"]);
@@ -32,13 +32,14 @@ function buildRetrieveMessage(input: {
     "## Plan context",
     input.contextFromPlan,
     "",
-    "Return ONLY valid JSON matching the RetrieveResult schema. No markdown fences.",
+    `Your final reply must be a single JSON object. Set "subQuestionId" to exactly "${input.subQuestionId}".`,
   ].join("\n");
 }
 
 export default defineWorkflowTool({
   description:
     "Run one bounded retrieve sub-task (web/KB/HubSpot/workspace). Results are recorded in the session ledger automatically. " +
+    "Call sync_research_ledger after retrieve to refresh sandbox files. " +
     "Do not call MCP search tools directly from the parent agent.",
   inputSchema: z.object({
     subQuestionId: z.string().min(1).max(32),
@@ -56,22 +57,16 @@ export default defineWorkflowTool({
     "use workflow";
     const message = buildRetrieveMessage(input);
     const response = await ctx.agent("retrieve").send(message, {
-      outputSchema: RetrieveResultSchema,
       signal: ctx.abortSignal,
     });
-    const { data, status, error } = await response.result();
+    const turn = await response.result();
+    const data = parseRetrieveAgentResult(turn, input.subQuestionId);
 
-    if (status === "failed" || data === undefined) {
-      throw new Error(error?.message ?? "Retrieve subagent did not finish.");
-    }
-
-    if (data.subQuestionId !== input.subQuestionId) {
-      throw new Error(
-        `Retrieve subagent returned subQuestionId ${data.subQuestionId}; expected ${input.subQuestionId}.`,
-      );
-    }
-
-    const summary = await persistRetrieveResultStep(input.budget.maxWeb, data);
+    const summary = await persistRetrieveResultStep(
+      ctx,
+      input.budget.maxWeb,
+      data,
+    );
 
     return {
       ...summary,

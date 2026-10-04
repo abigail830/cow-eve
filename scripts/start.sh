@@ -38,9 +38,10 @@ start_research() {
   start_service \
     "research" \
     "${ROOT_DIR}/backend" \
-    "set -a && [ -f .env ] && . ./.env; set +a; npm run dev:research" \
+    "set -a && [ -f .env ] && . ./.env; set +a; npm run patch:research-workflow-id; npm run dev:research" \
     "${RESEARCH_PORT}" \
     "http://127.0.0.1:${RESEARCH_PORT}/eve/v1/health"
+  node "${ROOT_DIR}/backend/scripts/patch-eve-research-workflow-id.mjs" || true
 }
 
 start_frontend() {

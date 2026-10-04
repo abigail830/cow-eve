@@ -1,6 +1,10 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { writeLedgerFilesFromState } from "../lib/research-ledger-files.js";
+import {
+  evidenceFileHasContent,
+  hydrateResearchStateFromSandbox,
+  writeLedgerFilesFromState,
+} from "../lib/research-ledger-files.js";
 import { researchRunState } from "../lib/research-run-state.js";
 
 export default defineTool({
@@ -10,6 +14,9 @@ export default defineTool({
   inputSchema: z.object({}),
   async execute(_input, ctx) {
     const sandbox = await ctx.getSandbox();
+    if (await evidenceFileHasContent(sandbox)) {
+      await hydrateResearchStateFromSandbox(sandbox);
+    }
     const synced = await writeLedgerFilesFromState(sandbox);
     const state = researchRunState.get();
     return {

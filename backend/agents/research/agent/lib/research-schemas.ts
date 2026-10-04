@@ -21,8 +21,15 @@ export const RetrieveResultSchema = z.object({
 export type RetrieveResult = z.infer<typeof RetrieveResultSchema>;
 export type ResearchFinding = z.infer<typeof ResearchFindingSchema>;
 
-export const MAX_RETRIEVE_CALLS_PER_TURN = 6;
-export const MAX_WEB_CALLS_PER_TURN = 8;
-export const MAX_PARALLEL_RETRIEVE = 2;
-export const MAX_WEB_PER_RETRIEVE = 2;
+const failFast =
+  process.env.RESEARCH_FAIL_FAST === "1" ||
+  process.env.RESEARCH_FAIL_FAST === "true";
+
+/** Dev / validation: fewer retrieves and shorter waits (set RESEARCH_FAIL_FAST=1 on research process). */
+export const MAX_RETRIEVE_CALLS_PER_TURN = failFast ? 2 : 6;
+export const MAX_WEB_CALLS_PER_TURN = failFast ? 2 : 8;
+export const MAX_PARALLEL_RETRIEVE = failFast ? 1 : 2;
+export const MAX_WEB_PER_RETRIEVE = failFast ? 1 : 2;
 export const MAX_KB_PER_RETRIEVE = 1;
+
+export const researchFailFastEnabled = failFast;

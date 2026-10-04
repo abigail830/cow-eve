@@ -166,6 +166,28 @@
   font-size: inherit;
 }
 
+.step-spinner {
+  flex-shrink: 0;
+  color: #e67e22;
+  animation: step-spin 0.9s linear infinite;
+}
+
+@keyframes step-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.step-running {
+  margin-left: auto;
+  color: #e67e22;
+  font-weight: 500;
+}
+
+.msg-step-in-progress summary {
+  color: #666;
+}
+
 .msg-step pre {
   padding: 6px 8px;
   background: #f7f8f8;

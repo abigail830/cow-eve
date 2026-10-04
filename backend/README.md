@@ -38,7 +38,36 @@ npm run dev:content-studio
 
 Do **not** add `package.json` under `agents/<name>/` (e.g. after `npm install` in that folder). Eve treats that as a separate npm root and breaks the workspace layout.
 
-`npm run dev:omni` / `dev:research` `cd` into `agents/<name>/` with `EVE_INTERNAL_AGENT_WORKSPACE_MEMBER=1` (same as Vercel) so workflow tools like **`research_retrieve`** register with stable workflow ids.
+`npm run dev:omni` / `dev:research` `cd` into `agents/<name>/` with `EVE_INTERNAL_AGENT_WORKSPACE_MEMBER=1` (same as Vercel), matching the member build used on deploy.
+
+### Known Eve issue: workspace member `defineWorkflowTool` ids
+
+Research **`research_retrieve`** is a **`defineWorkflowTool`** (required for `ctx.agent("retrieve")`). Ledger files in sandbox are the cross-context source of truth; run **`sync_research_ledger`** after retrieves. Without the patch below, retrieve fails with *not registered as a workflow* ([#3740](https://github.com/vercel/eve/issues/3740)).
+
+Workspace-member **`defineWorkflowTool`** ids mismatch when Eve stamps **two different workflow ids** for the same tool:
+
+| Side | Example id |
+|------|------------|
+| Tool catalog / dispatch | `workflow//./agents/research/agent/tools/research_retrieve//execute` |
+| Workflow runtime registration | `workflow//./agent/tools/research_retrieve//execute` |
+
+This layout (`backend/agents/research/agent/`, **no** `package.json` under `agents/research/`) matches [arpoma16/eve-workflow-id-repro](https://github.com/arpoma16/eve-workflow-id-repro) and is required for multi-agent Vercel routing. Adding a member `package.json` makes Eve treat the folder as a **standalone app** (`No eve project contains …/agents/research`) and drops it from the host workspace — so the #3740 “give each member a package.json” workaround does **not** apply here. The real upstream fix is the compiler change in [vercel/eve#3740](https://github.com/vercel/eve/issues/3740) / [PR #3742](https://github.com/vercel/eve/pull/3742) (community rebases on 0.69+: [88f5d0e](https://github.com/arpoma16/eve/commit/88f5d0e1c316056db836a4288a309443e95b443a)).
+
+**Upstream:** [vercel/eve#3740](https://github.com/vercel/eve/issues/3740) (open, P1). Related: [#3628](https://github.com/vercel/eve/issues/3628), [PR #3742](https://github.com/vercel/eve/pull/3742) (fix in progress; not fully merged for 0.69+ / 0.70.x at time of writing). Repro: [arpoma16/eve-workflow-id-repro](https://github.com/arpoma16/eve-workflow-id-repro).
+
+**cow-eve mitigation (until `eve` is fixed):**
+
+- `npm run build` → `patch:research-workflow-id` after `eve build` (**required on Vercel**; without a deploy containing this script, production stays broken).
+- `npm run dev:research` → [`scripts/dev-research.sh`](scripts/dev-research.sh) runs Eve dev plus a **2s patch loop** (hot reload rewrites the wrong id).
+- `./scripts/restart.sh research` also patches once after health.
+- Manual: `cd backend && npm run patch:research-workflow-id`
+- After restart/patch, always use a **new chat**; do not edit research agent sources during an in-flight turn.
+
+Implementation: [`scripts/patch-eve-research-workflow-id.mjs`](scripts/patch-eve-research-workflow-id.mjs). Remove once upstream `eve` fixes #3740.
+
+More context: [docs/research/RESEARCH_DURABILITY.md](../docs/research/RESEARCH_DURABILITY.md).
+
+**Validate retrieve MCP (no chat turn):** `npm run test:research-mcp` from `backend/`. **Fail-fast budgets:** `RESEARCH_FAIL_FAST=1 npm run dev:research` (≤2 retrieves per turn; no workflow wall-clock timeout).
 
 Platform APIs (served by omni):
 

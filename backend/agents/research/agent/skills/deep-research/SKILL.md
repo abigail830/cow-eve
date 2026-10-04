@@ -36,7 +36,7 @@ Before substantial retrieval, output:
 - What we may not be able to verify; CRM/internal fields we will not invent.
 ```
 
-Then call **`init_research_files`** with the same plan as `planMarkdown` (creates `/workspace/research/plan.md` and ledger files).
+Then call **`init_research_files`** with the same plan as `planMarkdown` (creates `/workspace/research/plan.md` and ledger files). **Wait for init to complete** before the first **`research_retrieve`** (never batch init and retrieve in one parallel tool block).
 
 Do **not** call MCP search tools from the parent agent. Retrieval goes through **`research_retrieve`** only.
 

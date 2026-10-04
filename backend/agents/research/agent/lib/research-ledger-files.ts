@@ -88,3 +88,76 @@ export async function evidenceFileHasContent(
     return false;
   }
 }
+
+function parseEvidenceJsonl(text: string): StoredFinding[] {
+  const findings: StoredFinding[] = [];
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    try {
+      const row = JSON.parse(trimmed) as Record<string, unknown>;
+      if (
+        typeof row.findingId === "string" &&
+        typeof row.subQuestionId === "string" &&
+        typeof row.claim === "string" &&
+        typeof row.source === "string" &&
+        (row.confidence === "high" ||
+          row.confidence === "med" ||
+          row.confidence === "low")
+      ) {
+        findings.push({
+          findingId: row.findingId,
+          subQuestionId: row.subQuestionId,
+          claim: row.claim,
+          source: row.source,
+          confidence: row.confidence,
+          recordedAt:
+            typeof row.recordedAt === "string"
+              ? row.recordedAt
+              : new Date().toISOString(),
+        });
+      }
+    } catch {
+      /* skip bad line */
+    }
+  }
+  return findings;
+}
+
+/** Merge sandbox ledger files into session state (workflow vs parent tool contexts). */
+export async function hydrateResearchStateFromSandbox(
+  sandbox: SandboxSession,
+): Promise<void> {
+  let findings: StoredFinding[] = [];
+  try {
+    const text = await sandbox.readTextFile({ path: EVIDENCE_JSONL_PATH });
+    if (text?.trim()) {
+      findings = parseEvidenceJsonl(text);
+    }
+  } catch {
+    /* empty */
+  }
+
+  const progressMap = new Map<string, ProgressRow>();
+  for (const f of findings) {
+    const prev = progressMap.get(f.subQuestionId);
+    progressMap.set(f.subQuestionId, {
+      subQuestionId: f.subQuestionId,
+      status: prev?.status ?? "done",
+      retrieveCalls: prev?.retrieveCalls ?? 1,
+      webUsed: prev?.webUsed ?? 0,
+      kbUsed: prev?.kbUsed ?? 0,
+      lastUpdated: f.recordedAt,
+    });
+  }
+
+  const planOk = await planFileExists(sandbox);
+  researchRunState.update(() => ({
+    initialized: planOk,
+    retrieveCalls: progressMap.size,
+    webUsedTotal: 0,
+    findings,
+    progress: [...progressMap.values()],
+    existingFindingIds: findings.map((f) => f.findingId),
+  }));
+}

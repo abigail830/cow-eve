@@ -37,6 +37,11 @@ import { AudioCaptureUserBubble } from "./AudioCaptureUserBubble";
 import { AudioTranscriptResultCard } from "./AudioTranscriptResultCard";
 import { MarkdownContent } from "./MarkdownContent";
 import { StreamingIndicator } from "./StreamingIndicator";
+import { MessageCopyButton } from "./MessageCopyButton";
+import {
+  assistantMessageCopyText,
+  userMessageCopyText,
+} from "../lib/messageCopy";
 import "./MessageStream.css";
 
 type Props = {
@@ -139,12 +144,44 @@ function PartView({
       return <div className="msg-artifact">{artifactView}</div>;
     }
 
+    const toolDone =
+      output != null ||
+      state === "output-available" ||
+      state === "output-error";
+    const toolInProgress =
+      !toolDone &&
+      (state === "input-streaming" ||
+        state === "input-available" ||
+        state === "approval-requested");
+
     return (
-      <details className="msg-step" open={state === "input-streaming"}>
+      <details
+        className={[
+          "msg-step",
+          toolInProgress ? "msg-step-in-progress" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        open={toolInProgress}
+      >
         <summary>
           <StepChevron />
-          <span className="step-check">✓</span>
+          {toolDone ? (
+            <span className="step-check" aria-hidden>
+              ✓
+            </span>
+          ) : toolInProgress ? (
+            <Loader2
+              className="step-spinner"
+              size={14}
+              strokeWidth={2}
+              aria-hidden
+            />
+          ) : null}
           <span>{name}</span>
+          {toolInProgress ? (
+            <span className="step-running">Running…</span>
+          ) : null}
         </summary>
         {"input" in part && part.input != null ? (
           <pre>{JSON.stringify(part.input, null, 2)}</pre>
@@ -511,10 +548,17 @@ export function MessageStream({
                   </div>
                 ) : null}
                 {visibleText ? <MarkdownContent text={visibleText} /> : null}
+                <MessageCopyButton
+                  text={userMessageCopyText(msg.parts)}
+                  align="right"
+                  variant="onUserBubble"
+                />
               </div>
             </div>
           );
         }
+
+        const assistantCopyText = assistantMessageCopyText(msg.parts);
 
         return (
           <div key={msg.id} className="msg-row assistant">
@@ -533,6 +577,7 @@ export function MessageStream({
                 />
               ))}
               {isLastAssistant ? <StreamingIndicator /> : null}
+              <MessageCopyButton text={assistantCopyText} align="left" />
             </div>
           </div>
         );

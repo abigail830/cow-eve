@@ -1,11 +1,13 @@
+import type { WorkflowStepToolContext } from "eve/tools";
 import type { RetrieveResult } from "./research-schemas.js";
 import {
-  assertReadyForRetrieve,
   assertRetrieveBudget,
+  markInitialized,
   mergeRetrieveResult,
 } from "./research-run-state.js";
 
 export async function persistRetrieveResultStep(
+  _ctx: WorkflowStepToolContext,
   budgetMaxWeb: number,
   result: RetrieveResult,
 ): Promise<{
@@ -17,7 +19,8 @@ export async function persistRetrieveResultStep(
   toolsUsed: RetrieveResult["toolsUsed"];
 }> {
   "use step";
-  assertReadyForRetrieve();
+  markInitialized();
+
   assertRetrieveBudget(budgetMaxWeb);
 
   if (result.toolsUsed.web > budgetMaxWeb) {
