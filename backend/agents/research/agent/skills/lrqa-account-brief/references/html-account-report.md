@@ -24,7 +24,7 @@ Build **one self-contained `.html` file** (inline CSS, no external assets). Open
 
 - Fixed **left sidebar** (`.sidebar`): brand `LRQA`, subtitle (`Account Brief` or `Client Development Plan`), nav links to `#s1`…`#s9`.
 - **Main** (`.main`): hero `#hero`, then `.content-section` blocks with `id="s1"` etc.
-- **Mobile:** checkbox `#nav-toggle`, `.mobile-header`, `.nav-overlay` (copy from Yili/Wanhua samples if needed).
+- **Mobile:** checkbox `#nav-toggle`, `.mobile-header`, `.nav-overlay` (same pattern as standard LRQA brief/CDP HTML).
 - **Optional bilingual:** `body[data-lang="en"|"zh"]`, `.en-only` / `.zh-only`, `.lang-toggle` buttons.
 
 ## Hero
@@ -99,5 +99,4 @@ Replace placeholders; expand sections per loaded skill (Brief vs CDP nav).
 
 ## Full styling reference
 
-Internal drafts in repo (do not commit client text into reports):  
-`docs/07 DRAFT LRQA_Account_Brief_Yili_v2.html`, `docs/04 DRAFT LRQA_CDP_Wanhua_2026-08_v2.html`.
+If the user attaches an existing LRQA HTML brief or CDP, reuse its CSS/nav patterns for consistency. Otherwise implement from the tokens and components above.

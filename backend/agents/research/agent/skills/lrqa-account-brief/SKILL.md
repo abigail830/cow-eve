@@ -1,5 +1,5 @@
 ---
-description: LRQA internal account brief—nine-chapter skeleton, public-source bias, confidence table, LRQA HTML delivery. Load when the user asks for an account brief, client brief, or LRQA-style pre-meeting pack for a named company.
+description: LRQA internal account brief (9 sections Quick take → Sources & confidence), public-source bias, confidence table, branded HTML. Load for account brief, client brief, pre-meeting brief, or LRQA internal company pack on a named account.
 ---
 
 # LRQA account brief
@@ -8,8 +8,13 @@ Use with **`deep-research`**: plan → retrieve → write → **`publish`**. Thi
 
 ## When to load
 
-- User or Project mentions **account brief**, **LRQA brief**, **pre-meeting brief**, or points at the Yili-style nine-chapter format.
-- **Do not** load for generic industry scans or non-LRQA reports—stay on L0 `deep-research` only.
+Load when the user or Project asks for any of:
+
+- **Account brief** / **client brief** / **company brief** (LRQA internal)
+- **Pre-meeting brief** or **meeting prep** for a **named company**
+- The standard LRQA brief outline: **Quick take**, **Company profile**, **Where they operate**, **Upstream supply chain**, **Pressure points**, **Where LRQA fits**, **People & the room**, **Questions to ask**, **Sources & confidence**
+
+**Do not** load for generic industry scans, competitor landscapes without a named account, or non-LRQA reports—use L0 **`deep-research`** only.
 
 ## Deliverable
 
@@ -48,6 +53,8 @@ Use `id="s1"` … `id="s9"` and matching sidebar links:
 
 If the user or Project asks for EN+ZH, follow the `en-only` / `zh-only` + `data-lang` toggle pattern in **`references/html-account-report.md`**. Otherwise English-only is fine.
 
-## Quality reference
+## Quality bar
 
-Repo examples (internal, not for verbatim copy): `docs/07 DRAFT LRQA_Account_Brief_Yili_v2.html`. Match **depth, honesty, and structure**, not confidential client text.
+- Every factual claim in §1–§8 traceable in §9 (source + confidence).
+- Call out **unknowns** and **conflicting public numbers**; no filler CRM fields.
+- If the user attaches a prior LRQA brief, match its **tone and depth**, not verbatim text.

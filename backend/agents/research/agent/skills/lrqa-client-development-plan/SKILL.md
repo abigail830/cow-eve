@@ -58,6 +58,8 @@ Include a short **Brief vs CDP** table in §1 (what each document answers).
 - Scope discipline for sensitive industries (e.g. dual-use chemicals): stay at management-system / inspection / integrity level—no process chemistry claims.
 - **Never** invent J-1 / client-success fields.
 
-## Quality reference
+## Quality bar
 
-Internal example: `docs/04 DRAFT LRQA_CDP_Wanhua_2026-08_v2.html` (structure and honesty bar, not copy-paste).
+- §2 and §4 only contain engagement/product facts from HubSpot, KB, workspace, or web—not inferred CRM metrics.
+- Expansion map states (**Adopted**, **In scope not taken up**, etc.) match evidence; gaps appear in §8 actions or §9 provenance.
+- If the user attaches a prior CDP, align **structure and honesty**, not copy-paste.
