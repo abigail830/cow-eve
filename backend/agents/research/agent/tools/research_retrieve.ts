@@ -41,16 +41,10 @@ function buildRetrieveMessage(input: {
   ].join("\n");
 }
 
-async function gateRetrieveBudgetStep(
+function assertPerRetrieveWebBudget(
   budgetMaxWeb: number,
   webUsed: number,
-): Promise<void> {
-  "use step";
-  const { assertRetrieveBudget, markInitialized } = await import(
-    "../lib/research-run-state.js"
-  );
-  markInitialized();
-  assertRetrieveBudget(budgetMaxWeb);
+): void {
   if (webUsed > budgetMaxWeb) {
     throw new Error(
       `Retrieve used ${webUsed} web calls; budget was ${budgetMaxWeb}.`,
@@ -84,7 +78,8 @@ export default defineWorkflowTool({
     const turn = await response.result();
     const data = parseRetrieveAgentResult(turn, input.subQuestionId);
 
-    await gateRetrieveBudgetStep(input.budget.maxWeb, data.toolsUsed.web);
+    // Turn-level budgets are enforced in sync_research_ledger (defineState — not available in workflow steps).
+    assertPerRetrieveWebBudget(input.budget.maxWeb, data.toolsUsed.web);
 
     const ledger = await persistRetrieveLedgerInToolContext(
       ctx as unknown as LedgerWriteContext,

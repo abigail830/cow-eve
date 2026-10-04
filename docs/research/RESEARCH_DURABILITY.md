@@ -54,7 +54,7 @@ Two causes (often combined):
 1. **Stale chat session** — Eve binds workflow tool ids when the run starts. After a **backend redeploy**, continuing the same Work chat yields *The tool was renamed or removed after this run started*. Fix: **open a new chat** with Ann Researcher and resend the task (not just refresh).
 2. **Build #3740 mismatch** — workspace-member compile sometimes leaves catalog `workflowId` as `workflow//./agents/research/agent/tools/...` while registration uses `workflow//./agent/tools/...`. On **Vercel**, `vercel.ts` defines a separate **`eve-research` service build**; the patch must be appended to that service’s `buildCommand` in [backend/vercel.ts](../../vercel.ts) (not only after root `npm run build` / `config.json` inject). Until that runs on deploy, production stays broken even with a new chat.
 
-`research_retrieve` remains a **`defineWorkflowTool`** (required for `ctx.agent("retrieve")`).
+`research_retrieve` remains a **`defineWorkflowTool`** (required for `ctx.agent("retrieve")`). Do **not** call `defineState` inside workflow **`"use step"`** blocks — it throws *No active eve context* (e.g. former `gateRetrieveBudgetStep`). Turn budgets run in **`sync_research_ledger`** on the parent tool context instead.
 
 ### `Research ledger is not initialized`
 

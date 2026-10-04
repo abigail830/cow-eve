@@ -8,6 +8,8 @@ import {
 } from "../lib/research-ledger-files.js";
 import { RetrieveResultSchema } from "../lib/research-schemas.js";
 import {
+  assertReadyForRetrieve,
+  assertRetrieveBudget,
   mergeRetrieveResult,
   researchRunState,
 } from "../lib/research-run-state.js";
@@ -24,6 +26,8 @@ export default defineTool({
   }),
   async execute({ pendingRetrieve }, ctx) {
     if (pendingRetrieve) {
+      assertReadyForRetrieve();
+      assertRetrieveBudget(pendingRetrieve.toolsUsed.web);
       const pendingWrite = await persistRetrieveLedgerInToolContext(
         ctx,
         pendingRetrieve,
