@@ -11,7 +11,7 @@ From repo root:
 
 Optional target: `all` | `backend` | `frontend` | `omni` | `research` | `parse-pipeline`
 
-- **backend** = parse-pipeline + omni + research (platform API on omni :2000; Deep Research Eve on :2002).
+- **backend** = parse-pipeline + omni + research (platform API on omni :2000; Ann Researcher Eve on :2002).
 - Set `START_PARSE_PIPELINE=0` to start omni/backend/all without parse-pipeline (attachment parse will not work until it is running).
 
 `start` / `restart` for `all` | `backend` | `omni` run `npm run db:migrate` in `backend/` when `DATABASE_URL` is set (env or `backend/.env`). Frontend-only and parse-pipeline-only skip migrate.

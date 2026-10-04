@@ -175,7 +175,8 @@ export function placeholderAgent(agentId: string): AgentInfo {
   return {
     id,
     category: id === "omni" ? "omni" : "domain",
-    displayName: id === "omni" ? "Omni" : id,
+    displayName:
+      id === "omni" ? "Omni" : id === "research" ? "Ann Researcher" : id,
     description: "",
     avatar: "",
     eveAgent: id,

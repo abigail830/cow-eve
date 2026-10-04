@@ -6,6 +6,8 @@ description: Run multi-source deep research—plan, retrieve, evidence, report�
 
 Use this skill for investigations that need a **plan**, multiple sources, and a **published report** (not a chat-only answer).
 
+**LRQA Account Brief or CDP:** after planning, also load **`lrqa-account-brief`** or **`lrqa-client-development-plan`** for chapter skeleton and HTML layout; this skill still owns plan → retrieve → evidence → publish.
+
 ## 1. Research plan (user-visible Markdown)
 
 Before substantial retrieval, output:

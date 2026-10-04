@@ -7,8 +7,10 @@ Eve agent workspace powering the Agent Platform.
 | Id | Role | Local port |
 |----|------|------------|
 | `omni` | FDE(HaoYu): Unified entry + platform HTTP (`/api/*`) | 2000 |
-| `research` | Deep researcher(Ann): plans + published reports | 2002 |
+| `research` | Ann Researcher: plans + published reports | 2002 |
 | `content-studio` | Document / one-pager specialist | 2001 |
+
+LRQA Brief/CDP skills and Project templates: [docs/research/PROJECT_TEMPLATES.md](../docs/research/PROJECT_TEMPLATES.md).
 
 ## Prerequisites
 
