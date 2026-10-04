@@ -5,14 +5,9 @@ import "./MessageCopyButton.css";
 type Props = {
   text: string;
   align?: "left" | "right";
-  variant?: "default" | "onUserBubble";
 };
 
-export function MessageCopyButton({
-  text,
-  align = "left",
-  variant = "default",
-}: Props) {
+export function MessageCopyButton({ text, align = "left" }: Props) {
   const trimmed = text.trim();
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<number | null>(null);
@@ -44,10 +39,7 @@ export function MessageCopyButton({
       className={[
         "msg-copy-bar",
         align === "right" ? "msg-copy-bar-right" : "msg-copy-bar-left",
-        variant === "onUserBubble" ? "msg-copy-bar-on-user" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      ].join(" ")}
     >
       <button
         type="button"

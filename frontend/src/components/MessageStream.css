@@ -22,12 +22,21 @@
   justify-content: flex-end;
 }
 
+.msg-user-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 80%;
+  gap: 2px;
+  min-width: 0;
+}
+
 .msg-row.assistant {
   justify-content: flex-start;
 }
 
 .msg-bubble.user {
-  max-width: 80%;
+  max-width: 100%;
   width: fit-content;
   background: var(--chat-user-bubble-bg);
   color: var(--chat-user-bubble-fg);

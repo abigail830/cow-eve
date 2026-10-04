@@ -505,6 +505,7 @@ export function MessageStream({
 
           return (
             <div key={msg.id} className="msg-row user">
+              <div className="msg-user-column">
               <div className="msg-bubble user">
                 {showAttachments ? (
                   <div className="msg-user-attachments">
@@ -548,11 +549,11 @@ export function MessageStream({
                   </div>
                 ) : null}
                 {visibleText ? <MarkdownContent text={visibleText} /> : null}
-                <MessageCopyButton
-                  text={userMessageCopyText(msg.parts)}
-                  align="right"
-                  variant="onUserBubble"
-                />
+              </div>
+              <MessageCopyButton
+                text={userMessageCopyText(msg.parts)}
+                align="right"
+              />
               </div>
             </div>
           );

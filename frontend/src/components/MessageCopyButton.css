@@ -37,15 +37,6 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
-.msg-copy-bar-on-user .msg-copy-btn {
-  color: color-mix(in srgb, var(--chat-user-bubble-fg) 55%, transparent);
-}
-
-.msg-copy-bar-on-user .msg-copy-btn:hover {
-  color: var(--chat-user-bubble-fg);
-  background: color-mix(in srgb, var(--chat-user-bubble-fg) 12%, transparent);
-}
-
 @media (hover: none) {
   .msg-copy-bar {
     opacity: 1;
