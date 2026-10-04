@@ -166,6 +166,17 @@
   margin: 0 10px 8px;
 }
 
+.msg-step-stale-workflow {
+  margin: 0 10px 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fff8e6;
+  border: 1px solid #f0d78c;
+  color: #5c4a1a;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
 .msg-step summary::-webkit-details-marker {
   display: none;
 }

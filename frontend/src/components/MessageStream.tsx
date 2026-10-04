@@ -42,6 +42,10 @@ import {
   assistantMessageCopyText,
   userMessageCopyText,
 } from "../lib/messageCopy";
+import {
+  extractToolErrorText,
+  researchWorkflowStaleHint,
+} from "../lib/researchWorkflowStaleHint";
 import { dynamicToolStepLabel } from "../lib/toolStepLabel";
 import "./MessageStream.css";
 
@@ -159,6 +163,9 @@ function PartView({
       name,
       "input" in part ? part.input : null,
     );
+    const staleWorkflowHint = researchWorkflowStaleHint(
+      extractToolErrorText(output),
+    );
 
     return (
       <details
@@ -190,6 +197,11 @@ function PartView({
         </summary>
         {"input" in part && part.input != null ? (
           <pre>{JSON.stringify(part.input, null, 2)}</pre>
+        ) : null}
+        {staleWorkflowHint ? (
+          <p className="msg-step-stale-workflow" role="status">
+            {staleWorkflowHint}
+          </p>
         ) : null}
         {output != null ? (
           <pre className="tool-out">{JSON.stringify(output, null, 2)}</pre>

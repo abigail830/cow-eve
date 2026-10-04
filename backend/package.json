@@ -10,7 +10,7 @@
     "build:extensions": "npm run build --prefix extensions/knowledge && npm run build --prefix extensions/schedules && npm run build --prefix extensions/projects",
     "register:notion-mcp": "tsx scripts/register-notion-mcp-oauth.ts",
     "sync:integrations": "tsx scripts/sync-wired-integrations-manifest.ts",
-    "build": "npm run db:migrate && npm run sync:integrations && npm run build:extensions && eve build && npm run patch:research-workflow-id",
+    "build": "npm run db:migrate && npm run sync:integrations && npm run build:extensions && eve build && node scripts/inject-vercel-research-patch-build.mjs && npm run patch:research-workflow-id",
     "patch:research-workflow-id": "node scripts/patch-eve-research-workflow-id.mjs",
     "deploy": "eve deploy",
     "dev": "eve dev --agent omni --no-ui --port 2000",

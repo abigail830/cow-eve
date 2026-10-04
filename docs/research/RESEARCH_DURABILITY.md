@@ -47,11 +47,14 @@ Parent agent **must not** use root MCP connections. MCP runs only on the **`retr
 
 `npm run dev:research` (port 2002) runs from `agents/research/` with the same layout as Vercel (`EVE_INTERNAL_AGENT_WORKSPACE_MEMBER=1`). Use the same tool flow as production.
 
-### Legacy: “not registered as a workflow”
+### “not registered as a workflow”
 
-If an old chat or deploy still references **`research_retrieve` as a workflow**, you may see *not registered as a workflow* ([#3740](https://github.com/vercel/eve/issues/3740)). Current code uses a **normal tool** instead. **New chat** after deploy/restart.
+Two causes (often combined):
 
-`npm run patch:research-workflow-id` remains in build/dev for any stale compiled workflow ids; it is no longer required for retrieve itself.
+1. **Stale chat session** — Eve binds workflow tool ids when the run starts. After a **backend redeploy**, continuing the same Work chat yields *The tool was renamed or removed after this run started*. Fix: **open a new chat** with Ann Researcher and resend the task (not just refresh).
+2. **Build #3740 mismatch** — workspace-member compile sometimes leaves catalog `workflowId` as `workflow//./agents/research/agent/tools/...` while registration uses `workflow//./agent/tools/...`. On **Vercel**, research is built again as the **`eve-research` service** after root `npm run build`; patch must run at the **end of that service build** (`inject-vercel-research-patch-build.mjs` in [backend/package.json](../../backend/package.json)). Patching only after root `eve build` does not fix production even with a new chat.
+
+`research_retrieve` remains a **`defineWorkflowTool`** (required for `ctx.agent("retrieve")`).
 
 ### `Research ledger is not initialized`
 
