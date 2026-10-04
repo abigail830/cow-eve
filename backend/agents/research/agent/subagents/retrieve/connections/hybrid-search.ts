@@ -31,7 +31,7 @@ export default defineDynamic({
         };
       } catch (err) {
         console.warn(
-          "[hybrid-search] session.started connection skipped:",
+          "[retrieve/hybrid-search] session.started connection skipped:",
           err instanceof Error ? err.message : err,
         );
         return null;

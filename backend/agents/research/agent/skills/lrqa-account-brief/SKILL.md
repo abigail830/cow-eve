@@ -4,7 +4,7 @@ description: LRQA internal account brief (9 sections Quick take → Sources & co
 
 # LRQA account brief
 
-Use with **`deep-research`**: plan → retrieve → write → **`publish`**. This skill defines **chapter skeleton, guardrails, and HTML layout** for LRQA Account Briefs (not Client Development Plans).
+Use with **`deep-research`**: plan → **`init_research_files`** → **`research_retrieve`** / **`sync_research_ledger`** → write → **`publish`**. This skill defines **chapter skeleton, guardrails, and HTML layout** for LRQA Account Briefs (not Client Development Plans).
 
 ## When to load
 

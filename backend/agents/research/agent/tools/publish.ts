@@ -1,6 +1,11 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { publishSandboxArtifact } from "#platform/composition/public-api.js";
+import {
+  evidenceFileHasContent,
+  planFileExists,
+} from "../lib/research-ledger-files.js";
+import { hasEvidence } from "../lib/research-run-state.js";
 
 export default defineTool({
   description:
@@ -28,9 +33,27 @@ export default defineTool({
       };
     }
 
+    const sandbox = await ctx.getSandbox();
+    const planOk = await planFileExists(sandbox);
+    const evidenceOk =
+      hasEvidence() || (await evidenceFileHasContent(sandbox));
+    if (!planOk) {
+      return {
+        status: "error",
+        message:
+          "Missing /workspace/research/plan.md. Complete planning and init_research_files before publish.",
+      };
+    }
+    if (!evidenceOk) {
+      return {
+        status: "error",
+        message:
+          "No research evidence recorded. Run research_retrieve and sync_research_ledger before publish.",
+      };
+    }
+
     let fileBytes: Uint8Array;
     try {
-      const sandbox = await ctx.getSandbox();
       const bytes = await sandbox.readBinaryFile({ path });
       if (!bytes?.byteLength) {
         return { status: "error", message: "Deliverable file is empty or missing." };

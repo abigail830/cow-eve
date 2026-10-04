@@ -30,6 +30,10 @@ function parseAgentUrls(): Record<string, string> {
 
 export const AGENT_URLS = parseAgentUrls();
 
+/** Eve session base URL for an agent (must include `/eve/<id>` on production). */
 export function agentHost(agentId: string): string {
-  return AGENT_URLS[agentId] ?? API_URL;
+  const explicit = AGENT_URLS[agentId]?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+  const base = API_URL.replace(/\/$/, "");
+  return `${base}/eve/${agentId}`;
 }

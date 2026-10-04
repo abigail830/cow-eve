@@ -89,8 +89,6 @@ type Props = {
   sessionWorkspaceFiles?: readonly WorkspaceFilePublic[];
   /** When set, KB toggles persist to this project instead of agent-wide prefs. */
   projectId?: string | null;
-  /** Show hybrid-search KB scope control (Omni work). */
-  showKbScope?: boolean;
   onSend: (payload: ComposerSendPayload) => void | Promise<void>;
   onStop: () => void;
 };
@@ -136,7 +134,6 @@ export function Composer({
   onCaptureStarted,
   sessionWorkspaceFiles = [],
   projectId = null,
-  showKbScope = false,
   onSend,
   onStop,
 }: Props) {
@@ -954,13 +951,11 @@ export function Composer({
             >
               <FolderOpen size={18} strokeWidth={2} />
             </button>
-            {showKbScope ? (
-              <KbScopePopover
-                agentId={agentId}
-                projectId={projectId}
-                disabled={inputLocked}
-              />
-            ) : null}
+            <KbScopePopover
+              agentId={agentId}
+              projectId={projectId}
+              disabled={inputLocked}
+            />
           </div>
           <div className="composer-right">
             {modelLabel ? <span className="model-tag">{modelLabel}</span> : null}
@@ -968,7 +963,6 @@ export function Composer({
               <button
                 type="button"
                 className="send-btn stop-btn"
-                disabled={cancelling}
                 aria-busy={cancelling}
                 onClick={(e) => {
                   e.preventDefault();

@@ -4,7 +4,7 @@ description: LRQA Client Development Plan (CDP)—engagement, expansion map, pro
 
 # LRQA client development plan (CDP)
 
-Use with **`deep-research`**. CDP = **relationship execution** on top of account understanding—not a duplicate account brief.
+Use with **`deep-research`** (`init_research_files`, **`research_retrieve`**, **`sync_research_ledger`**). CDP = **relationship execution** on top of account understanding—not a duplicate account brief.
 
 ## When to load
 

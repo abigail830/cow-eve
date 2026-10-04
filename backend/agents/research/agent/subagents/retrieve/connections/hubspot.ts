@@ -4,8 +4,8 @@ import {
   INTEGRATION_HUBSPOT,
   resolveIntegrationMcpAccessToken,
 } from "#platform/composition/public-api.js";
-import { defineOAuthMcpConnection } from "../lib/oauth-mcp-connection.js";
-import { resolveAgentIdForSession } from "../lib/resolve-agent-id.js";
+import { defineOAuthMcpConnection } from "../../../lib/oauth-mcp-connection.js";
+import { resolveAgentIdForSession } from "../../../lib/resolve-agent-id.js";
 
 const HUBSPOT_TOOL_ALLOW = [
   "get_user_details",
@@ -18,9 +18,19 @@ const HUBSPOT_TOOL_ALLOW = [
   "get_tool_instructions",
 ];
 
+function eveSessionIdForIntegrations(ctx: {
+  session: {
+    id: string;
+    parent?: { rootSessionId?: string } | null;
+  };
+}): string {
+  return ctx.session.parent?.rootSessionId ?? ctx.session.id;
+}
+
 async function hubspotConnectionsForSession(ctx: {
   session: {
     id: string;
+    parent?: { rootSessionId?: string } | null;
     auth: { current?: { principalType?: string; principalId?: string } | null };
   };
 }) {
@@ -30,7 +40,7 @@ async function hubspotConnectionsForSession(ctx: {
   }
   const agentId = await resolveAgentIdForSession({
     userId: caller.principalId,
-    eveSessionId: ctx.session.id,
+    eveSessionId: eveSessionIdForIntegrations(ctx),
   });
   if (!agentId) return null;
   const token = await resolveIntegrationMcpAccessToken(

@@ -472,6 +472,8 @@ function AgentChatSession({
   >(() => new Map());
   /** True after cancel() is accepted until the stream settles. */
   const [cancelling, setCancelling] = useState(false);
+  /** Set when stop was requested but the turn is still busy after a long wait. */
+  const [stopSlowWarning, setStopSlowWarning] = useState(false);
   const [hitlResponding, setHitlResponding] = useState(false);
   const [pendingDeleteChat, setPendingDeleteChat] = useState<ChatSummary | null>(
     null,
@@ -594,8 +596,17 @@ function AgentChatSession({
     cancellationError ?? sendError ?? error?.message ?? turnFailure;
 
   useEffect(() => {
-    if (!isBusy) setCancelling(false);
+    if (!isBusy) {
+      setCancelling(false);
+      setStopSlowWarning(false);
+    }
   }, [isBusy]);
+
+  useEffect(() => {
+    if (!cancelling || !isBusy) return;
+    const timer = window.setTimeout(() => setStopSlowWarning(true), 45_000);
+    return () => window.clearTimeout(timer);
+  }, [cancelling, isBusy]);
 
   // Reset attachment UI hints only when switching conversations (new chat / open history),
   // not when Eve assigns sessionId or the platform chat row appears mid-turn.
@@ -880,19 +891,20 @@ function AgentChatSession({
   }, [isBusy]);
 
   const requestCancellation = useCallback(() => {
-    if (!isBusy || cancelling) return;
+    if (!isBusy) return;
     setCancellationError(undefined);
     setSendError(undefined);
     setCancelling(true);
-    // Fire-and-forget: cancel() resolves when Eve accepts the request (or
-    // reports no active turn). Settlement arrives on the same stream.
+    setStopSlowWarning(false);
+    // cancel() may return before in-flight tools finish; settlement is on the stream.
+    // Allow repeated Stop clicks to retry the cancel request.
     void cancel().catch((err: unknown) => {
       setCancelling(false);
       setCancellationError(
         err instanceof Error ? err.message : "Unable to cancel the response.",
       );
     });
-  }, [cancel, cancelling, isBusy]);
+  }, [cancel, isBusy]);
 
   const activeChatIdRef = useRef(activeChatId);
   activeChatIdRef.current = activeChatId;
@@ -1336,7 +1348,9 @@ function AgentChatSession({
                 />
                 {cancelling && isBusy ? (
                   <p className="chat-status" role="status">
-                    Stopping… waiting for the turn to settle.
+                    {stopSlowWarning
+                      ? "Stop is taking longer than usual. Searches or MCP calls may still be running—click Stop again or refresh this chat to reconnect."
+                      : "Stopping… waiting for the current step to finish."}
                   </p>
                 ) : null}
                 {errorMessage ? (
@@ -1375,7 +1389,6 @@ function AgentChatSession({
             }}
             sessionWorkspaceFiles={sessionWorkspaceFiles}
             projectId={projectId}
-            showKbScope={isOmni}
             onSend={handleSend}
             onStop={requestCancellation}
           />

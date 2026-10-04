@@ -29,3 +29,9 @@ Use before releases or after changing L0/L1 skills.
 
 5. Start a long research turn, refresh browser mid-stream, reopen same chat.
    - Expect: stream resume or completed turn with **publish** card still visible ([ASYNC_AND_CHAT.md](./ASYNC_AND_CHAT.md)).
+
+## Durable retrieve (ledger)
+
+6. Plan → **`init_research_files`** → one **`research_retrieve`** → **`sync_research_ledger`**.
+   - Expect: `/workspace/research/evidence.jsonl` has lines; **`publish`** without retrieve fails.
+   - Expect: parent turn does not call MCP `connection_execute` directly ([RESEARCH_DURABILITY.md](./RESEARCH_DURABILITY.md)).

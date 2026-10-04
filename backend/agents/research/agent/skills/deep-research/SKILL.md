@@ -36,25 +36,27 @@ Before substantial retrieval, output:
 - What we may not be able to verify; CRM/internal fields we will not invent.
 ```
 
-Then proceed to retrieval unless the user asked for plan-only.
+Then call **`init_research_files`** with the same plan as `planMarkdown` (creates `/workspace/research/plan.md` and ledger files).
+
+Do **not** call MCP search tools from the parent agent. Retrieval goes through **`research_retrieve`** only.
 
 ## 2. Retrieve
 
-- Call only sources justified in the plan. Parallel calls are fine when independent.
-- **Web:** zhipu-web-search MCP. Prefer authoritative domains for facts; note weaker sources in evidence.
-- **KB:** `list_knowledge_bases` when scope is unclear; `hybrid_search` with standalone queries. If no visible KBs, skip.
-- **Workspace:** attachment read/grep/find when files exist or user @-mentioned documents.
-- **HubSpot:** when CRM context helps; if search returns nothing, record "not in HubSpot"—do not fabricate deals or amounts.
+- For each sub-question, call **`research_retrieve`** with `subQuestionId`, `objective`, `allowedSources`, and a short `contextFromPlan`.
+- **Budget (per turn):** at most **6** `research_retrieve` calls; **8** web MCP calls total across the turn (enforced in workflow state).
+- **Parallelism:** at most **2** overlapping retrieve tasks; use **`task_wait`** while multiple retrieves run, then **`sync_research_ledger`**.
+- After each retrieve (or batch), call **`sync_research_ledger`** so `evidence.jsonl` and `progress.md` match session state.
 
-Optionally append notes to `/workspace/research/evidence.md` (claim | source | confidence).
+Simple topics: 1–2 retrieves. Complex LRQA-style briefs: up to the budgets above.
 
 ## 3. Reflect
 
-If important sub-questions remain open after a reasonable pass, do **one** targeted follow-up retrieval round—then stop. Note remaining gaps in the report.
+If important sub-questions remain open after a reasonable pass, do **one** targeted follow-up **`research_retrieve`** round—then stop. Note remaining gaps in the report.
 
 ## 4. Write & publish
 
-- Write the full report to `/workspace/research/report.md` (or a descriptive `.md` name).
+- Call **`sync_research_ledger`**, then read **`/workspace/research/evidence.jsonl`** and **`plan.md`** (segment reads; do not paste the full ledger into chat).
+- Write the full report to `/workspace/research/report.md` (or a descriptive `.md` / `.html` name).
 - Include sections appropriate to the topic; for client/sales contexts, favor: **Quick take**, **Context**, **What matters for the conversation**, **Risks / guardrails**, **Questions to ask**, **Sources & confidence**.
 - Call **`publish`** with the sandbox path. Keep the chat reply to a concise summary and point to the download card.
 
@@ -62,3 +64,7 @@ If important sub-questions remain open after a reasonable pass, do **one** targe
 
 - Prefer fewer, sharper queries over exhaustive scraping.
 - Stop when the outline is adequately supported or further search has diminishing returns.
+
+## After context compaction
+
+Re-read **`/workspace/research/plan.md`** and **`progress.md`** (via read_file), call **`sync_research_ledger`** if needed, then continue the same research—do not restart from scratch.
