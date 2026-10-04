@@ -3,10 +3,14 @@ import {
   INTEGRATION_CATALOG,
   INTEGRATION_HYBRID_SEARCH,
   INTEGRATION_ZHIPU_WEB_SEARCH,
-  integrationsForAgent,
   type IntegrationDefinition,
   type IntegrationFieldDefinition,
 } from "../../domain/integration/integration-catalog.js";
+import { integrationCredentialScope } from "../../domain/integration/integration-scope.js";
+import {
+  getIntegrationCredentialRow,
+  upsertIntegrationCredentialRow,
+} from "./integration-credential.store.js";
 import {
   decryptSecret,
   encryptSecret,
@@ -20,6 +24,14 @@ import {
   resolveFirstHttpUrl,
 } from "../../infrastructure/config/mcp.config.js";
 import { drizzleUserIntegrationRepository } from "../../infrastructure/persistence/integration/drizzle-user-integration.repository.js";
+import { getOAuthIntegrationHandler } from "../../domain/integration/integration-oauth-registry.js";
+import {
+  getValidOAuthAccessToken,
+  loadOAuthTokens,
+  readAccountLabelFromConfig,
+} from "./integration-token.service.js";
+import { OAUTH_SECRET_FIELD } from "../../domain/integration/oauth/types.js";
+import { integrationsForAgent } from "./integrations-for-agent.js";
 
 export type IntegrationFieldPublic = {
   key: string;
@@ -37,8 +49,14 @@ export type IntegrationCatalogItemPublic = {
   name: string;
   description: string;
   docUrl: string;
+  authKind: IntegrationDefinition["authKind"];
+  scope: "user" | "agent";
+  /** Deployment has OAuth client env (oauth) or always true for api_key. */
+  platformConfigured: boolean;
   fields: IntegrationFieldPublic[];
   configured: boolean;
+  connected: boolean;
+  accountLabel: string | null;
   config: Record<string, string>;
   secretHints: Record<string, string | null>;
   updatedAt: string | null;
@@ -88,46 +106,112 @@ export async function listIntegrationsForUser(input: {
   userId: string;
   agentId?: string;
 }): Promise<IntegrationCatalogItemPublic[]> {
-  const catalog = input.agentId
-    ? integrationsForAgent(input.agentId)
-    : [...INTEGRATION_CATALOG];
-  const rows = await drizzleUserIntegrationRepository.listForUser(input.userId);
-  const byId = new Map(rows.map((row) => [row.integrationId, row]));
+  if (!input.agentId?.trim()) {
+    throw new Error("agentId is required.");
+  }
+  const agentId = input.agentId.trim();
+  const catalog = integrationsForAgent(agentId);
+  const userRows = await drizzleUserIntegrationRepository.listForUser(
+    input.userId,
+  );
+  const userById = new Map(userRows.map((row) => [row.integrationId, row]));
 
-  return catalog.map((def) => {
-    const row = byId.get(def.id);
+  const items: IntegrationCatalogItemPublic[] = [];
+  for (const def of catalog) {
+    const scope = integrationCredentialScope(def);
+    const cred =
+      scope === "agent"
+        ? await getIntegrationCredentialRow({
+            userId: input.userId,
+            agentId,
+            integrationId: def.id,
+          })
+        : null;
+    const row =
+      scope === "user" ? userById.get(def.id) : cred;
+    const secretsEncrypted =
+      scope === "user"
+        ? row && "secretsEncrypted" in row
+          ? row.secretsEncrypted
+          : {}
+        : cred?.secretsEncrypted ?? {};
+    const configRaw =
+      scope === "user"
+        ? row && "config" in row
+          ? row.config
+          : {}
+        : cred?.config ?? {};
+    const updatedAt =
+      scope === "user" && row && "updatedAt" in row
+        ? row.updatedAt
+        : cred?.updatedAt;
+
+    const oauthHandler = getOAuthIntegrationHandler(def.id);
+    const platformConfigured =
+      def.authKind === "oauth"
+        ? Boolean(oauthHandler?.isPlatformConfigured())
+        : true;
+
+    if (def.authKind === "oauth") {
+      const hasOAuth = Boolean(secretsEncrypted[OAUTH_SECRET_FIELD]?.trim());
+      items.push({
+        id: def.id,
+        name: def.name,
+        description: def.description,
+        docUrl: def.docUrl,
+        authKind: def.authKind,
+        scope,
+        platformConfigured,
+        fields: [],
+        configured: hasOAuth,
+        connected: hasOAuth,
+        accountLabel: readAccountLabelFromConfig(configRaw),
+        config: {},
+        secretHints: {},
+        updatedAt: updatedAt?.toISOString() ?? null,
+      });
+      continue;
+    }
+
     const secretHints: Record<string, string | null> = {};
     for (const field of def.fields) {
       if (field.kind !== "secret") continue;
-      secretHints[field.key] = secretHint(row?.secretsEncrypted[field.key]);
+      secretHints[field.key] = secretHint(secretsEncrypted[field.key]);
     }
     const hasSecrets = def.fields.some(
       (field) =>
         field.kind === "secret" &&
-        Boolean(row?.secretsEncrypted[field.key]?.trim()),
+        Boolean(secretsEncrypted[field.key]?.trim()),
     );
     const configFilled = def.fields.some(
       (field) =>
         field.storeInConfig &&
-        typeof row?.config[field.key] === "string" &&
-        String(row.config[field.key]).trim(),
+        typeof configRaw[field.key] === "string" &&
+        String(configRaw[field.key]).trim(),
     );
-    return {
+    items.push({
       id: def.id,
       name: def.name,
       description: def.description,
       docUrl: def.docUrl,
+      authKind: def.authKind,
+      scope,
+      platformConfigured,
       fields: def.fields.map(toFieldPublic),
       configured: hasSecrets || configFilled,
-      config: row ? configStrings(row.config, def) : {},
+      connected: hasSecrets || configFilled,
+      accountLabel: null,
+      config: configStrings(configRaw, def),
       secretHints,
-      updatedAt: row?.updatedAt.toISOString() ?? null,
-    };
-  });
+      updatedAt: updatedAt?.toISOString() ?? null,
+    });
+  }
+  return items;
 }
 
 export type SaveUserIntegrationInput = {
   userId: string;
+  agentId: string;
   integrationId: string;
   /** Secret field updates; omit or empty string keeps existing value */
   secrets?: Record<string, string | undefined>;
@@ -139,11 +223,18 @@ export async function saveUserIntegration(
 ): Promise<IntegrationCatalogItemPublic> {
   const def = getIntegrationDefinition(input.integrationId);
   if (!def) throw new Error("Unknown integration.");
+  if (def.authKind === "oauth") {
+    throw new Error("Use Connect in Integrations to authorize this service.");
+  }
+  if (!input.agentId?.trim()) {
+    throw new Error("agentId is required.");
+  }
 
-  const existing = await drizzleUserIntegrationRepository.getForUser(
-    input.userId,
-    input.integrationId,
-  );
+  const existing = await getIntegrationCredentialRow({
+    userId: input.userId,
+    agentId: input.agentId.trim(),
+    integrationId: input.integrationId,
+  });
 
   const secretsEncrypted: Record<string, string> = {
     ...(existing?.secretsEncrypted ?? {}),
@@ -189,8 +280,9 @@ export async function saveUserIntegration(
     }
   }
 
-  await drizzleUserIntegrationRepository.upsert({
+  await upsertIntegrationCredentialRow({
     userId: input.userId,
+    agentId: input.agentId.trim(),
     integrationId: input.integrationId,
     secretsEncrypted,
     config,
@@ -198,6 +290,7 @@ export async function saveUserIntegration(
 
   const list = await listIntegrationsForUser({
     userId: input.userId,
+    agentId: input.agentId,
   });
   const item = list.find((row) => row.id === input.integrationId);
   if (!item) throw new Error("Integration not found after save.");
@@ -251,4 +344,23 @@ export async function resolveHybridSearchCredentials(userId: string | null): Pro
   const url = getHybridSearchMcpUrl();
   const apiKey = getHybridSearchApiKey();
   return { url, apiKey };
+}
+
+export async function resolveIntegrationMcpAccessToken(
+  userId: string | null,
+  agentId: string | null,
+  integrationId: string,
+): Promise<{ token: string; expiresAtMs: number } | null> {
+  if (!userId || !agentId?.trim()) return null;
+  const def = getIntegrationDefinition(integrationId);
+  if (!def || def.authKind !== "oauth") return null;
+  const stored = await loadOAuthTokens(userId, agentId.trim(), integrationId);
+  const token = await getValidOAuthAccessToken(
+    userId,
+    agentId.trim(),
+    integrationId,
+  );
+  if (!token) return null;
+  const expiresAtMs = stored?.expiresAtMs ?? Date.now() + 3600_000;
+  return { token, expiresAtMs };
 }

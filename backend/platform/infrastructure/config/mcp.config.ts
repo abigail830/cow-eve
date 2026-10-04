@@ -122,3 +122,7 @@ export function getZhipuApiKey(): string | null {
 export function getNotionMcpUrl(): string {
   return process.env.NOTION_MCP_URL?.trim() || "https://mcp.notion.com/mcp";
 }
+
+export function getHubspotMcpUrl(): string {
+  return process.env.HUBSPOT_MCP_URL?.trim() || "https://mcp.hubspot.com/mcp";
+}

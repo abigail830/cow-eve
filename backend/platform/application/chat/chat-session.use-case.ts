@@ -10,3 +10,14 @@ export async function resolveChatIdForEveSession(input: {
   });
   return chat?.id ?? null;
 }
+
+export async function resolveAgentIdForEveSession(input: {
+  userId: string;
+  eveSessionId: string;
+}): Promise<string | null> {
+  const chat = await drizzleChatRepository.getChatByEveSessionForUser({
+    userId: input.userId,
+    eveSessionId: input.eveSessionId,
+  });
+  return chat?.agentId?.trim() || null;
+}

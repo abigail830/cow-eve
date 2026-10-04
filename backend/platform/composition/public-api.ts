@@ -194,8 +194,12 @@ export {
 export {
   listIntegrationsForUser,
   saveUserIntegration,
+  resolveIntegrationMcpAccessToken,
   type IntegrationCatalogItemPublic,
 } from "../application/integration/user-integration.use-case.js";
+export { INTEGRATION_NOTION } from "../domain/integration/integration-catalog.js";
+export { integrationsForAgent } from "../application/integration/integrations-for-agent.js";
+export { getNotionMcpUrl } from "../infrastructure/config/mcp.config.js";
 export {
   getKbPreferencesForUser,
   getKbScopeInstructionForChat,
@@ -204,7 +208,12 @@ export {
   type KnowledgeBaseListPublic,
   type KnowledgeBasePublic,
 } from "../application/kb/kb-preference.use-case.js";
-export { resolveChatIdForEveSession } from "../application/chat/chat-session.use-case";
+export {
+  resolveAgentIdForEveSession,
+  resolveChatIdForEveSession,
+} from "../application/chat/chat-session.use-case";
+export { INTEGRATION_HUBSPOT } from "../domain/integration/integration-catalog.js";
+export { getHubspotMcpUrl } from "../infrastructure/config/mcp.config.js";
 export { scheduleChatTitleOnce } from "../application/chat/chat-title-scheduler";
 export { renameChatTitleForUser } from "../application/chat/chat-title.use-case";
 export {

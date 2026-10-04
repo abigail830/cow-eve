@@ -362,6 +362,26 @@ export const userIntegrations = pgTable(
   ],
 );
 
+export const agentIntegrations = pgTable(
+  "agent_integrations",
+  {
+    userId: text("user_id").notNull(),
+    agentId: text("agent_id").notNull(),
+    integrationId: text("integration_id").notNull(),
+    secretsEncrypted: jsonb("secrets_encrypted").notNull().default({}),
+    config: jsonb("config").notNull().default({}),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.userId, table.agentId, table.integrationId],
+    }),
+    index("agent_integrations_user_agent_idx").on(table.userId, table.agentId),
+  ],
+);
+
 export const chatWorkspaceFileRefs = pgTable(
   "chat_workspace_file_refs",
   {

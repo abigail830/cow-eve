@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { ExternalLink, Loader2, Plug } from "lucide-react";
 import {
+  connectIntegrationOAuth,
+  disconnectIntegrationOAuth,
   fetchIntegrations,
   saveIntegration,
   type IntegrationCatalogItem,
@@ -64,11 +66,120 @@ function FieldInput({
   );
 }
 
-function IntegrationCard({
+function OAuthIntegrationCard({
   item,
+  agentId,
+  onReload,
+}: {
+  item: IntegrationCatalogItem;
+  agentId: string;
+  onReload: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleConnect = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const url = await connectIntegrationOAuth(item.id, agentId);
+      window.location.assign(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start OAuth.");
+      setBusy(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await disconnectIntegrationOAuth(item.id, agentId);
+      await onReload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not disconnect.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <article className="integration-card">
+      <div className="integration-card-row">
+        <span className="integration-card-icon" aria-hidden>
+          <Plug size={20} strokeWidth={1.75} />
+        </span>
+        <div className="integration-card-main">
+          <div className="integration-card-head">
+            <div className="integration-card-title-row">
+              <span className="integration-card-name">{item.name}</span>
+              <span
+                className={
+                  item.connected
+                    ? "integration-status-badge integration-status-badge-on"
+                    : "integration-status-badge integration-status-badge-off"
+                }
+              >
+                {item.connected ? "Connected" : "Not connected"}
+              </span>
+            </div>
+            {!item.platformConfigured ? (
+              <span className="integration-card-desc integration-muted">
+                Not available on this deployment.
+              </span>
+            ) : item.connected ? (
+              <button
+                type="button"
+                className="integration-card-cta integration-card-cta-ghost"
+                disabled={busy}
+                onClick={() => void handleDisconnect()}
+              >
+                {busy ? "Working…" : "Disconnect"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="integration-card-cta integration-card-cta-primary"
+                disabled={busy}
+                onClick={() => void handleConnect()}
+              >
+                {busy ? "Redirecting…" : "Connect"}
+              </button>
+            )}
+          </div>
+          <p className="integration-card-desc">{item.description}</p>
+          {item.connected && item.accountLabel ? (
+            <p className="integration-card-desc integration-muted">
+              Account: {item.accountLabel}
+            </p>
+          ) : null}
+          <a
+            className="integration-doc-link"
+            href={item.docUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Documentation
+            <ExternalLink size={13} strokeWidth={2} aria-hidden />
+          </a>
+          {error ? (
+            <p className="integration-inline-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ApiKeyIntegrationCard({
+  item,
+  agentId,
   onSaved,
 }: {
   item: IntegrationCatalogItem;
+  agentId: string;
   onSaved: (next: IntegrationCatalogItem) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -124,7 +235,7 @@ function IntegrationCard({
         }
         configPayload[field.key] = next;
       }
-      const next = await saveIntegration(item.id, {
+      const next = await saveIntegration(item.id, agentId, {
         secrets: secretPayload,
         config: configPayload,
       });
@@ -258,6 +369,7 @@ export function IntegrationsPanel({ agentId, embedded = false }: Props) {
   const [items, setItems] = useState<IntegrationCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [oauthToast, setOauthToast] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -276,6 +388,28 @@ export function IntegrationsPanel({ agentId, embedded = false }: Props) {
 
   useEffect(() => {
     void reload();
+  }, [reload]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("integrations") !== "1") return;
+    const status = params.get("status");
+    const provider = params.get("provider");
+    const oauthError = params.get("error");
+    if (status === "connected" && provider) {
+      setOauthToast(`${provider} connected successfully.`);
+      void reload();
+    } else if (status === "error") {
+      setOauthToast(oauthError ?? "Integration connect failed.");
+    }
+    params.delete("integrations");
+    params.delete("provider");
+    params.delete("status");
+    params.delete("error");
+    params.delete("agentId");
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+    window.history.replaceState(null, "", nextUrl);
   }, [reload]);
 
   const handleSaved = (next: IntegrationCatalogItem) => {
@@ -311,18 +445,34 @@ export function IntegrationsPanel({ agentId, embedded = false }: Props) {
               </div>
             ) : (
               <div className="integrations-list">
-                {items.map((item) => (
-                  <IntegrationCard
-                    key={item.id}
-                    item={item}
-                    onSaved={handleSaved}
-                  />
-                ))}
+                {oauthToast ? (
+                  <p className="integration-inline-saved" role="status">
+                    {oauthToast}
+                  </p>
+                ) : null}
+                {items.map((item) =>
+                  item.authKind === "oauth" ? (
+                    <OAuthIntegrationCard
+                      key={item.id}
+                      item={item}
+                      agentId={agentId}
+                      onReload={reload}
+                    />
+                  ) : (
+                    <ApiKeyIntegrationCard
+                      key={item.id}
+                      item={item}
+                      agentId={agentId}
+                      onSaved={handleSaved}
+                    />
+                  ),
+                )}
               </div>
             )}
           </div>
           <p className="integrations-account-note">
-            Your credentials are shared across all agents on this account.
+            User-scoped integrations (API keys) apply to every agent. Agent-scoped
+            integrations (Notion, HubSpot) are configured separately per agent.
           </p>
         </section>
       </div>
