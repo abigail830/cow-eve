@@ -14,6 +14,7 @@
     "deploy": "eve deploy",
     "dev": "eve dev --agent omni --no-ui --port 2000",
     "dev:omni": "eve dev --agent omni --no-ui --port 2000",
+    "dev:research": "eve dev --agent research --no-ui --port 2002",
     "dev:ui": "eve dev --agent omni",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx platform/infrastructure/persistence/database/migrate.ts",

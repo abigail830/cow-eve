@@ -27,6 +27,15 @@ export const AGENT_REGISTRY: readonly AgentRegistryEntry[] = [
     eveAgent: "omni",
     defaultDevUrl: "http://127.0.0.1:2000",
   },
+  {
+    id: "research",
+    category: "domain",
+    displayName: "Deep Research",
+    description: "Multi-source research plans and published reports for any topic, including client and sales enablement",
+    avatar: "/agents/avatar11.png",
+    eveAgent: "research",
+    defaultDevUrl: "http://127.0.0.1:2002",
+  },
 ];
 
 export function listAgents(): readonly AgentRegistryEntry[] {

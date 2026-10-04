@@ -48,6 +48,8 @@ Catalog [`integration-catalog.ts`](../../backend/platform/domain/integration/int
 
 **To enable HubSpot for omni:** keep [`hubspot.ts`](../../backend/agents/omni/agent/connections/hubspot.ts). **To hide it:** delete or rename that file (no platform catalog edit).
 
+The **research** agent wires HubSpot, hybrid search, and Zhipu web search under [`backend/agents/research/agent/connections/`](../../backend/agents/research/agent/connections/) (no Notion). Connect OAuth per agent in Customize → Integrations when using `agentId=research`.
+
 **Future sidebar agent:** add `agents/<eveAgent>/` with its own `agent/connections/`; registry entry must point `eveAgent` at that directory.
 
 ## Related

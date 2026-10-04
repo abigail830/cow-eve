@@ -7,6 +7,7 @@ Eve agent workspace powering the Agent Platform.
 | Id | Role | Local port |
 |----|------|------------|
 | `omni` | Unified entry + platform HTTP (`/api/*`) | 2000 |
+| `research` | Deep research plans + published reports | 2002 |
 | `content-studio` | Document / one-pager specialist | 2001 |
 
 ## Prerequisites
@@ -29,6 +30,7 @@ Run both agents (two terminals):
 
 ```bash
 npm run dev:omni
+npm run dev:research
 npm run dev:content-studio
 ```
 
@@ -46,6 +48,7 @@ Platform APIs (served by omni):
 Eve session APIs (per process):
 
 - `http://127.0.0.1:2000/eve/v1/*` — omni
+- `http://127.0.0.1:2002/eve/v1/*` — research
 - `http://127.0.0.1:2001/eve/v1/*` — content-studio
 
 Trigger the sample schedule (omni, while `eve dev` is running):

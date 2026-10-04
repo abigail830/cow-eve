@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start cow-eve frontend + backend (parse-pipeline, omni).
+# Start cow-eve frontend + backend (parse-pipeline, omni, research).
 #
 # Usage:
 #   ./scripts/start.sh              # all services
@@ -7,6 +7,7 @@
 #   ./scripts/start.sh backend      # parse-pipeline + omni
 #   ./scripts/start.sh frontend
 #   ./scripts/start.sh omni
+#   ./scripts/start.sh research
 #   ./scripts/start.sh parse-pipeline
 #
 # Set START_PARSE_PIPELINE=0 to skip parse-pipeline when starting backend/omni/all.
@@ -30,6 +31,16 @@ start_omni() {
     "set -a && [ -f .env ] && . ./.env; set +a; npm run dev:omni" \
     "${OMNI_PORT}" \
     "http://127.0.0.1:${OMNI_PORT}/eve/v1/health"
+}
+
+start_research() {
+  clear_research_eve_workflow_runs
+  start_service \
+    "research" \
+    "${ROOT_DIR}/backend" \
+    "set -a && [ -f .env ] && . ./.env; set +a; npm run dev:research" \
+    "${RESEARCH_PORT}" \
+    "http://127.0.0.1:${RESEARCH_PORT}/eve/v1/health"
 }
 
 start_frontend() {
@@ -56,10 +67,12 @@ esac
 case "${TARGET}" in
   all)
     start_omni
+    start_research
     start_frontend
     ;;
   backend)
     start_omni
+    start_research
     ;;
   frontend)
     start_frontend
@@ -67,12 +80,15 @@ case "${TARGET}" in
   omni)
     start_omni
     ;;
+  research)
+    start_research
+    ;;
   parse-pipeline)
     start_parse_pipeline
     ;;
   *)
     echo "Unknown target: ${TARGET}"
-    echo "Use: all | backend | frontend | omni | parse-pipeline"
+    echo "Use: all | backend | frontend | omni | research | parse-pipeline"
     exit 1
     ;;
 esac
@@ -84,6 +100,9 @@ if [[ "${TARGET}" == "all" || "${TARGET}" == "frontend" ]]; then
 fi
 if [[ "${TARGET}" != "frontend" && "${TARGET}" != "parse-pipeline" ]]; then
   echo "  Omni API:       http://127.0.0.1:${OMNI_PORT}"
+fi
+if [[ "${TARGET}" == "all" || "${TARGET}" == "backend" || "${TARGET}" == "research" ]]; then
+  echo "  Research API:   http://127.0.0.1:${RESEARCH_PORT}"
 fi
 if [[ "${TARGET}" == "parse-pipeline" || ( "${TARGET}" != "frontend" && "${START_PARSE_PIPELINE:-1}" == "1" ) ]]; then
   echo "  Parse pipeline: http://${PARSE_PIPELINE_HOST}:${PARSE_PIPELINE_PORT}"

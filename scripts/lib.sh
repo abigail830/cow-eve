@@ -8,6 +8,7 @@ RUN_DIR="${ROOT_DIR}/.run"
 LOG_DIR="${RUN_DIR}/logs"
 
 OMNI_PORT="${OMNI_PORT:-2000}"
+RESEARCH_PORT="${RESEARCH_PORT:-2002}"
 FRONTEND_PORT="${FRONTEND_PORT:-5273}"
 PARSE_PIPELINE_PORT="${PARSE_PIPELINE_PORT:-8091}"
 PARSE_PIPELINE_HOST="${PARSE_PIPELINE_HOST:-127.0.0.1}"
@@ -164,6 +165,14 @@ clear_omni_eve_workflow_runs() {
   fi
 }
 
+clear_research_eve_workflow_runs() {
+  local wf="${ROOT_DIR}/backend/agents/research/.eve/.workflow-data"
+  if [[ -d "${wf}" ]]; then
+    rm -rf "${wf}"
+    echo "  • cleared stale Eve workflow runs (research)"
+  fi
+}
+
 run_db_migrate() {
   local db_url
   if ! db_url="$(read_database_url)"; then
@@ -175,11 +184,18 @@ run_db_migrate() {
     return 0
   fi
   echo "  → running db:migrate…"
-  (
+  if (
     cd "${ROOT_DIR}/backend" || exit 1
     DATABASE_URL="${db_url}" npm run db:migrate
-  )
-  echo "  ✓ db:migrate done"
+  ); then
+    echo "  ✓ db:migrate done"
+  else
+    echo "  ✗ db:migrate failed (network or DATABASE_URL). Continuing start."
+    echo "    Fix connectivity and run: cd backend && npm run db:migrate"
+    if [[ "${COW_EVE_REQUIRE_DB_MIGRATE:-}" == "1" ]]; then
+      return 1
+    fi
+  fi
 }
 
 start_service() {

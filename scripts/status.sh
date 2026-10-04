@@ -12,6 +12,7 @@ ensure_run_dirs
 echo "cow-eve status:"
 service_status_line "parse-pipeline" "${PARSE_PIPELINE_PORT}"
 service_status_line "omni" "${OMNI_PORT}"
+service_status_line "research" "${RESEARCH_PORT}"
 service_status_line "frontend" "${FRONTEND_PORT}"
 echo
 echo "Logs: ${LOG_DIR}"

@@ -8,5 +8,10 @@ export const WIRED_INTEGRATION_IDS_BY_EVE_AGENT: Readonly<
     "hybrid_search",
     "notion",
     "zhipu_web_search"
+  ],
+  "research": [
+    "hubspot",
+    "hybrid_search",
+    "zhipu_web_search"
   ]
 } as const;
