@@ -39,7 +39,15 @@ Parent agent **must not** use root MCP connections. MCP runs only on the **`retr
 
 ## Local dev
 
-`npm run dev:research` (port 2002). Use the same tool flow as production for consistent behavior.
+`npm run dev:research` (port 2002) runs from `agents/research/` with the same layout as Vercel (`EVE_INTERNAL_AGENT_WORKSPACE_MEMBER=1`). Use the same tool flow as production.
+
+### Troubleshooting `research_retrieve` “not registered as a workflow”
+
+Eve binds workflow tools to a **deployment id**. After you change `research_retrieve` (or related step files), **hot reload** or an old dev host can leave in-flight turns pointing at `workflow//./agents/research/agent/tools/...` while the server registers `workflow//./agent/tools/...`.
+
+**Fix:** `./scripts/restart.sh research` (clears workflow run data + dev hosts), then **start a new chat** and rerun the research prompt. Do not fall back to parent-level `connection_search` / MCP — that bypasses the ledger.
+
+Mid-deploy on Vercel: same symptom until the new deployment is live; retry in a **new chat** after deploy finishes.
 
 ## Smoke checklist
 

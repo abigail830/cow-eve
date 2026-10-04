@@ -36,7 +36,9 @@ npm run dev:research
 npm run dev:content-studio
 ```
 
-Do **not** add `package.json` under `agents/<name>/` (e.g. after `npm install` in that folder). Eve treats that as a separate npm root and `eve dev --agent omni` fails with `--agent can only select a member of the enclosing agents/ workspace`.
+Do **not** add `package.json` under `agents/<name>/` (e.g. after `npm install` in that folder). Eve treats that as a separate npm root and breaks the workspace layout.
+
+`npm run dev:omni` / `dev:research` `cd` into `agents/<name>/` with `EVE_INTERNAL_AGENT_WORKSPACE_MEMBER=1` (same as Vercel) so workflow tools like **`research_retrieve`** register with stable workflow ids.
 
 Platform APIs (served by omni):
 

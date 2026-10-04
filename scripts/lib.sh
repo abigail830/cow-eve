@@ -166,10 +166,16 @@ clear_omni_eve_workflow_runs() {
 }
 
 clear_research_eve_workflow_runs() {
-  local wf="${ROOT_DIR}/backend/agents/research/.eve/.workflow-data"
+  local eve_dir="${ROOT_DIR}/backend/agents/research/.eve"
+  local wf="${eve_dir}/.workflow-data"
+  local hosts="${eve_dir}/dev-hosts"
   if [[ -d "${wf}" ]]; then
     rm -rf "${wf}"
     echo "  • cleared stale Eve workflow runs (research)"
+  fi
+  if [[ -d "${hosts}" ]]; then
+    rm -rf "${hosts}"
+    echo "  • cleared stale Eve dev workflow hosts (research)"
   fi
 }
 
