@@ -12,22 +12,37 @@ const BACKEND_ROOT = path.join(
   "..",
 );
 
-function wiredIdsForEveAgent(eveAgent: string): string[] {
-  const connectionsDir = path.join(
-    BACKEND_ROOT,
-    "agents",
-    eveAgent,
-    "agent",
-    "connections",
-  );
+function collectConnectionIds(connectionsDir: string): string[] {
   if (!fs.existsSync(connectionsDir)) return [];
   const ids: string[] = [];
   for (const name of fs.readdirSync(connectionsDir)) {
     if (!/\.tsx?$/.test(name) || name.includes(".test.")) continue;
     ids.push(connectionFilenameToIntegrationId(name));
   }
-  ids.sort();
   return ids;
+}
+
+function wiredIdsForEveAgent(eveAgent: string): string[] {
+  const agentRoot = path.join(BACKEND_ROOT, "agents", eveAgent, "agent");
+  const ids = new Set<string>();
+
+  for (const id of collectConnectionIds(path.join(agentRoot, "connections"))) {
+    ids.add(id);
+  }
+
+  const subagentsDir = path.join(agentRoot, "subagents");
+  if (fs.existsSync(subagentsDir)) {
+    for (const entry of fs.readdirSync(subagentsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      for (const id of collectConnectionIds(
+        path.join(subagentsDir, entry.name, "connections"),
+      )) {
+        ids.add(id);
+      }
+    }
+  }
+
+  return [...ids].sort();
 }
 
 function discoverEveAgents(): string[] {
@@ -37,11 +52,7 @@ function discoverEveAgents(): string[] {
     .readdirSync(agentsRoot, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
-    .filter((name) =>
-      fs.existsSync(
-        path.join(agentsRoot, name, "agent", "connections"),
-      ),
-    )
+    .filter((name) => wiredIdsForEveAgent(name).length > 0)
     .sort();
 }
 
