@@ -1,6 +1,7 @@
 import { basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { withEve } from "eve/vercel";
+import { appendResearchWorkflowPatchToBuildCommand } from "./scripts/research-workflow-patch-build-suffix.mjs";
 
 /**
  * Agent-only workspace: eve contributes eve-omni.
@@ -13,7 +14,7 @@ import { withEve } from "eve/vercel";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = basename(here) === ".vercel" ? dirname(here) : here;
 
-export default await withEve(
+const composed = await withEve(
   {
     routes: [
       // Canonical platform API
@@ -53,3 +54,17 @@ export default await withEve(
   },
   { root },
 );
+
+/** Vercel resolves vercel.ts before service builds; config.json inject during npm run build is not used. */
+const services = { ...composed.services };
+const eveResearch = services["eve-research"];
+if (eveResearch && typeof eveResearch.buildCommand === "string") {
+  services["eve-research"] = {
+    ...eveResearch,
+    buildCommand: appendResearchWorkflowPatchToBuildCommand(
+      eveResearch.buildCommand,
+    ),
+  };
+}
+
+export default { ...composed, services };

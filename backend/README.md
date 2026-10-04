@@ -57,7 +57,8 @@ This layout (`backend/agents/research/agent/`, **no** `package.json` under `agen
 
 **cow-eve mitigation (until `eve` is fixed):**
 
-- `npm run build` → `inject-vercel-research-patch-build.mjs` (appends patch to **eve-research**’s Vercel `buildCommand`) → `patch:research-workflow-id`. **Critical on Vercel:** member agents are built in a **second** service step; patching only after root `eve build` does **not** touch the bundle that serves `/eve/research`. The inject step fixes that; patch still scans `agents/research/.output`, `.eve/vercel-services/eve-research/.vercel/output`, etc., and **fails the build** if ids still mismatch.
+- **`vercel.ts`** (via `withEve`) appends the workflow-id patch to **`eve-research`’s `buildCommand`** — this is what **production Vercel actually runs** (evaluated before per-service builds). Do not rely on patching `.vercel/output/config.json` alone.
+- `npm run build` → `inject-vercel-research-patch-build.mjs` (same suffix for local Build Output API) → `patch:research-workflow-id`. Patch scans `agents/research/.output`, `.eve/vercel-services/eve-research/.vercel/output`, etc., and **fails the build** if ids still mismatch.
 - `npm run dev:research` → [`scripts/dev-research.sh`](scripts/dev-research.sh) runs Eve dev plus a **2s patch loop** (hot reload rewrites the wrong id).
 - `./scripts/restart.sh research` also patches once after health.
 - Manual: `cd backend && npm run patch:research-workflow-id`

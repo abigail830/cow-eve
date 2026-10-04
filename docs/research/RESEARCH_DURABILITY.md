@@ -52,7 +52,7 @@ Parent agent **must not** use root MCP connections. MCP runs only on the **`retr
 Two causes (often combined):
 
 1. **Stale chat session** — Eve binds workflow tool ids when the run starts. After a **backend redeploy**, continuing the same Work chat yields *The tool was renamed or removed after this run started*. Fix: **open a new chat** with Ann Researcher and resend the task (not just refresh).
-2. **Build #3740 mismatch** — workspace-member compile sometimes leaves catalog `workflowId` as `workflow//./agents/research/agent/tools/...` while registration uses `workflow//./agent/tools/...`. On **Vercel**, research is built again as the **`eve-research` service** after root `npm run build`; patch must run at the **end of that service build** (`inject-vercel-research-patch-build.mjs` in [backend/package.json](../../backend/package.json)). Patching only after root `eve build` does not fix production even with a new chat.
+2. **Build #3740 mismatch** — workspace-member compile sometimes leaves catalog `workflowId` as `workflow//./agents/research/agent/tools/...` while registration uses `workflow//./agent/tools/...`. On **Vercel**, `vercel.ts` defines a separate **`eve-research` service build**; the patch must be appended to that service’s `buildCommand` in [backend/vercel.ts](../../vercel.ts) (not only after root `npm run build` / `config.json` inject). Until that runs on deploy, production stays broken even with a new chat.
 
 `research_retrieve` remains a **`defineWorkflowTool`** (required for `ctx.agent("retrieve")`).
 

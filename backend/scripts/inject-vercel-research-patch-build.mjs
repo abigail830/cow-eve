@@ -1,20 +1,17 @@
 /**
- * Vercel builds each workspace member as its own service (see .vercel/output/config.json).
- * Root `npm run build` + patch runs BEFORE that service build, so research_retrieve ids stay
- * broken in production unless patch runs at the end of the eve-research buildCommand.
+ * Patches .vercel/output/config.json for local `eve build` / Build Output API workflows.
+ * Production Vercel deploys using vercel.ts must patch in vercel.ts (config.json inject alone is ignored).
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  appendResearchWorkflowPatchToBuildCommand,
+  RESEARCH_WORKFLOW_PATCH_MARKER,
+} from "./research-workflow-patch-build-suffix.mjs";
 
 const BACKEND_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG_PATH = path.join(BACKEND_ROOT, ".vercel", "output", "config.json");
-const PATCH_SCRIPT = "scripts/patch-eve-research-workflow-id.mjs";
-const MARKER = PATCH_SCRIPT;
-
-/** From agents/research (where member build ends), backend root is ../.. */
-const PATCH_SUFFIX =
-  " && cd '../..' && node scripts/patch-eve-research-workflow-id.mjs";
 
 function main() {
   if (!fs.existsSync(CONFIG_PATH)) {
@@ -32,15 +29,17 @@ function main() {
     return;
   }
 
-  if (research.buildCommand.includes(MARKER)) {
+  if (research.buildCommand.includes(RESEARCH_WORKFLOW_PATCH_MARKER)) {
     console.log("inject-vercel-research-patch: eve-research buildCommand already patched.");
     return;
   }
 
-  research.buildCommand += PATCH_SUFFIX;
+  research.buildCommand = appendResearchWorkflowPatchToBuildCommand(
+    research.buildCommand,
+  );
   fs.writeFileSync(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   console.log(
-    "inject-vercel-research-patch: appended workflow-id patch to eve-research Vercel buildCommand.",
+    "inject-vercel-research-patch: appended workflow-id patch to eve-research buildCommand (config.json only).",
   );
 }
 
