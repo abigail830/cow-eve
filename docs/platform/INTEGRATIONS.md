@@ -31,7 +31,7 @@ Customize → Integrations always requires `agentId`. Eve resolves the active ag
 ### HubSpot MCP (MCP Auth App in HubSpot — no DCR)
 
 1. In your HubSpot account: **Development** → **Create MCP auth app** ([remote MCP guide](https://developers.hubspot.com/docs/apps/developer-platform/build-apps/integrate-with-the-remote-hubspot-mcp-server)).
-2. Set **Redirect URL** to the same pattern as Notion but `hubspot` in the path, e.g. `http://127.0.0.1:2000/api/integrations/hubspot/callback`. Add a second URL for production backend if needed.
+2. Set **Redirect URL** to the same pattern as Notion but `hubspot` in the path, e.g. `http://127.0.0.1:2000/api/integrations/hubspot/callback` (local). **Production must use `https://`** (e.g. `https://cow-eve.vercel.app/api/integrations/hubspot/callback`) — HubSpot rejects `http://` on public hosts. The value in HubSpot must match `HUBSPOT_MCP_REDIRECT_URI` on the backend (platform upgrades `http://*.vercel.app` to `https` at runtime, but HubSpot’s app settings still need the HTTPS URL).
 3. On the app details page, copy **Client ID** and **Client secret** into `backend/.env` as `HUBSPOT_MCP_CLIENT_*` (see [`.env.example`](../../backend/.env.example)).
 4. Optional: `INTEGRATION_SUCCESS_REDIRECT` (frontend after callback, e.g. `http://127.0.0.1:5273`).
 

@@ -32,6 +32,8 @@ npm run dev:omni
 npm run dev:content-studio
 ```
 
+Do **not** add `package.json` under `agents/<name>/` (e.g. after `npm install` in that folder). Eve treats that as a separate npm root and `eve dev --agent omni` fails with `--agent can only select a member of the enclosing agents/ workspace`.
+
 Platform APIs (served by omni):
 
 - `POST /api/auth/login` — `{ email, password }` → JWT

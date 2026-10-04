@@ -1,5 +1,6 @@
 import { getFrontendOrigins } from "./env.config.js";
 import { getJwtSecret } from "./env.config.js";
+import { resolveIntegrationOAuthRedirectUri } from "./oauth-redirect-uri.js";
 
 export function getIntegrationOAuthStateSecret(): string {
   const explicit = process.env.INTEGRATION_OAUTH_STATE_SECRET?.trim();
@@ -21,7 +22,10 @@ export function getNotionMcpOAuthConfig(): {
   return {
     clientId: process.env.NOTION_MCP_CLIENT_ID?.trim() || null,
     clientSecret: process.env.NOTION_MCP_CLIENT_SECRET?.trim() || null,
-    redirectUri: process.env.NOTION_MCP_REDIRECT_URI?.trim() || null,
+    redirectUri: resolveIntegrationOAuthRedirectUri({
+      integrationId: "notion",
+      envRedirectUri: process.env.NOTION_MCP_REDIRECT_URI,
+    }),
   };
 }
 
@@ -33,6 +37,9 @@ export function getHubspotMcpOAuthConfig(): {
   return {
     clientId: process.env.HUBSPOT_MCP_CLIENT_ID?.trim() || null,
     clientSecret: process.env.HUBSPOT_MCP_CLIENT_SECRET?.trim() || null,
-    redirectUri: process.env.HUBSPOT_MCP_REDIRECT_URI?.trim() || null,
+    redirectUri: resolveIntegrationOAuthRedirectUri({
+      integrationId: "hubspot",
+      envRedirectUri: process.env.HUBSPOT_MCP_REDIRECT_URI,
+    }),
   };
 }

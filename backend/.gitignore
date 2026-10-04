@@ -10,3 +10,7 @@ dist
 *.tsbuildinfo
 platform/data/*.json
 agents/**/.eve
+# Nested npm projects break `eve dev --agent <name>` workspace discovery.
+agents/*/node_modules
+agents/*/package-lock.json
+agents/*/package.json
