@@ -1,7 +1,7 @@
 .markdown-content {
   font-size: var(--chat-font-size);
   line-height: var(--chat-line-height);
-  color: #222;
+  color: var(--text-primary, var(--color-ink, #222));
   word-break: break-word;
 }
 
@@ -61,18 +61,18 @@
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: var(--chat-font-size);
   line-height: var(--chat-line-height);
-  background: #f5f5f5;
-  border: 1px solid #ececec;
-  border-radius: 4px;
+  background: var(--surface-muted, #f5f5f5);
+  border: 1px solid var(--border-subtle, #ececec);
+  border-radius: var(--radius-sm, 4px);
   padding: 0.1em 0.35em;
 }
 
 .markdown-content pre {
   margin: 0 0 0.75em;
   padding: 12px 14px;
-  background: #fafafa;
-  border: 1px solid #ececec;
-  border-radius: 10px;
+  background: var(--surface-muted, #fafafa);
+  border: 1px solid var(--border-subtle, #ececec);
+  border-radius: var(--radius-md, 10px);
   overflow-x: auto;
   font-size: var(--chat-font-size);
   line-height: var(--chat-line-height);
@@ -88,22 +88,24 @@
 
 .markdown-content blockquote {
   margin: 0 0 0.75em;
-  padding: 0.4em 0 0.4em 1em;
-  border-left: 3px solid #f5c9a8;
-  color: #555;
+  padding: 0.5em 0.75em 0.5em 1em;
+  border-left: 3px solid var(--accent-soft, var(--accent));
+  border-radius: var(--radius-sm, 4px);
+  background: var(--accent-muted, color-mix(in srgb, var(--accent) 8%, transparent));
+  color: var(--text-secondary, var(--color-text-secondary, #555));
   font-size: var(--chat-font-size);
   line-height: var(--chat-line-height);
 }
 
 .markdown-content a {
-  color: #e06a1c;
+  color: var(--accent-strong, var(--accent));
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .markdown-content hr {
   border: none;
-  border-top: 1px solid #ececec;
+  border-top: 1px solid var(--border-subtle, #ececec);
   margin: 1em 0;
 }
 
@@ -125,7 +127,7 @@
 
 .markdown-content th,
 .markdown-content td {
-  border: 1px solid #ececec;
+  border: 1px solid var(--border-subtle, #ececec);
   padding: 8px 10px;
   text-align: left;
   font-size: var(--chat-font-size);

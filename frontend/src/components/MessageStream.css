@@ -65,6 +65,7 @@
 
 .msg-bubble.user .markdown-content blockquote {
   color: inherit;
+  background: color-mix(in srgb, var(--chat-user-bubble-fg) 12%, transparent);
   border-left-color: color-mix(in srgb, currentColor 35%, transparent);
   opacity: 0.95;
 }

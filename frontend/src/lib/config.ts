@@ -30,10 +30,21 @@ function parseAgentUrls(): Record<string, string> {
 
 export const AGENT_URLS = parseAgentUrls();
 
-/** Eve session base URL for an agent (must include `/eve/<id>` on production). */
+const LOCAL_AGENT_DEV_URLS: Record<string, string> = {
+  omni: "http://127.0.0.1:2000",
+  research: "http://127.0.0.1:2002",
+  "nova-auditor": "http://127.0.0.1:2003",
+};
+
+/** Eve session base URL for an agent (local dev: dedicated port; production: `/eve/<id>` on platform host). */
 export function agentHost(agentId: string): string {
   const explicit = AGENT_URLS[agentId]?.trim();
   if (explicit) return explicit.replace(/\/$/, "");
+  const id = agentId.trim();
+  const localDefault = LOCAL_AGENT_DEV_URLS[id];
+  if (localDefault && /127\.0\.0\.1|localhost/.test(API_URL)) {
+    return localDefault;
+  }
   const base = API_URL.replace(/\/$/, "");
-  return `${base}/eve/${agentId}`;
+  return `${base}/eve/${id}`;
 }

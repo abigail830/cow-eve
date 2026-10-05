@@ -8,6 +8,7 @@
 #   ./scripts/start.sh frontend
 #   ./scripts/start.sh omni
 #   ./scripts/start.sh research
+#   ./scripts/start.sh nova-auditor
 #   ./scripts/start.sh parse-pipeline
 #
 # Set START_PARSE_PIPELINE=0 to skip parse-pipeline when starting backend/omni/all.
@@ -44,6 +45,15 @@ start_research() {
   node "${ROOT_DIR}/backend/scripts/patch-eve-research-workflow-id.mjs" || true
 }
 
+start_nova_auditor() {
+  start_service \
+    "nova-auditor" \
+    "${ROOT_DIR}/backend" \
+    "set -a && [ -f .env ] && . ./.env; set +a; npm run dev:nova-auditor" \
+    "${NOVA_AUDITOR_PORT}" \
+    "http://127.0.0.1:${NOVA_AUDITOR_PORT}/eve/v1/health"
+}
+
 start_frontend() {
   start_service \
     "frontend" \
@@ -69,11 +79,13 @@ case "${TARGET}" in
   all)
     start_omni
     start_research
+    start_nova_auditor
     start_frontend
     ;;
   backend)
     start_omni
     start_research
+    start_nova_auditor
     ;;
   frontend)
     start_frontend
@@ -84,12 +96,15 @@ case "${TARGET}" in
   research)
     start_research
     ;;
+  nova-auditor)
+    start_nova_auditor
+    ;;
   parse-pipeline)
     start_parse_pipeline
     ;;
   *)
     echo "Unknown target: ${TARGET}"
-    echo "Use: all | backend | frontend | omni | research | parse-pipeline"
+    echo "Use: all | backend | frontend | omni | research | nova-auditor | parse-pipeline"
     exit 1
     ;;
 esac
@@ -104,6 +119,9 @@ if [[ "${TARGET}" != "frontend" && "${TARGET}" != "parse-pipeline" ]]; then
 fi
 if [[ "${TARGET}" == "all" || "${TARGET}" == "backend" || "${TARGET}" == "research" ]]; then
   echo "  Research API:   http://127.0.0.1:${RESEARCH_PORT}"
+fi
+if [[ "${TARGET}" == "all" || "${TARGET}" == "backend" || "${TARGET}" == "nova-auditor" ]]; then
+  echo "  Nova Auditor:   http://127.0.0.1:${NOVA_AUDITOR_PORT}"
 fi
 if [[ "${TARGET}" == "parse-pipeline" || ( "${TARGET}" != "frontend" && "${START_PARSE_PIPELINE:-1}" == "1" ) ]]; then
   echo "  Parse pipeline: http://${PARSE_PIPELINE_HOST}:${PARSE_PIPELINE_PORT}"

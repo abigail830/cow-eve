@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { MessageStreamEvent } from "eve/client";
 import type { EveMessage, EveMessagePart } from "eve/react";
 import type { ArtifactSpec } from "@fde/artifact-spec";
-import { resolveArtifactToolPart } from "@fde/artifact-ui";
+import {
+  resolveArtifactToolPart,
+  resolveStructuredDraftToolPart,
+} from "@fde/artifact-ui";
 import { resolveHitlToolPart } from "@fde/question-ui";
 import type { InputResponse } from "eve/client";
 import { ChevronRight, FileText, ImageIcon, Loader2 } from "lucide-react";
@@ -151,6 +154,12 @@ function PartView({
 
     if (artifactView) {
       return <div className="msg-artifact">{artifactView}</div>;
+    }
+
+    const structuredDraftView =
+      output != null ? resolveStructuredDraftToolPart(output) : null;
+    if (structuredDraftView) {
+      return <div className="msg-artifact">{structuredDraftView}</div>;
     }
 
     const toolDone =

@@ -8,6 +8,7 @@ Eve agent workspace powering the Agent Platform.
 |----|------|------------|
 | `omni` | FDE(HaoYu): Unified entry + platform HTTP (`/api/*`) | 2000 |
 | `research` | Ann Researcher: plans + published reports | 2002 |
+| `nova-auditor` | Nova Auditor: certification audit report pairing | 2003 |
 | `content-studio` | Document / one-pager specialist | 2001 |
 
 LRQA Brief/CDP skills and Project templates: [docs/research/PROJECT_TEMPLATES.md](../docs/research/PROJECT_TEMPLATES.md).
@@ -33,6 +34,7 @@ Run both agents (two terminals):
 ```bash
 npm run dev:omni
 npm run dev:research
+npm run dev:nova-auditor
 npm run dev:content-studio
 ```
 

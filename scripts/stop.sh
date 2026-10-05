@@ -15,6 +15,7 @@ source "${SCRIPT_DIR}/lib.sh"
 TARGET="${1:-all}"
 
 stop_backend() {
+  stop_service "nova-auditor" "${NOVA_AUDITOR_PORT}"
   stop_service "research" "${RESEARCH_PORT}"
   stop_service "omni" "${OMNI_PORT}"
   stop_parse_pipeline
@@ -40,12 +41,15 @@ case "${TARGET}" in
   research)
     stop_service "research" "${RESEARCH_PORT}"
     ;;
+  nova-auditor)
+    stop_service "nova-auditor" "${NOVA_AUDITOR_PORT}"
+    ;;
   parse-pipeline)
     stop_parse_pipeline
     ;;
   *)
     echo "Unknown target: ${TARGET}"
-    echo "Use: all | backend | frontend | omni | research | parse-pipeline"
+    echo "Use: all | backend | frontend | omni | research | nova-auditor | parse-pipeline"
     exit 1
     ;;
 esac

@@ -22,6 +22,9 @@ export type {
 } from "./documentPreviewKinds";
 export { classifyDocumentPreviewKind, officePreviewKind } from "./documentPreviewKinds";
 export { resolveArtifactToolPart } from "./resolveToolRenderer";
+export { resolveStructuredDraftToolPart } from "./resolveStructuredDraftToolPart";
+export { StructuredDraftCard } from "./StructuredDraftCard";
+export type { StructuredDraftEnvelope } from "./structuredDraftSchema";
 export {
   downloadArtifactFile,
   downloadArtifactVariant,

@@ -13,5 +13,8 @@ export const WIRED_INTEGRATION_IDS_BY_EVE_AGENT: Readonly<
     "hubspot",
     "hybrid_search",
     "zhipu_web_search"
+  ],
+  "nova-auditor": [
+    "hybrid_search"
   ]
 } as const;
