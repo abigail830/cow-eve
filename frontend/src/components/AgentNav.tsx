@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import type { AgentInfo } from "../lib/api";
+import { AgentDisplayName } from "../lib/agentDisplayName";
 import type { WorkspaceFolderPublic } from "../lib/workspace";
 import { StreamingIndicator } from "./StreamingIndicator";
 import { UserAccountMenu } from "./UserAccountMenu";
@@ -96,9 +97,11 @@ export function AgentNav({
             <img src={agent.avatar} alt="" width={44} height={44} />
             <div className="agent-nav-identity-text">
               <div className="agent-nav-agent-title">
-                <span className="agent-nav-agent-title-name">
-                  {agent.displayName}
-                </span>
+                <AgentDisplayName
+                  displayName={agent.displayName}
+                  className="agent-nav-agent-title-name"
+                  highlightClassName="agent-nav-agent-title-name-highlight"
+                />
                 {streaming ? (
                   <span className="agent-nav-streaming-inline">
                     <StreamingIndicator variant="dot" />

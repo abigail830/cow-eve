@@ -188,6 +188,10 @@
   line-height: 1.25;
 }
 
+.home-agent-card-name-highlight {
+  color: var(--home-agent-card-name-highlight-fg, var(--accent));
+}
+
 .home-agent-card-desc {
   font-size: 0.75rem;
   font-weight: 400;

@@ -171,6 +171,9 @@
   --home-brand-agent-fg: #ffffff;
   --home-brand-team-fg: #c8fff4;
   --home-agent-card-desc-fg: var(--color-text-secondary);
+  /* Mint accent is low-contrast on white/glass cards; navy matches page chrome. */
+  --home-agent-card-name-highlight-fg: var(--brand-navy);
+  --nav-agent-name-highlight-fg: var(--accent);
   --home-header-border: transparent;
   --home-header-shadow: 0 6px 28px rgba(15, 18, 32, 0.28);
   --home-header-highlight: none;

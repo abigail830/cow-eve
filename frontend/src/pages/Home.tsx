@@ -6,6 +6,7 @@ import { useAuth } from "../lib/auth";
 import { PlatformAmbient } from "../components/PlatformAmbient";
 import { PlatformBrand } from "../components/PlatformBrand";
 import { UserAccountMenu } from "../components/UserAccountMenu";
+import { AgentDisplayName } from "../lib/agentDisplayName";
 import "./Home.css";
 
 function greetingForHour(hour: number): string {
@@ -109,7 +110,11 @@ export function HomePage() {
                   <span className="home-agent-card-avatar">
                     <img src={agent.avatar} alt="" width={64} height={64} />
                   </span>
-                  <span className="home-agent-card-name">{agent.displayName}</span>
+                  <AgentDisplayName
+                    displayName={agent.displayName}
+                    className="home-agent-card-name"
+                    highlightClassName="home-agent-card-name-highlight"
+                  />
                   <span className="home-agent-card-desc">{agent.description}</span>
                 </button>
               ))}

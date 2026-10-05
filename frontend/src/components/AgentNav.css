@@ -81,6 +81,10 @@
   max-width: 100%;
 }
 
+.agent-nav-agent-title-name-highlight {
+  color: var(--nav-agent-name-highlight-fg, var(--accent));
+}
+
 .agent-nav-home-link {
   font-size: 0.6875rem;
   font-weight: 500;
