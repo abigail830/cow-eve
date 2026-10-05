@@ -27,9 +27,14 @@
 }
 
 .audio-capture-card {
-  border: 1px solid #f0d4bc;
-  border-radius: 12px;
-  background: #fffdfb;
+  border: 1px solid
+    color-mix(in srgb, var(--accent) 24%, var(--border-default, #d9dbda));
+  border-radius: var(--radius-lg, 12px);
+  background: color-mix(
+    in srgb,
+    var(--accent-muted) 50%,
+    var(--composer-bg, var(--surface-canvas, #fff))
+  );
   padding: 12px 14px;
   margin-bottom: 10px;
 }
@@ -47,33 +52,40 @@
   margin: 0;
   font-size: 14px;
   font-weight: 600;
-  color: #222;
+  color: var(--text-primary, var(--color-ink, #222));
 }
 
 .audio-capture-card-sub,
 .audio-transcript-result-sub {
   margin: 4px 0 0;
   font-size: 12px;
-  color: #777;
+  color: var(--text-muted, #777);
 }
 
 .audio-capture-close {
   border: none;
   background: transparent;
-  color: #999;
+  color: var(--text-muted, #999);
   cursor: pointer;
   padding: 2px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 6px);
+}
+
+.audio-capture-close:hover {
+  background: var(--composer-icon-hover-bg, rgba(0, 0, 0, 0.05));
+  color: var(--text-primary, var(--color-ink));
 }
 
 .audio-capture-title-input {
   width: 100%;
   margin-top: 10px;
-  border: 1px solid #eee;
-  border-radius: 8px;
+  border: 1px solid var(--border-subtle, #eee);
+  border-radius: var(--radius-sm, 8px);
   padding: 8px 10px;
   font: inherit;
   font-size: 13px;
+  color: var(--composer-text-fg, var(--text-primary));
+  background: var(--composer-bg, var(--surface-canvas, #fff));
 }
 
 .audio-capture-parts {
@@ -90,11 +102,11 @@
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  color: #444;
+  color: var(--text-secondary, #444);
   padding: 6px 8px;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #f3f3f3;
+  background: var(--surface-raised, var(--composer-bg, #fff));
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border-subtle, #f3f3f3);
 }
 
 .audio-capture-actions {
@@ -107,10 +119,16 @@
 .audio-capture-actions button {
   font-size: 12px;
   padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid #e8e8e8;
-  background: #fff;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--composer-toolbar-border, var(--border-default, #e8e8e8));
+  background: var(--composer-toolbar-bg, var(--surface-raised, #fff));
+  color: var(--composer-toolbar-fg, var(--text-primary));
   cursor: pointer;
+}
+
+.audio-capture-actions button:not(:disabled):not(.primary):hover {
+  background: var(--composer-toolbar-hover-bg, rgba(0, 0, 0, 0.04));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-default));
 }
 
 .audio-capture-actions button.primary {
@@ -127,7 +145,7 @@
 .audio-capture-error {
   margin: 8px 0 0;
   font-size: 12px;
-  color: #c0392b;
+  color: var(--color-error, #c0392b);
 }
 
 .msg-audio-capture-turn {
@@ -178,11 +196,11 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  color: #555;
+  color: var(--text-secondary, #555);
 }
 
 .audio-capture-user-bubble-size {
-  color: #999;
+  color: var(--text-muted, #999);
   flex-shrink: 0;
 }
 
@@ -191,6 +209,6 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #777;
+  color: var(--text-muted, #777);
   padding: 4px 8px;
 }

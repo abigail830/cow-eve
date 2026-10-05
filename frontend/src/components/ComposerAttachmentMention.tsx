@@ -98,6 +98,7 @@ export function ComposerAttachmentMention({
                 onSelect(item);
               }}
               onMouseEnter={() => onSelectedIndexChange(index)}
+              title={item.filename}
             >
               <span className="composer-mention-icon">
                 <AttachmentRowIcon mediaType={item.mediaType} />
