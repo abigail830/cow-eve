@@ -75,10 +75,14 @@ export async function createProject(input: {
   name: string;
   instructions?: string;
 }): Promise<ProjectPublic> {
-  const res = await projectFetch("/api/projects", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  const { agentId, name, instructions } = input;
+  const res = await projectFetch(
+    `/api/projects?agentId=${encodeURIComponent(agentId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ name, instructions }),
+    },
+  );
   const body = (await res.json()) as {
     ok?: boolean;
     project?: ProjectPublic;

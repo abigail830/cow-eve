@@ -6,6 +6,8 @@ description: Use when the user wants to create or update a project, draft standi
 
 Projects hold **standing instructions** (tone, audience, terminology, delivery defaults) injected on every turn while a chat is bound to that project. They are **scoped to this agent only** — you cannot create or edit another agent's projects.
 
+**Do not pass `agentId` or `eveSessionId` yourself** — the platform injects them on every projects API call. After **`createProject`**, call **`listProjects`** or **`getProject`** with the returned `id` to confirm the row exists before **`updateProject`** or **`bindChatSession`**.
+
 ## API tools (qualified names)
 
 | Action | Tool |

@@ -20,7 +20,6 @@ export const projectsOpenApiSpec = {
         type: "object",
         required: ["name"],
         properties: {
-          agentId: { type: "string" },
           name: { type: "string", minLength: 1, maxLength: 200 },
           instructions: { type: "string", maxLength: 32_000 },
         },
@@ -34,10 +33,7 @@ export const projectsOpenApiSpec = {
       },
       BindChatSessionRequest: {
         type: "object",
-        required: ["projectId"],
         properties: {
-          agentId: { type: "string" },
-          eveSessionId: { type: "string" },
           projectId: { type: "string", format: "uuid", nullable: true },
         },
       },
@@ -65,6 +61,14 @@ export const projectsOpenApiSpec = {
       post: {
         operationId: "createProject",
         summary: "Create a project with optional standing instructions.",
+        parameters: [
+          {
+            name: "agentId",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         requestBody: {
           required: true,
           content: {
@@ -136,6 +140,20 @@ export const projectsOpenApiSpec = {
         operationId: "bindChatSession",
         summary:
           "Bind the current chat session to a project so its instructions apply on every turn.",
+        parameters: [
+          {
+            name: "agentId",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+          },
+          {
+            name: "eveSessionId",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         requestBody: {
           required: true,
           content: {

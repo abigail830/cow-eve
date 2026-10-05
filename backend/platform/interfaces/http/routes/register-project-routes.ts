@@ -194,7 +194,9 @@ export function registerProjectRoutes(
         return json({ ok: false, error: "name is required" }, 400, request);
       }
       try {
-        const agentId = resolveRegisteredAgentId(body.agentId);
+        const agentId = resolveRegisteredAgentId(
+          readAgentIdFromQuery(request) ?? body.agentId,
+        );
         const project = await createProjectForUser({
           userId: auth.principalId,
           agentId,
@@ -345,8 +347,12 @@ export function registerProjectRoutes(
       } catch {
         return json({ ok: false, error: "Invalid JSON body" }, 400, request);
       }
-      const eveSessionId = body.eveSessionId?.trim();
-      const agentId = body.agentId?.trim();
+      const url = new URL(request.url);
+      const eveSessionId =
+        url.searchParams.get("eveSessionId")?.trim() ||
+        body.eveSessionId?.trim();
+      const agentId =
+        url.searchParams.get("agentId")?.trim() || body.agentId?.trim();
       if (!eveSessionId || !agentId) {
         return json(
           { ok: false, error: "eveSessionId and agentId are required" },
@@ -355,9 +361,10 @@ export function registerProjectRoutes(
         );
       }
       try {
+        const scopedAgentId = resolveRegisteredAgentId(agentId);
         await bindChatSessionForUser({
           userId: auth.principalId,
-          agentId,
+          agentId: scopedAgentId,
           eveSessionId,
           projectId: body.projectId ?? null,
         });

@@ -33,6 +33,10 @@ import {
   buildChatTimeline,
   captureIdsInPlatformStream,
 } from "../lib/platformProductTurns";
+import {
+  expandSteeredAssistantMessages,
+  useSteerAssistantSplitMap,
+} from "../lib/steerMessageLayout";
 import { AudioCaptureUserBubble } from "./AudioCaptureUserBubble";
 import { AudioTranscriptResultCard } from "./AudioTranscriptResultCard";
 import { MarkdownContent } from "./MarkdownContent";
@@ -376,9 +380,16 @@ export function MessageStream({
     return map;
   }, [libraryAttachments]);
 
+  const steerSplits = useSteerAssistantSplitMap(messages);
+
+  const layoutMessages = useMemo(
+    () => expandSteeredAssistantMessages(messages, steerSplits),
+    [messages, steerSplits],
+  );
+
   const displayMessages = useMemo(
-    () => collapseUserClientContextMessages(messages),
-    [messages],
+    () => collapseUserClientContextMessages(layoutMessages),
+    [layoutMessages],
   );
 
   const captureById = useMemo(() => {
