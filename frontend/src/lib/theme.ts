@@ -17,7 +17,7 @@ export const COLOR_THEMES: readonly ThemeDefinition[] = [
   {
     id: "arql",
     name: "ARQL",
-    description: "Teal accent · slate rail",
+    description: "Teal accent · dark surfaces",
   },
   {
     id: "inspire",

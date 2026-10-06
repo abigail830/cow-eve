@@ -9,14 +9,14 @@
 .login-card {
   position: relative;
   z-index: 1;
-  width: min(400px, 100%);
+  width: min(480px, 100%);
   background: var(--glass-surface-raised);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: 18px;
   box-shadow: var(--glass-shadow), var(--glass-highlight);
-  padding: 36px 32px 32px;
+  padding: 36px 40px 32px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -59,7 +59,7 @@
 .login-sub {
   margin: -4px 0 8px;
   text-align: center;
-  color: #8a8a8a;
+  color: var(--text-muted, #8a8a8a);
   font-size: 0.9rem;
 }
 
@@ -68,16 +68,16 @@
   flex-direction: column;
   gap: 6px;
   font-size: 0.8rem;
-  color: #8a8a8a;
+  color: var(--text-muted, #8a8a8a);
 }
 
 .login-card input {
-  border: none;
+  border: 1px solid var(--border-subtle, transparent);
   border-radius: 10px;
-  background: #eef4fa;
+  background: var(--surface-muted, #eef4fa);
   padding: 12px 14px;
   font-size: 0.95rem;
-  color: #1a1a1a;
+  color: var(--text-primary, #1a1a1a);
   outline: none;
 }
 

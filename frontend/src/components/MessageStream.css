@@ -6,7 +6,7 @@
 }
 
 .msg-empty {
-  color: #999;
+  color: var(--text-muted, #999);
   text-align: center;
   margin-top: 20vh;
   font-size: inherit;
@@ -87,6 +87,13 @@
 
 .msg-artifact {
   width: 100%;
+  max-width: 100%;
+}
+
+.msg-artifact .structured-draft-card,
+.msg-artifact .artifact-inline-card,
+.msg-hitl .hitl-card {
+  max-width: 100%;
 }
 
 .msg-assistant {
@@ -105,7 +112,7 @@
 
 .msg-step {
   width: 100%;
-  border: 1px solid #eee;
+  border: 1px solid var(--border-subtle, #eee);
   border-radius: 10px;
   background: transparent;
   padding: 0;
@@ -123,7 +130,7 @@
   gap: 6px;
   list-style: none;
   padding: 3px 10px;
-  background: #fff;
+  background: var(--surface-raised, #fff);
   font-family: var(--font-heading);
   font-size: 12px;
   line-height: 1.35;
@@ -146,7 +153,7 @@
 
 .msg-step-outcome {
   font-weight: 400;
-  color: #777;
+  color: var(--text-secondary, #777);
 }
 
 .msg-step-outcome--error {
@@ -165,7 +172,7 @@
 }
 
 .msg-step[open] summary {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-subtle, #eee);
 }
 
 .msg-step > .markdown-content,
@@ -181,8 +188,8 @@
 
 .msg-step > .markdown-content {
   padding: 6px 10px 8px;
-  background: #fbfbfb;
-  color: #666;
+  background: var(--surface-muted, #fbfbfb);
+  color: var(--text-secondary, #666);
 }
 
 .msg-step > pre {
@@ -233,13 +240,13 @@
 
 .msg-step pre {
   padding: 6px 8px;
-  background: #f7f8f8;
-  border: 1px solid #eee;
+  background: var(--surface-muted, #f7f8f8);
+  border: 1px solid var(--border-subtle, #eee);
   border-radius: 8px;
   overflow: auto;
   font-size: 12px;
   line-height: 1.45;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .tool-out {
