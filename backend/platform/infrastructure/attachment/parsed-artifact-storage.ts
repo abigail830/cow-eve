@@ -3,9 +3,21 @@ import {
   putAttachmentBytes,
 } from "./attachment-storage.js";
 import {
+  parsedArtifactBlobKey,
   parsedArtifactObjectName,
+  parsedFigureBlobKey,
   parsedFigureObjectName,
 } from "../../domain/docstore/parsed-manifest.js";
+
+async function loadBytesWithLegacyFallback(
+  scopeId: string,
+  blobKey: string,
+  legacyObjectName: string,
+): Promise<Uint8Array | null> {
+  const primary = await getAttachmentBytes(scopeId, blobKey);
+  if (primary?.byteLength) return primary;
+  return getAttachmentBytes(scopeId, legacyObjectName);
+}
 
 export async function saveParsedArtifact(
   chatId: string,
@@ -14,8 +26,12 @@ export async function saveParsedArtifact(
   data: Uint8Array,
   contentType?: string,
 ): Promise<void> {
-  const objectName = parsedArtifactObjectName(chatId, attachmentId, artifactKey);
-  await putAttachmentBytes(chatId, objectName, data, contentType);
+  await putAttachmentBytes(
+    chatId,
+    parsedArtifactBlobKey(attachmentId, artifactKey),
+    data,
+    contentType,
+  );
 }
 
 export async function loadParsedArtifact(
@@ -23,8 +39,11 @@ export async function loadParsedArtifact(
   attachmentId: string,
   artifactKey: string,
 ): Promise<Uint8Array | null> {
-  const objectName = parsedArtifactObjectName(chatId, attachmentId, artifactKey);
-  return getAttachmentBytes(chatId, objectName);
+  return loadBytesWithLegacyFallback(
+    chatId,
+    parsedArtifactBlobKey(attachmentId, artifactKey),
+    parsedArtifactObjectName(chatId, attachmentId, artifactKey),
+  );
 }
 
 export async function parsedArtifactExists(
@@ -44,13 +63,12 @@ export async function saveParsedFigure(
   data: Uint8Array,
   contentType?: string,
 ): Promise<void> {
-  const objectName = parsedFigureObjectName(
+  await putAttachmentBytes(
     chatId,
-    attachmentId,
-    figureId,
-    extension,
+    parsedFigureBlobKey(attachmentId, figureId, extension),
+    data,
+    contentType,
   );
-  await putAttachmentBytes(chatId, objectName, data, contentType);
 }
 
 export async function loadParsedFigure(
@@ -59,11 +77,9 @@ export async function loadParsedFigure(
   figureId: string,
   extension: string,
 ): Promise<Uint8Array | null> {
-  const objectName = parsedFigureObjectName(
+  return loadBytesWithLegacyFallback(
     chatId,
-    attachmentId,
-    figureId,
-    extension,
+    parsedFigureBlobKey(attachmentId, figureId, extension),
+    parsedFigureObjectName(chatId, attachmentId, figureId, extension),
   );
-  return getAttachmentBytes(chatId, objectName);
 }

@@ -137,89 +137,101 @@ export async function handleParseArtifactsBatch(
   attachmentId: string,
   request: Request,
 ): Promise<Response> {
-  const token = extractBearer(request.headers.get("authorization"));
-  if (!token) {
-    return Response.json({ error: "missing bearer token" }, { status: 401 });
-  }
-  const run = await getParseJobRunForAttachmentToken(
-    attachmentId,
-    hashRunToken(token),
-  );
-  if (!run) {
-    return Response.json({ error: "forbidden" }, { status: 403 });
-  }
-
-  let form: FormData;
   try {
-    form = await request.formData();
-  } catch {
-    return Response.json({ error: "invalid multipart body" }, { status: 400 });
-  }
-  const contentMd = form.get("content_md");
-  const metaJson = form.get("meta_json");
-  const pageindexJson = form.get("pageindex_json");
-  if (!(contentMd instanceof File) || !(metaJson instanceof File)) {
-    return Response.json({ error: "content_md and meta_json required" }, { status: 400 });
-  }
+    const token = extractBearer(request.headers.get("authorization"));
+    if (!token) {
+      return Response.json({ error: "missing bearer token" }, { status: 401 });
+    }
+    const run = await getParseJobRunForAttachmentToken(
+      attachmentId,
+      hashRunToken(token),
+    );
+    if (!run) {
+      return Response.json({ error: "forbidden" }, { status: 403 });
+    }
 
-  const contentData = new Uint8Array(await contentMd.arrayBuffer());
-  const metaData = new Uint8Array(await metaJson.arrayBuffer());
-  const artifacts: Array<{
-    artifactKey: string;
-    sizeBytes: number;
-    contentType: string;
-  }> = [
-    {
-      artifactKey: "content_md",
-      sizeBytes: contentData.byteLength,
-      contentType: "text/markdown; charset=utf-8",
-    },
-    {
-      artifactKey: "meta_json",
-      sizeBytes: metaData.byteLength,
-      contentType: "application/json",
-    },
-  ];
+    let form: FormData;
+    try {
+      form = await request.formData();
+    } catch {
+      return Response.json({ error: "invalid multipart body" }, { status: 400 });
+    }
+    const contentMd = form.get("content_md");
+    const metaJson = form.get("meta_json");
+    const pageindexJson = form.get("pageindex_json");
+    if (!(contentMd instanceof File) || !(metaJson instanceof File)) {
+      return Response.json(
+        { error: "content_md and meta_json required" },
+        { status: 400 },
+      );
+    }
 
-  await saveParsedArtifact(
-    run.scopeId,
-    attachmentId,
-    "content_md",
-    contentData,
-    "text/markdown; charset=utf-8",
-  );
-  await saveParsedArtifact(
-    run.scopeId,
-    attachmentId,
-    "meta_json",
-    metaData,
-    "application/json",
-  );
+    const contentData = new Uint8Array(await contentMd.arrayBuffer());
+    const metaData = new Uint8Array(await metaJson.arrayBuffer());
+    const artifacts: Array<{
+      artifactKey: string;
+      sizeBytes: number;
+      contentType: string;
+    }> = [
+      {
+        artifactKey: "content_md",
+        sizeBytes: contentData.byteLength,
+        contentType: "text/markdown; charset=utf-8",
+      },
+      {
+        artifactKey: "meta_json",
+        sizeBytes: metaData.byteLength,
+        contentType: "application/json",
+      },
+    ];
 
-  if (pageindexJson instanceof File && pageindexJson.size > 0) {
-    const pageData = new Uint8Array(await pageindexJson.arrayBuffer());
     await saveParsedArtifact(
       run.scopeId,
       attachmentId,
-      "pageindex_json",
-      pageData,
+      "content_md",
+      contentData,
+      "text/markdown; charset=utf-8",
+    );
+    await saveParsedArtifact(
+      run.scopeId,
+      attachmentId,
+      "meta_json",
+      metaData,
       "application/json",
     );
-    artifacts.push({
-      artifactKey: "pageindex_json",
-      sizeBytes: pageData.byteLength,
-      contentType: "application/json",
-    });
-  }
 
-  const ok = await recordParsedArtifactsForRun(run, artifacts);
-  if (!ok) {
-    return Response.json({ error: "file not found" }, { status: 404 });
+    if (pageindexJson instanceof File && pageindexJson.size > 0) {
+      const pageData = new Uint8Array(await pageindexJson.arrayBuffer());
+      await saveParsedArtifact(
+        run.scopeId,
+        attachmentId,
+        "pageindex_json",
+        pageData,
+        "application/json",
+      );
+      artifacts.push({
+        artifactKey: "pageindex_json",
+        sizeBytes: pageData.byteLength,
+        contentType: "application/json",
+      });
+    }
+
+    const ok = await recordParsedArtifactsForRun(run, artifacts);
+    if (!ok) {
+      return Response.json({ error: "file not found" }, { status: 404 });
+    }
+    return Response.json({
+      status: "ok",
+      artifacts: artifacts.map((item) => item.artifactKey),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "artifacts batch failed";
+    console.error("[parse-internal] artifacts batch failed", {
+      attachmentId,
+      error: message,
+    });
+    return Response.json({ error: message }, { status: 500 });
   }
-  return Response.json({
-    status: "ok",
-    artifacts: artifacts.map((item) => item.artifactKey),
-  });
 }
 
 /** Multipart field name is often "files"; real filename is in Content-Disposition or field key. */

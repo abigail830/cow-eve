@@ -21,13 +21,30 @@ export function parsedArtifactPrefix(
   return `chat-attachments/${chatId}/parsed/${attachmentId}`;
 }
 
+/** Blob object key under `chat-attachments/{scopeId}/` (no duplicate prefix). */
+export function parsedArtifactBlobKey(
+  attachmentId: string,
+  artifactKey: string,
+): string {
+  const filename = ARTIFACT_FILENAMES[artifactKey] ?? artifactKey;
+  return `parsed/${attachmentId}/${filename}`;
+}
+
 export function parsedArtifactObjectName(
   chatId: string,
   attachmentId: string,
   artifactKey: string,
 ): string {
-  const filename = ARTIFACT_FILENAMES[artifactKey] ?? artifactKey;
-  return `${parsedArtifactPrefix(chatId, attachmentId)}/${filename}`;
+  return `${parsedArtifactPrefix(chatId, attachmentId)}/${ARTIFACT_FILENAMES[artifactKey] ?? artifactKey}`;
+}
+
+export function parsedFigureBlobKey(
+  attachmentId: string,
+  figureId: string,
+  extension: string,
+): string {
+  const ext = extension.replace(/^\./, "");
+  return `parsed/${attachmentId}/figures/${figureId}.${ext}`;
 }
 
 export function parsedFigureObjectName(
@@ -72,11 +89,7 @@ export function mergeParsedArtifactRecord(
   artifacts[input.artifactKey] = {
     artifact_key: input.artifactKey,
     relative_path: filename,
-    storage_path: parsedArtifactObjectName(
-      input.chatId,
-      input.attachmentId,
-      input.artifactKey,
-    ),
+    storage_path: `${parsedArtifactPrefix(input.chatId, input.attachmentId)}/${filename}`,
     size_bytes: input.sizeBytes,
     content_type: input.contentType ?? "application/octet-stream",
     updated_at: new Date().toISOString(),
