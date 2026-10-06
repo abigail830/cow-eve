@@ -1,0 +1,12 @@
+[
+  {
+    "business_unit": "EXAMPLE-BU-01",
+    "display_name": "Alex Morgan",
+    "department": "Advisory",
+    "title": "Director",
+    "region": "APAC",
+    "bio": "Short bio for proposal CV blocks.",
+    "phone": "+1 555 0100",
+    "avatar_blob_path": "cv/alex-morgan.webp"
+  }
+]

@@ -13,6 +13,8 @@ NOVA_AUDITOR_PORT="${NOVA_AUDITOR_PORT:-2003}"
 FRONTEND_PORT="${FRONTEND_PORT:-5273}"
 PARSE_PIPELINE_PORT="${PARSE_PIPELINE_PORT:-8091}"
 PARSE_PIPELINE_HOST="${PARSE_PIPELINE_HOST:-127.0.0.1}"
+PROPOSAL_KNOWLEDGE_PORT="${PROPOSAL_KNOWLEDGE_PORT:-8093}"
+PROPOSAL_KNOWLEDGE_HOST="${PROPOSAL_KNOWLEDGE_HOST:-127.0.0.1}"
 
 ensure_run_dirs() {
   mkdir -p "${LOG_DIR}"
@@ -136,6 +138,88 @@ read_database_url() {
 # Skips (with a notice) when DATABASE_URL is unset so local UI-only starts still work.
 # Eve dev quarantines in-flight workflow runs after hot reload / restart.
 # Clearing this on omni start avoids turns stuck in "Streaming" forever.
+read_proposal_knowledge_database_url() {
+  if [[ -n "${PROPOSAL_KNOWLEDGE_DATABASE_URL:-}" ]]; then
+    printf '%s' "${PROPOSAL_KNOWLEDGE_DATABASE_URL}"
+    return 0
+  fi
+  local env_file="${ROOT_DIR}/proposal-knowledge/.env"
+  [[ -f "${env_file}" ]] || return 1
+
+  local line val
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    [[ "${line}" =~ ^[[:space:]]*# ]] && continue
+    [[ "${line}" =~ ^[[:space:]]*DATABASE_URL[[:space:]]*= ]] || continue
+    val="${line#*=}"
+    val="${val#"${val%%[![:space:]]*}"}"
+    val="${val%"${val##*[![:space:]]}"}"
+    if [[ ${#val} -ge 2 && ${val:0:1} == '"' && ${val: -1} == '"' ]]; then
+      val="${val:1:${#val}-2}"
+    elif [[ ${#val} -ge 2 && ${val:0:1} == "'" && ${val: -1} == "'" ]]; then
+      val="${val:1:${#val}-2}"
+    fi
+    printf '%s' "${val}"
+    return 0
+  done <"${env_file}"
+  return 1
+}
+
+run_proposal_knowledge_db_init() {
+  local pk="${ROOT_DIR}/proposal-knowledge"
+  if [[ ! -d "${pk}" ]]; then
+    echo "  • skip proposal-knowledge db init (directory missing)"
+    return 0
+  fi
+  local cli="${pk}/.venv/bin/proposal-knowledge"
+  if [[ ! -x "${cli}" ]]; then
+    echo "  • skip proposal-knowledge db init (venv missing — run backend/scripts/setup_proposal_knowledge.sh)"
+    return 0
+  fi
+  local db_url
+  if ! db_url="$(read_proposal_knowledge_database_url)"; then
+    echo "  • skip proposal-knowledge db init (DATABASE_URL not set in proposal-knowledge/.env)"
+    return 0
+  fi
+  if [[ -z "${db_url}" ]]; then
+    echo "  • skip proposal-knowledge db init (DATABASE_URL is empty)"
+    return 0
+  fi
+  echo "  → proposal-knowledge db init…"
+  if (
+    cd "${pk}" || exit 1
+    DATABASE_URL="${db_url}" "${cli}" db init
+  ); then
+    echo "  ✓ proposal-knowledge db init done"
+  else
+    echo "  ✗ proposal-knowledge db init failed"
+    if [[ "${COW_EVE_REQUIRE_DB_MIGRATE:-}" == "1" ]]; then
+      return 1
+    fi
+  fi
+}
+
+start_proposal_knowledge() {
+  local pk="${ROOT_DIR}/proposal-knowledge"
+  local port="${PROPOSAL_KNOWLEDGE_PORT}"
+  local host="${PROPOSAL_KNOWLEDGE_HOST}"
+  if [[ ! -d "${pk}" ]]; then
+    echo "  • skip proposal-knowledge (directory missing)"
+    return 0
+  fi
+  local cli="${pk}/.venv/bin/proposal-knowledge"
+  if [[ ! -x "${cli}" ]]; then
+    echo "  ✗ proposal-knowledge venv missing (${cli})"
+    echo "    Run: ${ROOT_DIR}/backend/scripts/setup_proposal_knowledge.sh"
+    return 1
+  fi
+  start_service \
+    "proposal-knowledge" \
+    "${pk}" \
+    "set -a && [ -f .env ] && . ./.env; set +a; \"${cli}\" serve --host ${host} --port ${port}" \
+    "${port}" \
+    "http://${host}:${port}/health"
+}
+
 start_parse_pipeline() {
   local pp="${ROOT_DIR}/parse-pipeline"
   local port="${PARSE_PIPELINE_PORT}"
@@ -270,6 +354,10 @@ start_service() {
 stop_parse_pipeline() {
   stop_service "parse-pipeline" "${PARSE_PIPELINE_PORT}"
   rm -f "${ROOT_DIR}/parse-pipeline/.run/parse-pipeline.pid"
+}
+
+stop_proposal_knowledge() {
+  stop_service "proposal-knowledge" "${PROPOSAL_KNOWLEDGE_PORT}"
 }
 
 stop_service() {

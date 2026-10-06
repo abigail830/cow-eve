@@ -2,6 +2,7 @@ import {
   getIntegrationDefinition,
   INTEGRATION_CATALOG,
   INTEGRATION_HYBRID_SEARCH,
+  INTEGRATION_PROPOSAL_KNOWLEDGE,
   INTEGRATION_ZHIPU_WEB_SEARCH,
   type IntegrationDefinition,
   type IntegrationFieldDefinition,
@@ -18,8 +19,12 @@ import {
 import {
   getHybridSearchMcpUrl,
   getHybridSearchApiKey,
+  getProposalCatalogMcpUrl,
+  getProposalCvMcpUrl,
+  getProposalKnowledgeApiKey,
   getZhipuApiKey,
   normalizeHybridSearchApiKey,
+  normalizeProposalKnowledgeApiKey,
   normalizeHttpUrl,
   resolveFirstHttpUrl,
 } from "../../infrastructure/config/mcp.config.js";
@@ -344,6 +349,40 @@ export async function resolveHybridSearchCredentials(userId: string | null): Pro
   const url = getHybridSearchMcpUrl();
   const apiKey = getHybridSearchApiKey();
   return { url, apiKey };
+}
+
+export async function resolveProposalKnowledgeCredentials(
+  userId: string | null,
+): Promise<{
+  catalogUrl: string | null;
+  cvUrl: string | null;
+  apiKey: string | null;
+}> {
+  if (userId) {
+    const row = await drizzleUserIntegrationRepository.getForUser(
+      userId,
+      INTEGRATION_PROPOSAL_KNOWLEDGE,
+    );
+    const apiKey = normalizeProposalKnowledgeApiKey(readSecret(row, "apiKey"));
+    const config = row?.config ?? {};
+    const catalogFromConfig =
+      typeof config.catalogMcpUrl === "string" ? config.catalogMcpUrl : "";
+    const cvFromConfig =
+      typeof config.cvMcpUrl === "string" ? config.cvMcpUrl : "";
+    if (apiKey) {
+      const catalogUrl = resolveFirstHttpUrl(
+        catalogFromConfig,
+        getProposalCatalogMcpUrl(),
+      );
+      const cvUrl = resolveFirstHttpUrl(cvFromConfig, getProposalCvMcpUrl());
+      return { catalogUrl, cvUrl, apiKey };
+    }
+  }
+  return {
+    catalogUrl: getProposalCatalogMcpUrl(),
+    cvUrl: getProposalCvMcpUrl(),
+    apiKey: getProposalKnowledgeApiKey(),
+  };
 }
 
 export async function resolveIntegrationMcpAccessToken(

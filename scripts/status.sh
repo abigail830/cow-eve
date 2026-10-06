@@ -11,6 +11,7 @@ ensure_run_dirs
 
 echo "cow-eve status:"
 service_status_line "parse-pipeline" "${PARSE_PIPELINE_PORT}"
+service_status_line "proposal-knowledge" "${PROPOSAL_KNOWLEDGE_PORT}"
 service_status_line "omni" "${OMNI_PORT}"
 service_status_line "research" "${RESEARCH_PORT}"
 service_status_line "nova-auditor" "${NOVA_AUDITOR_PORT}"

@@ -137,3 +137,30 @@ export function normalizeHubspotMcpUrl(raw: string | null | undefined): string {
 export function getHubspotMcpUrl(): string {
   return normalizeHubspotMcpUrl(process.env.HUBSPOT_MCP_URL);
 }
+
+const PROPOSAL_CATALOG_MCP_SUFFIX = "/api/mcp/catalog/mcp";
+const PROPOSAL_CV_MCP_SUFFIX = "/api/mcp/cv/mcp";
+
+export function getProposalCatalogMcpUrl(): string | null {
+  const fromEnv = process.env.PROPOSAL_CATALOG_MCP_URL?.trim();
+  return resolveFirstHttpUrl(fromEnv) ?? null;
+}
+
+export function getProposalCvMcpUrl(): string | null {
+  const fromEnv = process.env.PROPOSAL_CV_MCP_URL?.trim();
+  return resolveFirstHttpUrl(fromEnv) ?? null;
+}
+
+export function normalizeProposalKnowledgeApiKey(
+  raw: string | null | undefined,
+): string | null {
+  return normalizeHybridSearchApiKey(raw);
+}
+
+export function getProposalKnowledgeApiKey(): string | null {
+  return normalizeProposalKnowledgeApiKey(
+    process.env.PROPOSAL_KNOWLEDGE_API_KEY,
+  );
+}
+
+export { PROPOSAL_CATALOG_MCP_SUFFIX, PROPOSAL_CV_MCP_SUFFIX };

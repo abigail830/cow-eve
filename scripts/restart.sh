@@ -3,7 +3,7 @@
 #
 # Usage:
 #   ./scripts/restart.sh
-#   ./scripts/restart.sh all|backend|frontend|omni|research|parse-pipeline
+#   ./scripts/restart.sh all|backend|frontend|omni|research|parse-pipeline|proposal-knowledge
 
 set -euo pipefail
 
@@ -17,10 +17,11 @@ TARGET="${1:-all}"
 sleep 0.5
 
 case "${TARGET}" in
-  all|backend|omni)
+  all|backend|omni|proposal-knowledge)
     ensure_env_files
     echo "Database migrations (before start)…"
     run_db_migrate
+    run_proposal_knowledge_db_init
     export COW_EVE_SKIP_DB_MIGRATE=1
     ;;
 esac

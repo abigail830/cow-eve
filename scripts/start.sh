@@ -10,8 +10,10 @@
 #   ./scripts/start.sh research
 #   ./scripts/start.sh nova-auditor
 #   ./scripts/start.sh parse-pipeline
+#   ./scripts/start.sh proposal-knowledge
 #
 # Set START_PARSE_PIPELINE=0 to skip parse-pipeline when starting backend/omni/all.
+# Set START_PROPOSAL_KNOWLEDGE=0 to skip proposal-knowledge when starting backend/omni/all.
 
 set -euo pipefail
 
@@ -24,6 +26,9 @@ TARGET="${1:-all}"
 start_omni() {
   if [[ "${START_PARSE_PIPELINE:-1}" == "1" ]]; then
     start_parse_pipeline
+  fi
+  if [[ "${START_PROPOSAL_KNOWLEDGE:-1}" == "1" ]]; then
+    start_proposal_knowledge
   fi
   clear_omni_eve_workflow_runs
   start_service \
@@ -68,9 +73,10 @@ ensure_run_dirs
 ensure_env_files
 
 case "${TARGET}" in
-  all|backend|omni)
+  all|backend|omni|proposal-knowledge)
     if [[ "${COW_EVE_SKIP_DB_MIGRATE:-}" != "1" ]]; then
       run_db_migrate
+      run_proposal_knowledge_db_init
     fi
     ;;
 esac
@@ -102,9 +108,12 @@ case "${TARGET}" in
   parse-pipeline)
     start_parse_pipeline
     ;;
+  proposal-knowledge)
+    start_proposal_knowledge
+    ;;
   *)
     echo "Unknown target: ${TARGET}"
-    echo "Use: all | backend | frontend | omni | research | nova-auditor | parse-pipeline"
+    echo "Use: all | backend | frontend | omni | research | nova-auditor | parse-pipeline | proposal-knowledge"
     exit 1
     ;;
 esac
@@ -125,6 +134,11 @@ if [[ "${TARGET}" == "all" || "${TARGET}" == "backend" || "${TARGET}" == "nova-a
 fi
 if [[ "${TARGET}" == "parse-pipeline" || ( "${TARGET}" != "frontend" && "${START_PARSE_PIPELINE:-1}" == "1" ) ]]; then
   echo "  Parse pipeline: http://${PARSE_PIPELINE_HOST}:${PARSE_PIPELINE_PORT}"
+fi
+if [[ "${TARGET}" == "all" || "${TARGET}" == "backend" || "${TARGET}" == "omni" || "${TARGET}" == "proposal-knowledge" ]]; then
+  if [[ "${TARGET}" == "proposal-knowledge" || "${START_PROPOSAL_KNOWLEDGE:-1}" == "1" ]]; then
+    echo "  Proposal knowledge: http://${PROPOSAL_KNOWLEDGE_HOST}:${PROPOSAL_KNOWLEDGE_PORT}"
+  fi
 fi
 echo
 echo "Logs: ${LOG_DIR}"

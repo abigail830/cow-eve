@@ -34,6 +34,7 @@ export const INTEGRATION_ZHIPU_WEB_SEARCH = "zhipu_web_search";
 export const INTEGRATION_HYBRID_SEARCH = "hybrid_search";
 export const INTEGRATION_NOTION = "notion";
 export const INTEGRATION_HUBSPOT = "hubspot";
+export const INTEGRATION_PROPOSAL_KNOWLEDGE = "proposal_knowledge";
 
 export const INTEGRATION_CATALOG: readonly IntegrationDefinition[] = [
   {
@@ -103,6 +104,43 @@ export const INTEGRATION_CATALOG: readonly IntegrationDefinition[] = [
     authKind: "oauth",
     scope: "agent",
     fields: [],
+  },
+  {
+    id: INTEGRATION_PROPOSAL_KNOWLEDGE,
+    name: "Proposal Knowledge",
+    description:
+      "Read-only product catalog (MDM) and team directory (CV) for proposal drafting via MCP.",
+    docUrl: "https://github.com",
+    authKind: "api_key",
+    scope: "user",
+    fields: [
+      {
+        key: "catalogMcpUrl",
+        kind: "url",
+        label: "Catalog MCP URL",
+        description:
+          "Streamable HTTP MCP endpoint for catalog tools (include /mcp suffix).",
+        storeInConfig: true,
+        required: false,
+      },
+      {
+        key: "cvMcpUrl",
+        kind: "url",
+        label: "CV MCP URL",
+        description:
+          "Streamable HTTP MCP endpoint for CV tools (include /mcp suffix).",
+        storeInConfig: true,
+        required: false,
+      },
+      {
+        key: "apiKey",
+        kind: "secret",
+        label: "API Key",
+        description:
+          "Bearer token issued by the Proposal Knowledge service (pk_live_…).",
+        required: true,
+      },
+    ],
   },
 ];
 

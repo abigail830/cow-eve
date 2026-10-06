@@ -18,6 +18,7 @@ stop_backend() {
   stop_service "nova-auditor" "${NOVA_AUDITOR_PORT}"
   stop_service "research" "${RESEARCH_PORT}"
   stop_service "omni" "${OMNI_PORT}"
+  stop_proposal_knowledge
   stop_parse_pipeline
 }
 
@@ -47,9 +48,12 @@ case "${TARGET}" in
   parse-pipeline)
     stop_parse_pipeline
     ;;
+  proposal-knowledge)
+    stop_proposal_knowledge
+    ;;
   *)
     echo "Unknown target: ${TARGET}"
-    echo "Use: all | backend | frontend | omni | research | nova-auditor | parse-pipeline"
+    echo "Use: all | backend | frontend | omni | research | nova-auditor | parse-pipeline | proposal-knowledge"
     exit 1
     ;;
 esac
