@@ -19,9 +19,11 @@ type Props = {
 function configFieldDisplayValue(
   config: Record<string, string>,
   field: IntegrationFieldPublic,
+  integrationConfigured: boolean,
 ): string {
   const stored = config[field.key]?.trim();
   if (stored) return stored;
+  if (integrationConfigured) return "";
   return field.defaultValue ?? "";
 }
 
@@ -229,8 +231,12 @@ function ApiKeyIntegrationCard({
       const configPayload: Record<string, string | undefined> = {};
       for (const field of item.fields) {
         if (!field.storeInConfig) continue;
-        let next = configFieldDisplayValue(config, field).trim();
-        if (field.defaultValue && next === field.defaultValue.trim()) {
+        let next = configFieldDisplayValue(config, field, item.configured).trim();
+        if (
+          !item.configured &&
+          field.defaultValue &&
+          next === field.defaultValue.trim()
+        ) {
           next = "";
         }
         configPayload[field.key] = next;
@@ -276,20 +282,32 @@ function ApiKeyIntegrationCard({
                 {item.configured ? "Connected" : "Not connected"}
               </span>
             </div>
-            <button
-              type="button"
-              className={
-                expanded
-                  ? "integration-card-cta integration-card-cta-ghost"
-                  : item.configured
+            <div className="integration-card-head-actions">
+              {expanded ? (
+                <button
+                  type="button"
+                  className="integration-card-cta integration-card-cta-primary"
+                  disabled={saving}
+                  onClick={() => void handleSave()}
+                >
+                  {saving ? "Saving…" : "Save"}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={
+                  expanded
                     ? "integration-card-cta integration-card-cta-ghost"
-                    : "integration-card-cta integration-card-cta-primary"
-              }
-              aria-expanded={expanded}
-              onClick={() => (expanded ? closeSetup() : openSetup())}
-            >
-              {expanded ? "Close" : primaryActionLabel}
-            </button>
+                    : item.configured
+                      ? "integration-card-cta integration-card-cta-ghost"
+                      : "integration-card-cta integration-card-cta-primary"
+                }
+                aria-expanded={expanded}
+                onClick={() => (expanded ? closeSetup() : openSetup())}
+              >
+                {expanded ? "Close" : primaryActionLabel}
+              </button>
+            </div>
           </div>
           <p className="integration-card-desc">{item.description}</p>
         </div>
@@ -322,7 +340,11 @@ function ApiKeyIntegrationCard({
                 <FieldInput
                   key={field.key}
                   field={field}
-                  value={configFieldDisplayValue(config, field)}
+                  value={configFieldDisplayValue(
+                    config,
+                    field,
+                    item.configured,
+                  )}
                   hint={null}
                   onChange={(v) =>
                     setConfig((prev) => ({ ...prev, [field.key]: v }))

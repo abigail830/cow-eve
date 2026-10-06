@@ -91,6 +91,25 @@ function toFieldPublic(field: IntegrationFieldDefinition): IntegrationFieldPubli
   };
 }
 
+/** Env-backed placeholders for Integrations UI only (not persisted until Save). */
+function fieldsPublicForDefinition(
+  def: IntegrationDefinition,
+): IntegrationFieldPublic[] {
+  return def.fields.map((field) => {
+    const pub = toFieldPublic(field);
+    if (def.id !== INTEGRATION_PROPOSAL_KNOWLEDGE) return pub;
+    if (field.key === "catalogMcpUrl" && !pub.defaultValue?.trim()) {
+      const fromEnv = getProposalCatalogMcpUrl();
+      if (fromEnv) return { ...pub, defaultValue: fromEnv };
+    }
+    if (field.key === "cvMcpUrl" && !pub.defaultValue?.trim()) {
+      const fromEnv = getProposalCvMcpUrl();
+      if (fromEnv) return { ...pub, defaultValue: fromEnv };
+    }
+    return pub;
+  });
+}
+
 function configStrings(
   raw: Record<string, unknown>,
   def: IntegrationDefinition,
@@ -202,7 +221,7 @@ export async function listIntegrationsForUser(input: {
       authKind: def.authKind,
       scope,
       platformConfigured,
-      fields: def.fields.map(toFieldPublic),
+      fields: fieldsPublicForDefinition(def),
       configured: hasSecrets || configFilled,
       connected: hasSecrets || configFilled,
       accountLabel: null,

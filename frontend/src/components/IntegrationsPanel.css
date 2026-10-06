@@ -166,6 +166,15 @@
   gap: 12px;
 }
 
+.integration-card-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .integration-card-title-row {
   display: flex;
   align-items: center;
@@ -362,7 +371,13 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  padding-top: 4px;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid #f0f0f0;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  z-index: 1;
 }
 
 .integration-inline-error {

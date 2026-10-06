@@ -58,12 +58,23 @@ Relative paths in `avatar_blob_path` are appended to that base for `get_person` 
 
 Create keys in the **PK database** (shown once):
 
+From repo root, first-time CLI (no global install):
+
 ```bash
-export PROPOSAL_KNOWLEDGE_ADMIN_KEY=your-admin-secret
-proposal-knowledge keys create --label team-alpha --all-bus
-# Restrict to one or more BU* values from your exports:
-proposal-knowledge keys create --label team-beta --bus EXAMPLE-BU-01,EXAMPLE-BU-02
+./backend/scripts/setup_proposal_knowledge.sh
 ```
+
+Create keys (use the venv binary — `proposal-knowledge` is not on PATH unless you `pip install -e .` into an activated venv):
+
+```bash
+cd proposal-knowledge
+# Do not `source .env` if DATABASE_URL contains `&` — the CLI loads .env automatically.
+.venv/bin/proposal-knowledge keys create --label team-alpha --all-bus
+# Restrict to one or more BU* values from your exports:
+.venv/bin/proposal-knowledge keys create --label team-beta --bus EXAMPLE-BU-01,EXAMPLE-BU-02
+```
+
+Or after `source .venv/bin/activate`, the bare `proposal-knowledge` command works.
 
 Eve users paste `pk_live_…` into Integrations (`proposal_knowledge`); env bootstrap keys are optional for local dev only.
 

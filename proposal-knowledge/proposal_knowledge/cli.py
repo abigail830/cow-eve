@@ -131,9 +131,11 @@ def main() -> None:
                     allowed_business_units=bus,
                     allow_all_business_units=args.all_bus,
                 )
+                key_id = row.id
+                prefix = row.key_prefix
             print("API key (store securely, shown once):")
             print(raw)
-            print(f"id={row.id} prefix={row.key_prefix}")
+            print(f"id={key_id} prefix={prefix}")
             return
         if args.keys_cmd == "list":
             with session_scope() as session:
