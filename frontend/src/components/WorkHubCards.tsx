@@ -1,15 +1,20 @@
 import { useMemo, useCallback, useEffect, useState } from "react";
-import { CalendarClock, Loader2, Plus, Target } from "lucide-react";
+import {
+  CalendarClock,
+  LayoutGrid,
+  Loader2,
+  MessageSquare,
+  Target,
+} from "lucide-react";
 import { useAuth } from "../lib/auth";
 import {
+  fetchChats,
   fetchScheduleSummary,
+  scheduleTaskLabel,
+  type ChatSummary,
   type ScheduledTaskPublic,
 } from "../lib/api";
-import {
-  createProject,
-  fetchProjectSummary,
-  type ProjectPublic,
-} from "../lib/projects";
+import { fetchProjectSummary, type ProjectPublic } from "../lib/projects";
 import "./WorkHubCards.css";
 
 function greetingForHour(hour: number): string {
@@ -22,10 +27,115 @@ function firstName(displayName: string): string {
   return displayName.trim().split(/\s+/)[0] ?? displayName;
 }
 
+function formatRecentTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diffSec = Math.round((Date.now() - then) / 1000);
+  if (diffSec < 45) return "Just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+type WorkFilter = "all" | "chat" | "projects" | "schedules";
+
+type WorkRecentKind = "chat" | "project" | "schedule";
+
+type WorkRecentItem = {
+  kind: WorkRecentKind;
+  id: string;
+  title: string;
+  at: string;
+  meta?: string;
+  chatId?: string;
+  projectId?: string;
+  task?: ScheduledTaskPublic;
+};
+
+/** Max rows shown in Recent (All merge or per-tab lists). */
+const RECENT_LIMIT = 8;
+/** Projects / schedules fetched before per-entity chat lookups. */
+const FETCH_LIMIT = 10;
+
+function RecentKindIcon({ kind }: { kind: WorkRecentKind }) {
+  const props = { size: 14, strokeWidth: 2, "aria-hidden": true as const };
+  if (kind === "chat") return <MessageSquare {...props} />;
+  if (kind === "project") return <Target {...props} />;
+  return <CalendarClock {...props} />;
+}
+
+function chatSessionTitle(chat: ChatSummary): string {
+  return chat.title?.trim() || "Chat";
+}
+
+function buildGenericItem(chat: ChatSummary): WorkRecentItem {
+  return {
+    kind: "chat",
+    id: `chat-${chat.id}`,
+    title: chatSessionTitle(chat),
+    at: chat.updatedAt,
+    chatId: chat.id,
+  };
+}
+
+function buildProjectChatItem(
+  chat: ChatSummary,
+  projectName: string,
+): WorkRecentItem {
+  const name = projectName.trim() || "Project";
+  return {
+    kind: "project",
+    id: `project-chat-${chat.id}`,
+    title: `Project – ${name} : ${chatSessionTitle(chat)}`,
+    at: chat.updatedAt,
+    chatId: chat.id,
+    projectId: chat.projectId ?? undefined,
+  };
+}
+
+function buildScheduleChatItem(
+  chat: ChatSummary,
+  task: ScheduledTaskPublic,
+): WorkRecentItem {
+  return {
+    kind: "schedule",
+    id: `schedule-chat-${chat.id}`,
+    title: `${scheduleTaskLabel(task)} : ${chatSessionTitle(chat)}`,
+    at: chat.updatedAt,
+    chatId: chat.id,
+    task,
+  };
+}
+
+function buildSchedulePlaceholder(task: ScheduledTaskPublic): WorkRecentItem {
+  return {
+    kind: "schedule",
+    id: `schedule-empty-${task.id}`,
+    title: scheduleTaskLabel(task),
+    at: task.updatedAt,
+    meta: "Not run yet",
+    task,
+  };
+}
+
+function sortAndLimit(items: WorkRecentItem[]): WorkRecentItem[] {
+  return [...items]
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, RECENT_LIMIT);
+}
+
 type Props = {
   agentId: string;
   onOpenSchedules: () => void;
   onOpenProjects: () => void;
+  onOpenChat: (chatId: string) => void;
   onOpenScheduleResult: (task: ScheduledTaskPublic) => void;
   onEnterProject: (projectId: string) => void;
 };
@@ -34,10 +144,12 @@ export function WorkHubCards({
   agentId,
   onOpenSchedules,
   onOpenProjects,
+  onOpenChat,
   onOpenScheduleResult,
   onEnterProject,
 }: Props) {
   const { user } = useAuth();
+  const [filter, setFilter] = useState<WorkFilter>("all");
   const greeting = useMemo(() => {
     const hello = greetingForHour(new Date().getHours());
     const name = user?.displayName ? firstName(user.displayName) : "";
@@ -45,6 +157,9 @@ export function WorkHubCards({
   }, [user?.displayName]);
   const [schedules, setSchedules] = useState<ScheduledTaskPublic[]>([]);
   const [projects, setProjects] = useState<ProjectPublic[]>([]);
+  const [genericChats, setGenericChats] = useState<ChatSummary[]>([]);
+  const [projectChats, setProjectChats] = useState<ChatSummary[]>([]);
+  const [scheduleItems, setScheduleItems] = useState<WorkRecentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,12 +167,41 @@ export function WorkHubCards({
     setLoading(true);
     setError(null);
     try {
-      const [schedRes, projList] = await Promise.all([
-        fetchScheduleSummary(agentId, 3),
-        fetchProjectSummary(agentId, 3),
+      const [schedRes, projList, genericRes] = await Promise.all([
+        fetchScheduleSummary(agentId, FETCH_LIMIT),
+        fetchProjectSummary(agentId, FETCH_LIMIT),
+        fetchChats(agentId, { scope: "generic" }),
       ]);
       setSchedules(schedRes.schedules);
       setProjects(projList);
+      setGenericChats(genericRes.chats);
+
+      const projectChatGroups = await Promise.all(
+        projList.map((project) =>
+          fetchChats(agentId, { scope: "project", projectId: project.id }),
+        ),
+      );
+      const flatProjectChats = projectChatGroups.flatMap((res) => res.chats);
+      setProjectChats(flatProjectChats);
+
+      const scheduleChatGroups = await Promise.all(
+        schedRes.schedules.map((task) =>
+          fetchChats(agentId, { scope: "schedule", scheduleId: task.id }),
+        ),
+      );
+
+      const scheduleRows: WorkRecentItem[] = [];
+      schedRes.schedules.forEach((task, index) => {
+        const chats = scheduleChatGroups[index]?.chats ?? [];
+        if (chats.length > 0) {
+          for (const chat of chats) {
+            scheduleRows.push(buildScheduleChatItem(chat, task));
+          }
+        } else {
+          scheduleRows.push(buildSchedulePlaceholder(task));
+        }
+      });
+      setScheduleItems(scheduleRows);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load work hub");
     } finally {
@@ -69,18 +213,65 @@ export function WorkHubCards({
     void reload();
   }, [reload]);
 
-  async function handleCreateProject() {
-    const name = window.prompt("Project name");
-    if (!name?.trim()) return;
-    try {
-      const project = await createProject({
-        agentId,
-        name: name.trim(),
-      });
-      await reload();
-      onEnterProject(project.id);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not create project");
+  const projectNameById = useMemo(
+    () => new Map(projects.map((project) => [project.id, project.name])),
+    [projects],
+  );
+
+  const genericItems = useMemo(
+    () => genericChats.map(buildGenericItem),
+    [genericChats],
+  );
+
+  const projectItems = useMemo(
+    () =>
+      projectChats.map((chat) =>
+        buildProjectChatItem(
+          chat,
+          chat.projectId
+            ? (projectNameById.get(chat.projectId) ?? "Project")
+            : "Project",
+        ),
+      ),
+    [projectChats, projectNameById],
+  );
+
+  const allItems = useMemo(
+    () => sortAndLimit([...genericItems, ...projectItems, ...scheduleItems]),
+    [genericItems, projectItems, scheduleItems],
+  );
+
+  const visibleItems = useMemo(() => {
+    if (filter === "all") return allItems;
+    if (filter === "chat") return sortAndLimit(genericItems);
+    if (filter === "projects") return sortAndLimit(projectItems);
+    return sortAndLimit(scheduleItems);
+  }, [filter, allItems, genericItems, projectItems, scheduleItems]);
+
+  function handleRecentClick(item: WorkRecentItem) {
+    if (item.chatId) {
+      onOpenChat(item.chatId);
+      return;
+    }
+    if (item.task) {
+      onOpenScheduleResult(item.task);
+      return;
+    }
+    if (item.projectId) {
+      onEnterProject(item.projectId);
+    }
+  }
+
+  function emptyCopy(): string {
+    switch (filter) {
+      case "chat":
+        return "No chats yet. Message below to start.";
+      case "projects":
+        return "No project conversations yet.";
+      case "schedules":
+        return "No scheduled tasks yet.";
+      default:
+        return "Nothing recent yet. Message below, or create a project or schedule.";
     }
   }
 
@@ -100,101 +291,124 @@ export function WorkHubCards({
           {error}
         </p>
       ) : null}
-      <header className="work-hub-intro">
-        <h2 className="work-hub-greeting">{greeting}</h2>
-        <p className="work-hub-hint">
-          Start typing below for a generic chat, or pick a schedule or project.
-        </p>
-      </header>
-      <div className="work-hub-grid">
-        <section className="work-hub-card" aria-labelledby="work-hub-sched-title">
-          <header className="work-hub-card-header">
-            <h3 id="work-hub-sched-title" className="work-hub-card-title">
-              <CalendarClock size={18} strokeWidth={2} aria-hidden />
-              Scheduled tasks
-            </h3>
-            <div className="work-hub-card-actions">
-              <button type="button" className="work-hub-link" onClick={onOpenSchedules}>
-                View all
-              </button>
-              <button
-                type="button"
-                className="work-hub-icon-btn"
-                aria-label="New scheduled task"
-                title="New task"
-                onClick={onOpenSchedules}
-              >
-                <Plus size={16} strokeWidth={2} />
-              </button>
-            </div>
-          </header>
-          <ul className="work-hub-list">
-            {schedules.length === 0 ? (
-              <li className="work-hub-empty">No scheduled tasks yet.</li>
-            ) : (
-              schedules.map((task) => (
-                <li key={task.id}>
-                  <button
-                    type="button"
-                    className="work-hub-list-item"
-                    onClick={() => onOpenScheduleResult(task)}
-                  >
-                    <span className="work-hub-list-title">
-                      {task.name?.trim() || "Scheduled task"}
-                    </span>
-                    <span className="work-hub-list-meta">
-                      {task.lastRunAt
-                        ? `Last run ${new Date(task.lastRunAt).toLocaleString()}`
-                        : "Not run yet"}
-                    </span>
-                  </button>
-                </li>
-              ))
-            )}
-          </ul>
-        </section>
 
-        <section className="work-hub-card" aria-labelledby="work-hub-proj-title">
-          <header className="work-hub-card-header">
-            <h3 id="work-hub-proj-title" className="work-hub-card-title">
-              <Target size={18} strokeWidth={2} aria-hidden />
-              Projects
-            </h3>
-            <div className="work-hub-card-actions">
-              <button type="button" className="work-hub-link" onClick={onOpenProjects}>
-                View all
-              </button>
-              <button
-                type="button"
-                className="work-hub-icon-btn"
-                aria-label="New project"
-                title="New project"
-                onClick={() => void handleCreateProject()}
-              >
-                <Plus size={16} strokeWidth={2} />
-              </button>
-            </div>
-          </header>
-          <ul className="work-hub-list">
-            {projects.length === 0 ? (
-              <li className="work-hub-empty">No projects yet.</li>
-            ) : (
-              projects.map((project) => (
-                <li key={project.id}>
+      <div className="work-hub-top">
+        <header className="work-hub-intro">
+          <h2 className="work-hub-greeting">{greeting}</h2>
+          <p className="work-hub-hint">
+            Pick up recent work below, or message to start a chat.
+          </p>
+        </header>
+
+        <div
+          className="work-hub-mode-strip"
+          role="tablist"
+          aria-label="Work modes"
+        >
+          {(
+            [
+              {
+                value: "all" as const,
+                label: "All",
+                meta: "Recent work",
+                icon: LayoutGrid,
+              },
+              {
+                value: "chat" as const,
+                label: "Chat",
+                meta: "Message below",
+                icon: MessageSquare,
+              },
+              {
+                value: "projects" as const,
+                label: "Projects",
+                meta:
+                  projects.length === 0
+                    ? "None yet"
+                    : `${projects.length} active`,
+                icon: Target,
+              },
+              {
+                value: "schedules" as const,
+                label: "Schedules",
+                meta:
+                  schedules.length === 0
+                    ? "None yet"
+                    : `${schedules.length} task${schedules.length === 1 ? "" : "s"}`,
+                icon: CalendarClock,
+              },
+            ] as const
+          ).map(({ value, label, meta, icon: Icon }) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              className={
+                filter === value
+                  ? "work-hub-mode-tile is-active"
+                  : "work-hub-mode-tile"
+              }
+              aria-selected={filter === value}
+              onClick={() => setFilter(value)}
+            >
+              <span className="work-hub-mode-tile-head">
+                <Icon size={16} strokeWidth={2} aria-hidden />
+                <span className="work-hub-mode-tile-title">{label}</span>
+              </span>
+              <span className="work-hub-mode-tile-meta">{meta}</span>
+            </button>
+          ))}
+        </div>
+
+        {filter === "projects" ? (
+          <div className="work-hub-view-all-row">
+            <button
+              type="button"
+              className="work-hub-view-all"
+              onClick={onOpenProjects}
+            >
+              View all projects
+            </button>
+          </div>
+        ) : null}
+        {filter === "schedules" ? (
+          <div className="work-hub-view-all-row">
+            <button
+              type="button"
+              className="work-hub-view-all"
+              onClick={onOpenSchedules}
+            >
+              View all schedules
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="work-hub-recent-scroll">
+        <section className="work-hub-recent" aria-label="Recent work">
+          {visibleItems.length === 0 ? (
+            <p className="work-hub-empty">{emptyCopy()}</p>
+          ) : (
+            <ul className="work-hub-recent-list">
+              {visibleItems.map((item) => (
+                <li key={item.id}>
                   <button
                     type="button"
-                    className="work-hub-list-item"
-                    onClick={() => onEnterProject(project.id)}
+                    className="work-hub-recent-row"
+                    onClick={() => handleRecentClick(item)}
                   >
-                    <span className="work-hub-list-title">{project.name}</span>
-                    <span className="work-hub-list-meta">
-                      Updated {new Date(project.lastActivityAt).toLocaleString()}
+                    <span className="work-hub-recent-kind">
+                      <RecentKindIcon kind={item.kind} />
+                    </span>
+                    <span className="work-hub-recent-title">{item.title}</span>
+                    <span className="work-hub-recent-meta">
+                      {item.meta ?? formatRecentTime(item.at)}
                     </span>
                   </button>
                 </li>
-              ))
-            )}
-          </ul>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
     </div>

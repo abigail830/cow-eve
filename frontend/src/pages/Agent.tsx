@@ -327,14 +327,17 @@ export function AgentPage() {
             restoreChatId={restoreChatId}
             scheduleView={scheduleView}
             onScheduleViewChange={setScheduleView}
-            onOpenSchedules={
-              agent.id === "omni"
-                ? () =>
-                    setSearchParams(
-                      { view: "customize", tab: "schedules" },
-                      { replace: true },
-                    )
-                : undefined
+            onOpenSchedules={() =>
+              setSearchParams(
+                { view: "customize", tab: "schedules" },
+                { replace: true },
+              )
+            }
+            onOpenProjects={() =>
+              setSearchParams(
+                { view: "customize", tab: "projects" },
+                { replace: true },
+              )
             }
             projectId={projectId}
             onProjectIdChange={setProjectId}

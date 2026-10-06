@@ -71,6 +71,26 @@
   text-align: left;
 }
 
+.chat-body:has(.work-hub) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-content-column:has(.work-hub) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.msg-empty.msg-empty-custom:has(.work-hub) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .chat-header-actions {
   display: flex;
   align-items: center;

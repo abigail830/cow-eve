@@ -91,8 +91,10 @@ type Props = {
   agent: AgentInfo;
   /** When re-selecting this agent, reopen this chat (parent remembers per agent). */
   restoreChatId?: string | null;
-  /** Omni only: open Customize → Schedules. */
+  /** Open Customize → Schedules. */
   onOpenSchedules?: () => void;
+  /** Open Customize → Projects. */
+  onOpenProjects?: () => void;
   /** Set when opening a scheduled-task result chat. */
   scheduleView?: { id: string; label: string } | null;
   onScheduleViewChange?: (
@@ -131,6 +133,7 @@ export function AgentChat({
   agent,
   restoreChatId = null,
   onOpenSchedules,
+  onOpenProjects,
   scheduleView = null,
   onScheduleViewChange,
   projectId = null,
@@ -367,6 +370,7 @@ export function AgentChat({
       onActiveChatChange={syncActiveChat}
       onStreamingChange={onStreamingChange}
       onOpenSchedules={onOpenSchedules}
+      onOpenProjects={onOpenProjects}
       scheduleView={scheduleView}
       onScheduleViewChange={onScheduleViewChange}
       projectId={projectId}
@@ -401,6 +405,7 @@ type SessionProps = {
   onRefreshChats: () => void;
   onActiveChatChange?: (chatId: string | null) => void;
   onOpenSchedules?: () => void;
+  onOpenProjects?: () => void;
   scheduleView: { id: string; label: string } | null;
   onScheduleViewChange?: (
     next: { id: string; label: string } | null,
@@ -429,6 +434,7 @@ function AgentChatSession({
   onActiveChatChange,
   onStreamingChange,
   onOpenSchedules,
+  onOpenProjects,
   scheduleView,
   onScheduleViewChange,
   projectId,
@@ -436,7 +442,6 @@ function AgentChatSession({
   onReloadConversation,
   onCaptureChatLinked,
 }: SessionProps) {
-  const isOmni = agent.id === "omni";
   const [projectsOpen, setProjectsOpen] = useState(false);
   const navigate = useNavigate();
   const [projectDetail, setProjectDetail] = useState<ProjectPublic | null>(null);
@@ -1122,43 +1127,47 @@ function AgentChatSession({
         </p>
       );
     }
-    if (isOmni) {
-      return (
-        <WorkHubCards
-          agentId={agent.id}
-          onOpenSchedules={() => onOpenSchedules?.()}
-          onOpenProjects={() => {
-            setProjectsOpen(true);
-          }}
-          onOpenScheduleResult={(task) => {
-            onScheduleViewChange?.({
-              id: task.id,
-              label: scheduleTaskLabel(task),
-            });
-            if (task.lastChatId) {
-              void onOpenChat(task.lastChatId);
-              return;
-            }
-            void fetchChats(agent.id, {
-              scope: "schedule",
-              scheduleId: task.id,
-            }).then((res) => {
-              const latest = res.chats[0];
-              if (latest) void onOpenChat(latest.id);
-            });
-          }}
-          onEnterProject={enterProject}
-        />
-      );
-    }
-    return undefined;
+    return (
+      <WorkHubCards
+        agentId={agent.id}
+        onOpenSchedules={() => onOpenSchedules?.()}
+        onOpenProjects={() => {
+          if (onOpenProjects) {
+            onOpenProjects();
+            return;
+          }
+          setProjectsOpen(true);
+        }}
+        onOpenChat={(chatId) => {
+          void onOpenChat(chatId);
+        }}
+        onOpenScheduleResult={(task) => {
+          onScheduleViewChange?.({
+            id: task.id,
+            label: scheduleTaskLabel(task),
+          });
+          if (task.lastChatId) {
+            void onOpenChat(task.lastChatId);
+            return;
+          }
+          void fetchChats(agent.id, {
+            scope: "schedule",
+            scheduleId: task.id,
+          }).then((res) => {
+            const latest = res.chats[0];
+            if (latest) void onOpenChat(latest.id);
+          });
+        }}
+        onEnterProject={enterProject}
+      />
+    );
   }, [
     agent.id,
     conversationLoading,
     enterProject,
     isBusy,
-    isOmni,
     onOpenSchedules,
+    onOpenProjects,
     onOpenChat,
     onScheduleViewChange,
     projectDetail,
@@ -1171,7 +1180,7 @@ function AgentChatSession({
       <div className="chat-main-column">
         <header className="chat-header chat-header--toolbar">
           <div className="chat-header-leading">
-            {projectsOpen && isOmni ? (
+            {projectsOpen ? (
               <h2 className="page-title work-page-title">
                 <span>Work</span>
                 <span className="work-page-title-sep" aria-hidden>
@@ -1307,7 +1316,7 @@ function AgentChatSession({
                 />
                 <span>Loading conversation…</span>
               </div>
-            ) : projectsOpen && isOmni ? (
+            ) : projectsOpen ? (
               <ProjectListPanel
                 agentId={agent.id}
                 onEnterProject={enterProject}
@@ -1361,7 +1370,7 @@ function AgentChatSession({
           </div>
         </div>
 
-        {workSurfaceOpen && isOmni ? null : (
+        {workSurfaceOpen ? null : (
           <Composer
             disabled={!token}
             modelLabel={modelLabel}
