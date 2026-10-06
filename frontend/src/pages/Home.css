@@ -22,8 +22,8 @@
   box-shadow: var(
     --home-header-shadow,
     0 1px 0 rgba(255, 255, 255, 0.5) inset,
-    0 4px 24px rgba(30, 45, 80, 0.04)
-  ); /* fallback: inset highlight + soft drop shadow */
+    var(--home-chrome-shadow, 0 4px 24px rgba(30, 45, 80, 0.04))
+  );
 }
 
 .home-header-actions {
@@ -38,7 +38,7 @@
   height: 36px;
   border: none;
   background: transparent;
-  color: #666;
+  color: var(--home-icon-btn-fg, var(--nav-fg-icon, var(--text-secondary)));
   border-radius: 10px;
   cursor: pointer;
   display: grid;
@@ -49,7 +49,7 @@
 }
 
 .home-header-icon-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--home-icon-btn-hover-bg, var(--nav-hover-bg, rgba(0, 0, 0, 0.05)));
   color: var(--accent);
 }
 
@@ -99,7 +99,7 @@
 }
 
 .home-muted {
-  color: #888;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -145,8 +145,8 @@
 
 .home-agent-card:hover {
   transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.68);
-  border-color: rgba(255, 255, 255, 0.88);
+  background: var(--home-card-hover-bg, rgba(255, 255, 255, 0.68));
+  border-color: var(--home-card-hover-border, rgba(255, 255, 255, 0.88));
   box-shadow: var(--glass-shadow-hover), var(--glass-highlight);
 }
 
@@ -162,17 +162,17 @@
   height: 76px;
   margin-bottom: 12px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: var(--home-avatar-ring-bg, rgba(255, 255, 255, 0.55));
+  border: 1px solid var(--home-avatar-ring-border, rgba(255, 255, 255, 0.7));
   box-shadow:
-    0 4px 16px rgba(30, 45, 80, 0.06),
+    var(--home-chrome-shadow, 0 4px 16px rgba(30, 45, 80, 0.06)),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .home-agent-card-avatar img {
   border-radius: 50%;
   object-fit: cover;
-  background: #fff;
+  background: var(--home-avatar-img-bg, var(--surface-canvas, #fff));
 }
 
 .home-agent-card-name {
@@ -191,7 +191,7 @@
 .home-agent-card-desc {
   font-size: 0.75rem;
   font-weight: 400;
-  color: var(--home-agent-card-desc-fg, #8f8f8f);
+  color: var(--home-agent-card-desc-fg, var(--text-muted));
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -211,7 +211,7 @@
   margin: 0;
   font-size: 0.8125rem;
   font-weight: 400;
-  color: var(--home-footer-fg, #b0b0b0);
+  color: var(--home-footer-fg, var(--text-muted));
   letter-spacing: 0.01em;
   text-shadow: var(--home-footer-shadow, 0 1px 12px rgba(255, 255, 255, 0.8));
 }

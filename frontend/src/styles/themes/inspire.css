@@ -100,8 +100,8 @@
   --segment-tab-active-fg: var(--page-tab-active-fg);
   --segment-tab-hover-bg: var(--page-tab-hover-bg);
   --segment-tab-hover-fg: var(--page-tab-hover-fg);
-  --ambient-overlay-opacity: 0.2;
-  --ambient-grain-opacity: 0.06;
+  --ambient-overlay-opacity: 0.22;
+  --ambient-grain-opacity: 0.07;
 
   --chat-font-size: 13px;
   --chat-line-height: 1.55;
@@ -148,23 +148,22 @@
   --composer-toolbar-fg: color-mix(in srgb, var(--brand-starry) 75%, var(--accent-strong));
   --composer-toolbar-hover-bg: color-mix(in srgb, var(--accent-muted) 90%, #ffffff);
 
-  /* Left → right cover: wide color stops (soft edge) + orbs for diffusion. */
+  /* Left navy→sky depth, center bright, right soft creative (starry-weighted, not neon wash). */
   --ambient-linear: linear-gradient(
     122deg,
-    color-mix(in srgb, var(--brand-starry) 34%, var(--brand-creative)) 0%,
-    color-mix(in srgb, var(--brand-starry) 18%, var(--brand-creative)) 10%,
-    color-mix(in srgb, var(--brand-creative) 42%, #e6f3fa) 22%,
-    color-mix(in srgb, var(--brand-creative) 24%, #f2f8fc) 34%,
-    color-mix(in srgb, var(--brand-creative) 10%, #ffffff) 46%,
-    #ffffff 58%,
-    color-mix(in srgb, var(--accent-soft) 14%, #ffffff) 78%,
-    color-mix(in srgb, var(--accent-soft) 22%, #ffffff) 100%
+    color-mix(in srgb, var(--brand-starry) 26%, var(--surface-muted)) 0%,
+    color-mix(in srgb, var(--brand-starry) 10%, color-mix(in srgb, var(--brand-creative) 24%, #dfeaf2)) 14%,
+    color-mix(in srgb, var(--brand-creative) 22%, #e6f3fa) 28%,
+    color-mix(in srgb, var(--brand-creative) 12%, #f0f7fc) 42%,
+    color-mix(in srgb, var(--accent-soft) 10%, #ffffff) 58%,
+    #ffffff 70%,
+    color-mix(in srgb, var(--accent-soft) 20%, #ffffff) 100%
   );
-  --ambient-orb-primary-inner: color-mix(in srgb, var(--brand-starry) 48%, transparent);
-  --ambient-orb-primary-mid: color-mix(in srgb, var(--brand-creative) 42%, transparent);
-  --ambient-orb-secondary: color-mix(in srgb, var(--accent-soft) 55%, #ffffff);
-  --ambient-overlay-highlight: color-mix(in srgb, var(--brand-creative) 14%, transparent);
-  --ambient-overlay-tint: color-mix(in srgb, var(--brand-creative) 22%, transparent);
+  --ambient-orb-primary-inner: color-mix(in srgb, var(--brand-starry) 36%, transparent);
+  --ambient-orb-primary-mid: color-mix(in srgb, var(--brand-creative) 28%, transparent);
+  --ambient-orb-secondary: color-mix(in srgb, var(--accent-soft) 48%, #ffffff);
+  --ambient-overlay-highlight: color-mix(in srgb, var(--brand-creative) 16%, transparent);
+  --ambient-overlay-tint: color-mix(in srgb, var(--brand-creative) 18%, transparent);
 
   --glass-surface: rgba(255, 255, 255, 0.42);
   --glass-surface-raised: rgba(255, 255, 255, 0.68);
@@ -183,56 +182,69 @@
   --home-agent-card-desc-fg: var(--color-text-secondary);
   --home-header-border: transparent;
   --home-header-shadow: 0 4px 20px rgba(10, 35, 66, 0.08);
+  --home-icon-btn-fg: var(--nav-fg-icon);
+  --home-icon-btn-hover-bg: var(--nav-hover-bg);
+  --home-chrome-shadow: 0 4px 24px color-mix(in srgb, var(--brand-starry) 4%, transparent);
+  --home-card-hover-bg: rgba(255, 255, 255, 0.96);
+  --home-card-hover-border: rgba(255, 255, 255, 0.88);
+  --home-avatar-ring-bg: rgba(255, 255, 255, 0.55);
+  --home-avatar-ring-border: rgba(255, 255, 255, 0.7);
+  --home-avatar-img-bg: var(--surface-canvas);
 }
 
 [data-theme="inspire"] .platform-orb {
-  filter: blur(100px) saturate(1.1);
+  filter: blur(100px) saturate(1.06);
 }
 
-/* Left accent blob — smaller than before so the page does not read as all-blue. */
+/* Left depth — starry core, creative halo; smaller/ softer than legacy hero wash. */
 [data-theme="inspire"] .platform-orb--peach {
-  width: min(64vw, 760px);
-  height: min(64vw, 760px);
-  top: -8%;
+  width: min(54vw, 660px);
+  height: min(54vw, 660px);
+  top: -10%;
   left: -14%;
+  bottom: auto;
   border-radius: 50%;
   transform: none;
-  opacity: 0.46;
+  opacity: 0.4;
   background: radial-gradient(
     circle at 55% 52%,
-    color-mix(in srgb, var(--brand-starry) 42%, transparent) 0%,
-    color-mix(in srgb, var(--brand-creative) 36%, transparent) 24%,
-    color-mix(in srgb, var(--brand-creative) 12%, transparent) 46%,
+    color-mix(in srgb, var(--brand-starry) 38%, transparent) 0%,
+    color-mix(in srgb, var(--brand-creative) 28%, transparent) 26%,
+    color-mix(in srgb, var(--brand-creative) 10%, transparent) 48%,
     transparent 76%
   );
 }
 
+/* Creative glow — bottom-right edge. */
 [data-theme="inspire"] .platform-orb--warm {
-  width: min(36vw, 400px);
-  height: min(36vw, 400px);
-  bottom: -4%;
-  right: 2%;
-  opacity: 0.4;
+  width: min(40vw, 440px);
+  height: min(40vw, 440px);
+  bottom: -6%;
+  right: 0%;
+  opacity: 0.44;
   background: radial-gradient(
     circle at 50% 50%,
-    color-mix(in srgb, var(--accent-soft) 35%, transparent) 0%,
+    color-mix(in srgb, var(--accent-soft) 38%, transparent) 0%,
+    color-mix(in srgb, var(--brand-creative) 14%, transparent) 42%,
     transparent 72%
   );
 }
 
-/* Pull the hero / cards area toward white (right-center). */
+/* Pull hero / cards toward clean white (right-center) so left color reads. */
 [data-theme="inspire"] .platform-orb--neutral {
   width: min(72vw, 880px);
   height: min(58vw, 680px);
   top: 8%;
   right: -6%;
+  left: auto;
+  transform: none;
   border-radius: 50%;
-  opacity: 0.92;
+  opacity: 0.82;
   background: radial-gradient(
     ellipse 88% 72% at 48% 46%,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.55) 38%,
-    color-mix(in srgb, var(--brand-creative) 6%, transparent) 58%,
+    rgba(255, 255, 255, 0.94) 0%,
+    rgba(255, 255, 255, 0.52) 38%,
+    color-mix(in srgb, var(--brand-creative) 7%, transparent) 58%,
     transparent 78%
   );
 }
@@ -244,30 +256,30 @@
   pointer-events: none;
   background:
     radial-gradient(
-      ellipse 50% 55% at 12% 55%,
-      color-mix(in srgb, var(--brand-creative) 18%, transparent) 0%,
+      ellipse 50% 55% at 14% 52%,
+      color-mix(in srgb, var(--brand-creative) 14%, transparent) 0%,
       transparent 70%
     ),
     radial-gradient(
       ellipse 65% 55% at 78% 42%,
-      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.5) 0%,
       transparent 65%
     );
   filter: blur(56px);
-  opacity: 0.65;
+  opacity: 0.62;
 }
 
 [data-theme="inspire"] .platform-ambient::after {
-  opacity: var(--ambient-overlay-opacity, 0.12);
+  opacity: var(--ambient-overlay-opacity, 0.22);
   background:
     radial-gradient(
       ellipse 95% 70% at 0% 50%,
-      color-mix(in srgb, var(--brand-starry) 10%, transparent) 0%,
+      color-mix(in srgb, var(--brand-starry) 8%, transparent) 0%,
       transparent 55%
     ),
     radial-gradient(
       ellipse 85% 65% at 88% 35%,
-      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0.42) 0%,
       transparent 60%
     ),
     radial-gradient(
@@ -335,10 +347,10 @@
 
 [data-theme="inspire"] .home-agent-card {
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.88);
-  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.9);
+  border-color: color-mix(in srgb, var(--work-card-border) 85%, rgba(255, 255, 255, 0.75));
   box-shadow:
-    0 8px 28px rgba(10, 35, 66, 0.1),
+    0 8px 28px rgba(10, 35, 66, 0.11),
     0 1px 0 rgba(255, 255, 255, 0.85) inset;
 }
 
