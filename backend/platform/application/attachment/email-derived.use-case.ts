@@ -16,6 +16,8 @@ import {
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import { drizzleWorkspaceRepository } from "../../infrastructure/persistence/workspace/drizzle-workspace.repository.js";
 import type { ParseJobRun } from "../../infrastructure/persistence/parse/drizzle-parse-job.repository.js";
+import type { DocumentSourceKind } from "../../domain/document/document-scope.js";
+import type { WorkspaceFile } from "../../domain/workspace/workspace-file.entity.js";
 
 type DerivedPartRecord = {
   part_hash: string;
@@ -32,6 +34,18 @@ function pipelineIdFromRun(run: ParseJobRun): string | null {
   const payload = run.jobPayloadJson;
   const pipeline = payload.pipeline_id ?? payload.pipelineId;
   return typeof pipeline === "string" ? pipeline : null;
+}
+
+/** Prefer workspace when parent row exists (parse_job_runs.source_kind may still be chat_attachment). */
+export function resolveEmailDerivedMaterializationTarget(input: {
+  runSourceKind: DocumentSourceKind;
+  parentWorkspaceFile: WorkspaceFile | null;
+}): "workspace" | "chat" {
+  if (input.parentWorkspaceFile) return "workspace";
+  if (input.runSourceKind === "workspace_file") {
+    throw new Error("Parent workspace file not found.");
+  }
+  return "chat";
 }
 
 function storageKeyFor(id: string, filename: string): string {
@@ -143,21 +157,24 @@ export async function materializeEmailDerivedAttachments(input: {
     ? (meta.derived_attachment_ids as string[])
     : [];
 
+  const parentWorkspace = await drizzleWorkspaceRepository.getFileByIdOnly(
+    input.parentAttachmentId,
+  );
+  const target = resolveEmailDerivedMaterializationTarget({
+    runSourceKind: input.run.sourceKind,
+    parentWorkspaceFile: parentWorkspace,
+  });
+
   const namesInScope = new Set<string>();
-  if (input.run.sourceKind === "chat_attachment") {
+  if (target === "chat") {
     const rows = await drizzleChatAttachmentRepository.listByChatId(scopeId);
     for (const row of rows) namesInScope.add(row.filename.toLowerCase());
-  } else {
-    const parent = await drizzleWorkspaceRepository.getFileByIdOnly(
-      input.parentAttachmentId,
-    );
-    if (parent) {
-      const siblings = await drizzleWorkspaceRepository.listFilesInFolder({
-        userId: parent.userId,
-        folderId: parent.folderId,
-      });
-      for (const row of siblings) namesInScope.add(row.filename.toLowerCase());
-    }
+  } else if (parentWorkspace) {
+    const siblings = await drizzleWorkspaceRepository.listFilesInFolder({
+      userId: parentWorkspace.userId,
+      folderId: parentWorkspace.folderId,
+    });
+    for (const row of siblings) namesInScope.add(row.filename.toLowerCase());
   }
 
   let created = 0;
@@ -194,7 +211,7 @@ export async function materializeEmailDerivedAttachments(input: {
 
     await putAttachmentBytes(scopeId, storageKey, part.bytes, part.mediaType);
 
-    if (input.run.sourceKind === "chat_attachment") {
+    if (target === "chat") {
       const saved = await drizzleChatAttachmentRepository.createWithId({
         id: childId,
         chatId: scopeId,
@@ -206,16 +223,10 @@ export async function materializeEmailDerivedAttachments(input: {
       });
       await finalizeAttachmentParse(saved, kind);
     } else {
-      const parent = await drizzleWorkspaceRepository.getFileByIdOnly(
-        input.parentAttachmentId,
-      );
-      if (!parent) {
-        throw new Error("Parent workspace file not found.");
-      }
       const row = await drizzleWorkspaceRepository.createFile({
         id: childId,
-        userId: parent.userId,
-        folderId: parent.folderId,
+        userId: parentWorkspace!.userId,
+        folderId: parentWorkspace!.folderId,
         filename,
         mediaType: part.mediaType,
         sizeBytes: part.bytes.byteLength,

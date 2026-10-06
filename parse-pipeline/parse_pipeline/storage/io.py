@@ -277,6 +277,11 @@ async def write_email_derived_http(
             files=files,
             headers=headers,
         )
+        if response.status_code >= 400:
+            detail = (response.text or "").strip()[:2000]
+            raise RuntimeError(
+                f"email-derived HTTP {response.status_code} from {target.url}: {detail}",
+            )
         response.raise_for_status()
     try:
         body = response.json()

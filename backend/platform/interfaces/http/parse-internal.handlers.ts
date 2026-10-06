@@ -234,6 +234,38 @@ export async function handleParseArtifactsBatch(
   }
 }
 
+export function isFormDataUploadPart(
+  value: FormDataEntryValue,
+): value is File | Blob {
+  if (typeof value !== "object" || value === null) return false;
+  if (value instanceof Blob) return true;
+  return (
+    "arrayBuffer" in value &&
+    typeof (value as Blob).arrayBuffer === "function" &&
+    "size" in value &&
+    typeof (value as Blob).size === "number"
+  );
+}
+
+export async function readEmailDerivedPartsFromForm(
+  form: FormData,
+): Promise<Array<{ filename: string; mediaType: string; bytes: Uint8Array }>> {
+  const parts: Array<{ filename: string; mediaType: string; bytes: Uint8Array }> =
+    [];
+  for (const [fieldName, value] of form.entries()) {
+    if (!isFormDataUploadPart(value) || value.size <= 0) continue;
+    parts.push({
+      filename: resolveEmailDerivedPartFilename(fieldName, value),
+      mediaType:
+        value instanceof File && value.type
+          ? value.type
+          : "application/octet-stream",
+      bytes: new Uint8Array(await value.arrayBuffer()),
+    });
+  }
+  return parts;
+}
+
 /** Multipart field name is often "files"; real filename is in Content-Disposition or field key. */
 export function resolveEmailDerivedPartFilename(
   fieldName: string,
@@ -275,19 +307,7 @@ export async function handleParseEmailDerived(
     return Response.json({ error: "invalid multipart body" }, { status: 400 });
   }
 
-  const parts: Array<{ filename: string; mediaType: string; bytes: Uint8Array }> =
-    [];
-  for (const [fieldName, value] of form.entries()) {
-    if (!(value instanceof Blob) || value.size <= 0) continue;
-    parts.push({
-      filename: resolveEmailDerivedPartFilename(fieldName, value),
-      mediaType:
-        value instanceof File && value.type
-          ? value.type
-          : "application/octet-stream",
-      bytes: new Uint8Array(await value.arrayBuffer()),
-    });
-  }
+  const parts = await readEmailDerivedPartsFromForm(form);
 
   if (parts.length === 0) {
     return Response.json(
