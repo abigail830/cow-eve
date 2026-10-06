@@ -109,6 +109,7 @@ export async function putArtifactMeta(
         access: blobAccess(),
         contentType: "application/json",
         addRandomSuffix: false,
+        allowOverwrite: true,
         ...blobCommandOptions(),
       });
     } catch (err) {
