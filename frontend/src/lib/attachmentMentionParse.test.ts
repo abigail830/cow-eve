@@ -18,7 +18,6 @@ function row(
     createdAt: "",
     parsePipelineId: null,
     parseJobId: null,
-    parseStatus: null,
     ...overrides,
   };
 }
