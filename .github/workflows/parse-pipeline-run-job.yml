@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       pipeline_id:
-        description: "Pipeline ID (text_standard | sheet_standard | pdf_standard | office_standard | document_mind_generic | audio_transcription_standard)"
+        description: "Pipeline ID (text_standard | sheet_standard | pdf_standard | office_standard | email_standard | document_mind_generic | audio_transcription_standard)"
         required: true
         default: text_standard
         type: choice
@@ -15,6 +15,7 @@ on:
           - sheet_standard
           - pdf_standard
           - office_standard
+          - email_standard
           - document_mind_generic
           - audio_transcription_standard
       source_repo_path:
