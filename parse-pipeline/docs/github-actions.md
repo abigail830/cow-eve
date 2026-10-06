@@ -61,6 +61,17 @@ When platform is ready, set secrets:
 
 The runner emits `stage.updated` during `parse_wait` and `job.completed` on success.
 
+### Platform dispatch (Omni / Vercel)
+
+When Cow Eve enqueues via GHA, the workflow fetches job JSON from
+`GET /internal/parse/v1/run/{job_id}` (Bearer run token). If the workflow step
+fails before the runner can deliver signed webhooks, it reports failure via
+`POST /internal/parse/v1/run/{job_id}/status` with the same Bearer token and body
+`{"status":"failed","error":{"code":"GHA_FAILED","message":"..."}}`.
+
+Do **not** point that step at `/internal/parse/v1/webhook` — webhooks require
+`whsec_...` HMAC signing that GHA inputs do not carry.
+
 ## Local equivalent
 
 ```bash

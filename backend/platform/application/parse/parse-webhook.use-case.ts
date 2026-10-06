@@ -4,6 +4,7 @@ import { ParseStatus } from "../../domain/parse/parse-status.js";
 import {
   applyParseWebhookForRun,
 } from "../document/parse-document-router.js";
+import { hashRunToken } from "../../infrastructure/parse-pipeline/job-builder.js";
 import { scheduleDocumentGist } from "../attachment/document-gist-scheduler.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import {
@@ -134,9 +135,57 @@ export async function getParseJobPayloadForRun(
   jobId: string,
   bearerToken: string,
 ): Promise<Record<string, unknown> | null> {
-  const { hashRunToken } = await import(
-    "../../infrastructure/parse-pipeline/job-builder.js"
-  );
   const run = await getParseJobRunByToken(jobId, hashRunToken(bearerToken));
   return run?.jobPayloadJson ?? null;
+}
+
+/**
+ * GHA workflow fallback when the runner exits before signed webhooks are delivered.
+ * Authenticated with the same run bearer token as GET /internal/parse/v1/run/:jobId.
+ */
+export async function reportParseRunStatusFromGha(input: {
+  jobId: string;
+  bearerToken: string;
+  body: Record<string, unknown>;
+}): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const run = await getParseJobRunByToken(
+    input.jobId,
+    hashRunToken(input.bearerToken),
+  );
+  if (!run) {
+    return { ok: false, reason: "forbidden" };
+  }
+
+  const status = String(input.body.status ?? "").toLowerCase();
+  if (status !== "failed") {
+    return {
+      ok: false,
+      reason: "only status failed is supported from GitHub Actions",
+    };
+  }
+
+  if (run.status === "failed" || run.status === "succeeded") {
+    return { ok: true };
+  }
+
+  const error =
+    input.body.error && typeof input.body.error === "object"
+      ? (input.body.error as { code?: string; message?: string })
+      : null;
+  const message =
+    error?.message?.trim() || "GitHub Actions reported parse job failure";
+  const code = error?.code?.trim() || "GHA_FAILED";
+
+  await applyParseWebhookForRun(run, {
+    status: ParseStatus.FAILED,
+    stageSnapshot: {
+      current_stage: null,
+      message,
+      stages: [],
+    },
+    errorCode: code,
+    errorMessage: message,
+  });
+  await updateParseJobRunStatus(input.jobId, ParseStatus.FAILED);
+  return { ok: true };
 }

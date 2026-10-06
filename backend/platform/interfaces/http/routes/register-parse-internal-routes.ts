@@ -7,6 +7,7 @@ import {
   handleAsrFileDownload,
   handleAsrFilesMint,
   handleParseRunPayload,
+  handleParseRunStatus,
   handleParseEmailDerived,
   handleParseWebhook,
 } from "../parse-internal.handlers.js";
@@ -22,6 +23,11 @@ export function registerParseInternalRoutes(
 
     GET("/internal/parse/v1/run/:jobId", async (request, { params }) => {
       const response = await handleParseRunPayload(params.jobId, request);
+      return withCors(response, request);
+    }),
+
+    POST("/internal/parse/v1/run/:jobId/status", async (request, { params }) => {
+      const response = await handleParseRunStatus(params.jobId, request);
       return withCors(response, request);
     }),
 

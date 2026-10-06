@@ -128,10 +128,21 @@ export async function finalizeAttachmentParse(
   if (resolution.action === "reject") {
     throw new Error(`Unsupported file type for parse: ${row.mediaType}`);
   }
+  const derivedIncomplete =
+    resolution.pipelineId === "email_standard" &&
+    (await emailDerivedMaterializationIncomplete(row.chatId, row.id));
+  if (
+    resolution.pipelineId === "email_standard" &&
+    row.parseStatus === ParseStatus.FAILED &&
+    !derivedIncomplete &&
+    parsedArtifactInManifest(row.parsedArtifactManifest, "content_md")
+  ) {
+    const updated = await drizzleChatAttachmentRepository.markParseReady(row.id, {
+      pipelineId: resolution.pipelineId,
+    });
+    return updated ?? row;
+  }
   if (row.parseStatus !== ParseStatus.FAILED) {
-    const derivedIncomplete =
-      resolution.pipelineId === "email_standard" &&
-      (await emailDerivedMaterializationIncomplete(row.chatId, row.id));
     if (
       !derivedIncomplete &&
       chatAttachmentParseAlreadyComplete(row, resolution.pipelineId)
@@ -158,11 +169,22 @@ export async function finalizeWorkspaceFileParse(
   if (resolution.action === "reject") {
     throw new Error(`Unsupported file type for parse: ${row.mediaType}`);
   }
+  const scopeId = parseableFromWorkspaceFile(row, row.userId).scopeId;
+  const derivedIncomplete =
+    resolution.pipelineId === "email_standard" &&
+    (await emailDerivedMaterializationIncomplete(scopeId, row.id));
+  if (
+    resolution.pipelineId === "email_standard" &&
+    row.parseStatus === ParseStatus.FAILED &&
+    !derivedIncomplete &&
+    parsedArtifactInManifest(row.parsedArtifactManifest, "content_md")
+  ) {
+    const updated = await drizzleWorkspaceRepository.markParseReady(row.id, {
+      pipelineId: resolution.pipelineId,
+    });
+    return updated ?? row;
+  }
   if (row.parseStatus !== ParseStatus.FAILED) {
-    const scopeId = parseableFromWorkspaceFile(row, row.userId).scopeId;
-    const derivedIncomplete =
-      resolution.pipelineId === "email_standard" &&
-      (await emailDerivedMaterializationIncomplete(scopeId, row.id));
     if (
       !derivedIncomplete &&
       workspaceFileParseAlreadyComplete(row, resolution.pipelineId)

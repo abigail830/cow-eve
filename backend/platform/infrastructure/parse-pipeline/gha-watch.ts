@@ -7,7 +7,9 @@ import {
   getParsePipelineGhaWatchMaxSec,
   getParsePipelineGhaWatchPollSec,
 } from "../config/parse-pipeline.config.js";
+import { applyParseWebhookForRun } from "../../application/document/parse-document-router.js";
 import { drizzleChatAttachmentRepository } from "../persistence/attachment/drizzle-chat-attachment.repository.js";
+import { drizzleWorkspaceRepository } from "../persistence/workspace/drizzle-workspace.repository.js";
 import {
   getParseJobRunByJobId,
   updateParseJobRunStatus,
@@ -118,9 +120,10 @@ async function reconcileGhaSuccess(
       return;
     }
 
-    const attachment = await drizzleChatAttachmentRepository.getByIdOnly(
-      runRow.attachmentId,
-    );
+    const attachment =
+      runRow.sourceKind === "workspace_file"
+        ? await drizzleWorkspaceRepository.getFileByIdOnly(runRow.attachmentId)
+        : await drizzleChatAttachmentRepository.getByIdOnly(runRow.attachmentId);
     if (attachment?.parseStatus === ParseStatus.READY) {
       await updateParseJobRunStatus(jobId, "succeeded");
       return;
@@ -130,17 +133,14 @@ async function reconcileGhaSuccess(
       attachment &&
       parsedArtifactInManifest(attachment.parsedArtifactManifest, "meta_json")
     ) {
-      await drizzleChatAttachmentRepository.applyParseWebhook(
-        runRow.attachmentId,
-        {
-          status: ParseStatus.READY,
-          stageSnapshot: {
-            current_stage: "finalize",
-            message: "Parse complete (reconciled after GHA success)",
-            stages: [],
-          },
+      await applyParseWebhookForRun(runRow, {
+        status: ParseStatus.READY,
+        stageSnapshot: {
+          current_stage: "finalize",
+          message: "Parse complete (reconciled after GHA success)",
+          stages: [],
         },
-      );
+      });
       await updateParseJobRunStatus(jobId, "succeeded");
       return;
     }
@@ -164,12 +164,13 @@ async function markJobRunningIfPending(
   if (!runRow || runRow.status === "failed" || runRow.status === "succeeded") {
     return;
   }
-  const attachment = await drizzleChatAttachmentRepository.getByIdOnly(
-    runRow.attachmentId,
-  );
-  if (!attachment || attachment.parseStatus !== ParseStatus.PENDING) return;
+  const pending =
+    runRow.sourceKind === "workspace_file"
+      ? await drizzleWorkspaceRepository.getFileByIdOnly(runRow.attachmentId)
+      : await drizzleChatAttachmentRepository.getByIdOnly(runRow.attachmentId);
+  if (!pending || pending.parseStatus !== ParseStatus.PENDING) return;
 
-  await drizzleChatAttachmentRepository.applyParseWebhook(runRow.attachmentId, {
+  await applyParseWebhookForRun(runRow, {
     status: ParseStatus.RUNNING,
     stageSnapshot: {
       current_stage: "fetch",
@@ -188,12 +189,17 @@ async function markJobFailed(
   if (!runRow || runRow.status === "failed" || runRow.status === "succeeded") {
     return;
   }
-  await drizzleChatAttachmentRepository.applyParseWebhook(runRow.attachmentId, {
+  await applyParseWebhookForRun(runRow, {
     status: ParseStatus.FAILED,
     errorCode,
     errorMessage,
+    stageSnapshot: {
+      current_stage: null,
+      message: errorMessage,
+      stages: [],
+    },
   });
-  await updateParseJobRunStatus(jobId, "failed");
+  await updateParseJobRunStatus(jobId, ParseStatus.FAILED);
 }
 
 function sleep(ms: number): Promise<void> {

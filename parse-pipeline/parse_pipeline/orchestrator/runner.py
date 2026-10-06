@@ -660,10 +660,6 @@ class JobRunner:
                 spec,
                 normalized.email_derived_parts,
             )
-            if derived_writes != len(normalized.email_derived_parts):
-                raise RuntimeError(
-                    f"email_derived wrote {derived_writes} of {len(normalized.email_derived_parts)} parts",
-                )
         record.artifacts = JobArtifacts(
             content_md=write_result.wrote_content,
             meta_json=write_result.wrote_meta,

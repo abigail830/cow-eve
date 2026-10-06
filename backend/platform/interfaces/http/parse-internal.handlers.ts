@@ -5,6 +5,7 @@ import {
 import {
   applyParseWebhook,
   getParseJobPayloadForRun,
+  reportParseRunStatusFromGha,
   verifyWebhookSignature,
 } from "../../application/parse/parse-webhook.use-case.js";
 import { getAttachmentBytes } from "../../infrastructure/attachment/attachment-storage.js";
@@ -97,6 +98,32 @@ export async function handleParseRunPayload(
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
   return Response.json(payload);
+}
+
+export async function handleParseRunStatus(
+  jobId: string,
+  request: Request,
+): Promise<Response> {
+  const token = extractBearer(request.headers.get("authorization"));
+  if (!token) {
+    return Response.json({ error: "missing bearer token" }, { status: 401 });
+  }
+  let body: Record<string, unknown>;
+  try {
+    body = (await request.json()) as Record<string, unknown>;
+  } catch {
+    return Response.json({ error: "invalid json" }, { status: 400 });
+  }
+  const result = await reportParseRunStatusFromGha({
+    jobId,
+    bearerToken: token,
+    body,
+  });
+  if (!result.ok) {
+    const status = result.reason === "forbidden" ? 403 : 400;
+    return Response.json({ error: result.reason }, { status });
+  }
+  return Response.json({ status: "ok" });
 }
 
 export async function handleParseOriginalFile(
