@@ -1,5 +1,6 @@
 /**
- * ARQL — full dark: navy canvas, slightly lighter rail, teal accent (LRQA-aligned).
+ * ARQL — full dark: navy rail, chrome work pane, teal accent (LRQA-aligned).
+ * Agent/settings shells use the same left–right surface steps (nav vs canvas).
  */
 [data-theme="arql"] {
   --font-body: Arial, Helvetica, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
@@ -29,6 +30,9 @@
   --surface-raised: #1c2238;
   --surface-muted: #131722;
   --surface-nav: var(--brand-navy);
+  /* Shared left rail (agent nav + settings tabs). */
+  --chrome-rail-bg: var(--paper-cover);
+  --chrome-rail-border: var(--border-default);
   --surface-overlay: rgba(22, 26, 42, 0.94);
 
   --work-card-bg: var(--surface-raised);
@@ -295,21 +299,20 @@
   background: transparent;
 }
 
-/* Agent shell: same hue family, rail one step brighter + teal edge. */
+/* Agent + Settings — one left rail surface, canvas work pane. */
+[data-theme="arql"] .agent-nav,
+[data-theme="arql"] .agent-nav-loading,
+[data-theme="arql"] .settings-tabs {
+  background: var(--chrome-rail-bg);
+  border-right: 1px solid var(--chrome-rail-border);
+}
+
 [data-theme="arql"] .agent-nav {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--surface-nav) 92%, #000) 0%,
-    var(--surface-nav) 48%,
-    color-mix(in srgb, var(--surface-nav) 88%, var(--brand-canvas)) 100%
-  );
-  box-shadow:
-    inset -1px 0 0 color-mix(in srgb, var(--accent) 22%, transparent),
-    4px 0 24px rgba(0, 0, 0, 0.22);
+  box-shadow: none;
 }
 
 [data-theme="arql"] .agent-shell {
-  background: var(--brand-canvas);
+  background: var(--surface-canvas);
 }
 
 [data-theme="arql"] .agent-main {
@@ -319,23 +322,7 @@
 }
 
 [data-theme="arql"] .agent-main::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(
-      ellipse 85% 55% at 78% 8%,
-      color-mix(in srgb, var(--accent) 7%, transparent) 0%,
-      transparent 58%
-    ),
-    radial-gradient(
-      ellipse 70% 50% at 12% 92%,
-      color-mix(in srgb, var(--brand-navy) 38%, transparent) 0%,
-      transparent 55%
-    );
-  opacity: 0.85;
+  content: none;
 }
 
 [data-theme="arql"] .agent-main > * {
@@ -374,6 +361,56 @@
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent),
     0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* Settings tabs — same nav item chrome as agent sidebar. */
+[data-theme="arql"] .settings-tabs button {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--nav-fg-muted);
+}
+
+[data-theme="arql"] .settings-tabs button svg {
+  color: var(--nav-fg-icon);
+}
+
+[data-theme="arql"] .settings-tabs button:hover {
+  background: var(--nav-hover-bg);
+  color: var(--nav-fg);
+}
+
+[data-theme="arql"] .settings-tabs button:hover svg {
+  color: var(--nav-hover-fg-icon);
+}
+
+[data-theme="arql"] .settings-tabs button.active {
+  background: var(--nav-active-bg);
+  color: var(--nav-active-fg);
+  box-shadow: inset 0 0 0 1px rgba(245, 247, 248, 0.06);
+}
+
+[data-theme="arql"] .settings-tabs button.active svg {
+  color: var(--nav-active-fg);
+}
+
+[data-theme="arql"] .settings-header h1 {
+  color: var(--text-primary);
+}
+
+[data-theme="arql"] .settings-back {
+  color: var(--text-muted);
+}
+
+[data-theme="arql"] .settings-back:hover {
+  background: var(--nav-hover-bg);
+  color: var(--text-primary);
+}
+
+[data-theme="arql"] .settings-placeholder p,
+[data-theme="arql"] .model-form-intro p {
+  color: var(--text-muted);
 }
 
 [data-theme="arql"] .composer-audio-toolbar-btn {
