@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { LogOut, Settings, User } from "lucide-react";
+import { Check, Home, LogOut, Settings, User } from "lucide-react";
+import type { AgentInfo } from "../lib/api";
+import { AgentDisplayName } from "../lib/agentDisplayName";
 import "./UserAccountMenu.css";
 
 function userInitials(name: string): string {
@@ -16,6 +18,16 @@ type Props = {
   compact?: boolean;
   /** Home header: outline user icon + name only */
   minimal?: boolean;
+  /** Where the menu opens relative to the trigger (agent nav footer uses above). */
+  menuPlacement?: "above" | "below";
+  /** Agent nav: name/email already shown on the trigger. */
+  showAccountMeta?: boolean;
+  onGoHome?: () => void;
+  switchAgents?: {
+    agents: readonly AgentInfo[];
+    currentAgentId: string;
+    onSelect: (agentId: string) => void;
+  };
   onOpenSettings: () => void;
   onLogout: () => void;
 };
@@ -25,6 +37,10 @@ export function UserAccountMenu({
   userEmail,
   compact = false,
   minimal = false,
+  menuPlacement = "below",
+  showAccountMeta = true,
+  onGoHome,
+  switchAgents,
   onOpenSettings,
   onLogout,
 }: Props) {
@@ -48,6 +64,9 @@ export function UserAccountMenu({
         "user-account-menu",
         compact ? "compact" : "",
         minimal ? "minimal" : "",
+        menuPlacement === "above"
+          ? "user-account-menu--placement-above"
+          : "user-account-menu--placement-below",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -81,10 +100,90 @@ export function UserAccountMenu({
 
       {menuOpen ? (
         <div className="user-account-dropdown" role="menu">
-          <div className="user-account-dropdown-meta">
-            <strong>{userName}</strong>
-            <span>{userEmail}</span>
-          </div>
+          {showAccountMeta ? (
+            <>
+              <div className="user-account-dropdown-meta">
+                <strong>{userName}</strong>
+                <span>{userEmail}</span>
+              </div>
+              <div className="user-account-dropdown-divider" />
+            </>
+          ) : null}
+          {onGoHome ? (
+            <button
+              type="button"
+              className="user-account-dropdown-item"
+              role="menuitem"
+              onClick={() => {
+                setMenuOpen(false);
+                onGoHome();
+              }}
+            >
+              <Home size={16} strokeWidth={2} aria-hidden />
+              Home
+            </button>
+          ) : null}
+          {switchAgents && switchAgents.agents.length > 0 ? (
+            <>
+              {onGoHome ? (
+                <div className="user-account-dropdown-divider" />
+              ) : null}
+              <div className="user-account-dropdown-section" role="presentation">
+                Switch agent
+              </div>
+              <ul className="user-account-agent-list" role="group">
+                {switchAgents.agents.map((agent) => {
+                  const isCurrent =
+                    agent.id === switchAgents.currentAgentId;
+                  return (
+                    <li key={agent.id}>
+                      <button
+                        type="button"
+                        className={[
+                          "user-account-dropdown-item",
+                          "user-account-dropdown-item--agent",
+                          isCurrent
+                            ? "user-account-dropdown-item--current"
+                            : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        role="menuitem"
+                        aria-current={isCurrent ? "true" : undefined}
+                        disabled={isCurrent}
+                        onClick={() => {
+                          if (isCurrent) return;
+                          setMenuOpen(false);
+                          switchAgents.onSelect(agent.id);
+                        }}
+                      >
+                        <img
+                          src={agent.avatar}
+                          alt=""
+                          width={24}
+                          height={24}
+                          className="user-account-agent-avatar"
+                        />
+                        <AgentDisplayName
+                          displayName={agent.displayName}
+                          className="user-account-agent-name"
+                          highlightClassName="user-account-agent-name-highlight"
+                        />
+                        {isCurrent ? (
+                          <Check
+                            size={16}
+                            strokeWidth={2}
+                            aria-hidden
+                            className="user-account-agent-current-icon"
+                          />
+                        ) : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : null}
           <div className="user-account-dropdown-divider" />
           <button
             type="button"

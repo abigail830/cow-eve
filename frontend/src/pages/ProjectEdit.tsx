@@ -120,6 +120,10 @@ export function ProjectEditPage() {
               onDeleteFolder: () => undefined,
               userName: user.displayName,
               userEmail: user.email,
+              agents,
+              onGoHome: () => navigate("/"),
+              onSwitchAgent: (id) =>
+                navigate(`/agents/${encodeURIComponent(id)}`),
               onOpenSettings: () => navigate("/settings"),
               onLogout: logout,
             }

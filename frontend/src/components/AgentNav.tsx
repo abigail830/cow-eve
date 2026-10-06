@@ -37,6 +37,9 @@ type Props = {
   onDeleteFolder: () => void;
   userName: string;
   userEmail: string;
+  agents: readonly AgentInfo[];
+  onGoHome: () => void;
+  onSwitchAgent: (agentId: string) => void;
   onOpenSettings: () => void;
   onLogout: () => void;
   /** Overlay drawer on pad and phone. Labels stay visible; the rail does not consume layout width. */
@@ -58,6 +61,9 @@ export function AgentNav({
   onDeleteFolder,
   userName,
   userEmail,
+  agents,
+  onGoHome,
+  onSwitchAgent,
   onOpenSettings,
   onLogout,
   drawer = false,
@@ -266,14 +272,27 @@ export function AgentNav({
       </nav>
 
       <div className="agent-nav-footer">
-        {expanded ? (
-          <UserAccountMenu
-            userName={userName}
-            userEmail={userEmail}
-            onOpenSettings={onOpenSettings}
-            onLogout={onLogout}
-          />
-        ) : null}
+        <UserAccountMenu
+          compact={!expanded}
+          menuPlacement="above"
+          showAccountMeta={false}
+          userName={userName}
+          userEmail={userEmail}
+          onGoHome={() => {
+            onGoHome();
+            if (drawer) onDrawerClose?.();
+          }}
+          switchAgents={{
+            agents,
+            currentAgentId: agent.id,
+            onSelect: (agentId) => {
+              onSwitchAgent(agentId);
+              if (drawer) onDrawerClose?.();
+            },
+          }}
+          onOpenSettings={onOpenSettings}
+          onLogout={onLogout}
+        />
         <button
           type="button"
           className="agent-nav-collapse-btn"
