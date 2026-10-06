@@ -54,6 +54,7 @@ import {
   researchWorkflowStaleHint,
 } from "../lib/researchWorkflowStaleHint";
 import { dynamicToolStepLabel } from "../lib/toolStepLabel";
+import { toolOutputOutcomeSummary } from "../lib/toolOutputSummary";
 import "./MessageStream.css";
 
 type Props = {
@@ -179,6 +180,14 @@ function PartView({
     const staleWorkflowHint = researchWorkflowStaleHint(
       extractToolErrorText(output),
     );
+    const hasInput = "input" in part && part.input != null;
+    const hasOutput = output != null;
+    const outcomeSummary =
+      toolDone && hasOutput ? toolOutputOutcomeSummary(output) : null;
+    const outcomeIsError =
+      output != null &&
+      typeof output === "object" &&
+      typeof (output as Record<string, unknown>).error === "string";
 
     return (
       <details
@@ -203,20 +212,39 @@ function PartView({
               aria-hidden
             />
           ) : null}
-          <span>{stepLabel}</span>
+          <span className="msg-step-summary-line">
+            <span className="msg-step-action">{stepLabel}</span>
+            {outcomeSummary ? (
+              <>
+                <span className="msg-step-summary-sep" aria-hidden>
+                  {" · "}
+                </span>
+                <span
+                  className={[
+                    "msg-step-outcome",
+                    outcomeIsError ? "msg-step-outcome--error" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {outcomeSummary}
+                </span>
+              </>
+            ) : null}
+          </span>
           {toolInProgress ? (
             <span className="step-running">Running…</span>
           ) : null}
         </summary>
-        {"input" in part && part.input != null ? (
-          <pre>{JSON.stringify(part.input, null, 2)}</pre>
-        ) : null}
         {staleWorkflowHint ? (
           <p className="msg-step-stale-workflow" role="status">
             {staleWorkflowHint}
           </p>
         ) : null}
-        {output != null ? (
+        {hasInput ? (
+          <pre>{JSON.stringify(part.input, null, 2)}</pre>
+        ) : null}
+        {hasOutput ? (
           <pre className="tool-out">{JSON.stringify(output, null, 2)}</pre>
         ) : null}
       </details>

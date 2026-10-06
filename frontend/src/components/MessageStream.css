@@ -132,6 +132,28 @@
   user-select: none;
 }
 
+.msg-step-summary-line {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msg-step-action {
+  color: inherit;
+}
+
+.msg-step-outcome {
+  font-weight: 400;
+  color: #777;
+}
+
+.msg-step-outcome--error {
+  color: var(--color-error, #b42318);
+  font-weight: 500;
+}
+
 .msg-step-chevron {
   flex-shrink: 0;
   color: #aaa;

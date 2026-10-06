@@ -88,10 +88,13 @@
 
 .markdown-content blockquote {
   margin: 0 0 0.75em;
-  padding: 0.5em 0.75em 0.5em 1em;
-  border-left: 3px solid var(--accent-soft, var(--accent));
+  padding: 0.55em 0.85em;
+  border: 1px solid var(--border-subtle, #ececec);
   border-radius: var(--radius-sm, 4px);
-  background: var(--accent-muted, color-mix(in srgb, var(--accent) 8%, transparent));
+  background: var(
+    --surface-muted,
+    color-mix(in srgb, var(--text-primary, #1a1a1a) 4%, transparent)
+  );
   color: var(--text-secondary, var(--color-text-secondary, #555));
   font-size: var(--chat-font-size);
   line-height: var(--chat-line-height);

@@ -1,13 +1,14 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { PlatformAmbient } from "../components/PlatformAmbient";
+import { PlatformBrand } from "../components/PlatformBrand";
 import { useAuth } from "../lib/auth";
 import "./Login.css";
 
 export function LoginPage() {
   const { token, login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("abigail830@163.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -32,8 +33,10 @@ export function LoginPage() {
     <div className="login-page platform-shell">
       <PlatformAmbient />
       <form className="login-card" onSubmit={onSubmit}>
-        <img className="login-logo" src="/cow.png" alt="" />
-        <h1>FDE DESK</h1>
+        <h1 className="login-sr-only">Sign in to Agent Team</h1>
+        <div className="login-brand">
+          <PlatformBrand variant="header" />
+        </div>
         <p className="login-sub">Sign in with your email and password</p>
 
         <label>
@@ -58,7 +61,11 @@ export function LoginPage() {
           />
         </label>
 
-        {error ? <p className="login-error">{error}</p> : null}
+        {error ? (
+          <p className="login-error" role="alert">
+            {error}
+          </p>
+        ) : null}
 
         <button type="submit" disabled={pending}>
           {pending ? "Signing in…" : "Sign in"}

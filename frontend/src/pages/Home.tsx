@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Settings } from "lucide-react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { getCachedAgents, loadAgentsCatalog, type AgentInfo } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -60,15 +59,6 @@ export function HomePage() {
       <header className="home-header">
         <PlatformBrand variant="header" />
         <div className="home-header-actions">
-          <button
-            type="button"
-            className="home-header-icon-btn"
-            aria-label="Settings"
-            title="Settings"
-            onClick={() => navigate("/settings")}
-          >
-            <Settings size={18} strokeWidth={2} aria-hidden />
-          </button>
           <UserAccountMenu
             minimal
             userName={user.displayName}

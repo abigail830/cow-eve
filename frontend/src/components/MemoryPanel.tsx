@@ -44,7 +44,7 @@ export function MemoryPanel({
               <section className="memory-section">
                 <h4>Global preferences</h4>
                 <p className="memory-section-hint">
-                  Durable preferences shared across all agents on FDE Desk.
+                  Durable preferences shared across all agents in Agent Team.
                 </p>
                 {memory && memory.globalPreferences.length > 0 ? (
                   <ul className="memory-list">
