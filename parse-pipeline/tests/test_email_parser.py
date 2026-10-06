@@ -17,6 +17,20 @@ def _build_sample_eml() -> bytes:
     return msg.as_bytes()
 
 
+def test_parse_eml_strips_outlook_css_comments_from_plain_body() -> None:
+    msg = EmailMessage()
+    msg["Subject"] = "RE: test"
+    msg["From"] = "a@example.com"
+    msg["To"] = "b@example.com"
+    outlook_plain = "<!--\n@font-face { font-family: Aptos; }\n-->\nHello from audit."
+    msg.set_content(outlook_plain)
+    msg.add_alternative("<p>HTML fallback</p>", subtype="html")
+    parsed = parse_eml_bytes(msg.as_bytes())
+    assert "@font-face" not in parsed.markdown
+    assert "Hello from audit." in parsed.markdown
+    assert "\n\nHello from audit." in parsed.markdown.split("---")[-1]
+
+
 def test_parse_eml_extracts_headers_and_body() -> None:
     parsed = parse_eml_bytes(_build_sample_eml())
     assert "Use of AI" in parsed.markdown

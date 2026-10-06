@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import email.policy
+import re
 from dataclasses import dataclass
 from email import message_from_bytes
 from email.header import decode_header, make_header
@@ -31,10 +32,27 @@ class ParsedEmail:
     warnings: list[str]
 
 
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def _strip_html_comments(text: str) -> str:
+    """Outlook often embeds conditional CSS inside <!-- --> in text/plain parts."""
+    return _HTML_COMMENT_RE.sub("", text).strip()
+
+
+def _normalize_plain_email_body(text: str) -> str:
+    """Outlook plain parts are one visual line per \\n; markdown needs blank lines for <p> breaks."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return "\n\n".join(lines)
+
+
 class _SimpleHtmlText(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self._chunks: list[str] = []
+
+    def handle_comment(self, data: str) -> None:
+        return
 
     def handle_data(self, data: str) -> None:
         if data.strip():
@@ -73,9 +91,10 @@ def _part_body_text(part: email.message.Message) -> str:
         text = payload.decode(charset, errors="replace")
     except LookupError:
         text = payload.decode("utf-8", errors="replace")
+    cleaned = _strip_html_comments(text)
     if content_type == "text/html":
-        return _html_to_text(text)
-    return text.strip()
+        return _html_to_text(cleaned)
+    return _normalize_plain_email_body(cleaned)
 
 
 def _pick_body(msg: email.message.Message) -> str:

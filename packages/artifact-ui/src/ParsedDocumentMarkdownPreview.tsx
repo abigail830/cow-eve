@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useState, type ImgHTMLAttributes } from "react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
+import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 
 type Props = {
@@ -96,7 +97,7 @@ export const ParsedDocumentMarkdownPreview = memo(function ParsedDocumentMarkdow
   return (
     <div className={`artifact-markdown-preview parsed-document-markdown-preview ${className}`.trim()}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         urlTransform={(url) =>
           /^figure:/i.test(url) ? url : defaultUrlTransform(url)
         }
