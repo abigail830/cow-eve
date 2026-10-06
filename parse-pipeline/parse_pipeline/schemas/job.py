@@ -23,6 +23,7 @@ class PipelineId(StrEnum):
     SHEET_STANDARD = "sheet_standard"
     DOCUMENT_MIND_GENERIC = "document_mind_generic"
     AUDIO_TRANSCRIPTION_STANDARD = "audio_transcription_standard"
+    EMAIL_STANDARD = "email_standard"
 
 
 class DocumentMindOptions(BaseModel):

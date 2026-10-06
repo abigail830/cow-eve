@@ -32,6 +32,8 @@ import {
   effectiveParseStatus,
   attachmentParseInProgress,
   isAttachmentReadyForSend,
+  isMentionAttachmentSelectable,
+  moveMentionSelectableIndex,
 } from "../lib/attachmentParseProgress";
 import { mergeAttachmentIdsForSend } from "../lib/attachmentSend";
 import {
@@ -197,6 +199,9 @@ export function Composer({
         mediaType: file.mediaType,
         sizeBytes: file.sizeBytes,
         createdAt: file.createdAt,
+        parseStatus: file.parseStatus,
+        parsePipelineId: file.parsePipelineId,
+        parseJobId: file.parseJobId,
       })),
     [sessionWorkspaceFiles, workspaceImports],
   );
@@ -398,6 +403,7 @@ export function Composer({
 
   const selectMention = useCallback(
     (option: MentionAttachmentOption) => {
+      if (!isMentionAttachmentSelectable(option)) return;
       const el = textareaRef.current;
       if (!el || !mention) return;
       explicitMentionPicksRef.current = [
@@ -736,9 +742,10 @@ export function Composer({
           current
             ? {
                 ...current,
-                selectedIndex: Math.min(
-                  current.selectedIndex + 1,
-                  Math.max(filteredMentionOptions.length - 1, 0),
+                selectedIndex: moveMentionSelectableIndex(
+                  filteredMentionOptions,
+                  current.selectedIndex,
+                  1,
                 ),
               }
             : current,
@@ -751,7 +758,11 @@ export function Composer({
           current
             ? {
                 ...current,
-                selectedIndex: Math.max(current.selectedIndex - 1, 0),
+                selectedIndex: moveMentionSelectableIndex(
+                  filteredMentionOptions,
+                  current.selectedIndex,
+                  -1,
+                ),
               }
             : current,
         );
@@ -771,7 +782,9 @@ export function Composer({
         const picked =
           filteredMentionOptions[mention.selectedIndex] ??
           filteredMentionOptions[0];
-        if (picked) selectMention(picked);
+        if (picked && isMentionAttachmentSelectable(picked)) {
+          selectMention(picked);
+        }
         return true;
       }
       return false;

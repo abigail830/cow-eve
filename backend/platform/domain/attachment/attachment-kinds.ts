@@ -5,6 +5,7 @@ export type AttachmentKind =
   | "pdf"
   | "sheet"
   | "text"
+  | "email"
   | "office"
   | "audio";
 
@@ -12,6 +13,7 @@ const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]);
 const PDF_EXTS = new Set([".pdf"]);
 const SHEET_EXTS = new Set([".xls", ".xlsx", ".csv"]);
 const TEXT_EXTS = new Set([".txt", ".md", ".json"]);
+const EMAIL_EXTS = new Set([".eml"]);
 const PPT_EXTS = new Set([".ppt", ".pptx"]);
 const WORD_EXTS = new Set([".doc", ".docx"]);
 const AUDIO_EXTS = new Set([
@@ -41,6 +43,11 @@ const TEXT_MIMES = new Set([
   "text/plain",
   "text/markdown",
   "application/json",
+]);
+const EMAIL_MIMES = new Set([
+  "message/rfc822",
+  "application/eml",
+  "application/vnd.eml",
 ]);
 const PPT_MIMES = new Set([
   "application/vnd.ms-powerpoint",
@@ -88,6 +95,7 @@ export function classifyAttachment(input: {
   }
   if (PDF_EXTS.has(ext) || PDF_MIMES.has(mime)) return "pdf";
   if (SHEET_EXTS.has(ext) || SHEET_MIMES.has(mime)) return "sheet";
+  if (EMAIL_EXTS.has(ext) || EMAIL_MIMES.has(mime)) return "email";
   if (TEXT_EXTS.has(ext) || TEXT_MIMES.has(mime)) return "text";
   if (AUDIO_EXTS.has(ext) || AUDIO_MIMES.has(mime) || mime.startsWith("audio/")) {
     return "audio";

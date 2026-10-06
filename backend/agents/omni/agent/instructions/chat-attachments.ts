@@ -4,6 +4,7 @@ import {
   buildHydrateTextForEntries,
   buildSessionDocumentLibrary,
   classifyAttachment,
+  listChatAttachmentsForUser,
   listChatWorkspaceFileRefsForUser,
   listProjectWorkspaceFileIdsForChat,
   listWorkspaceFilesForDocumentIndex,
@@ -178,6 +179,37 @@ export default defineDynamic({
                 `- ${entry.filename} (source=${entry.source}, parse_status=${entry.parseStatus})`,
             ),
           );
+        }
+
+        const mentionedNotIndexed = mentioned.filter(
+          (name) =>
+            !mentionedEntries.some(
+              (entry) => entry.filename.toLowerCase() === name.toLowerCase(),
+            ),
+        );
+        if (mentionedNotIndexed.length > 0) {
+          const chatRows = await listChatAttachmentsForUser({ userId, chatId });
+          const pendingChatMentions = chatRows.filter(
+            (row) =>
+              mentionedNotIndexed.some(
+                (name) => name.toLowerCase() === row.filename.toLowerCase(),
+              ) &&
+              !isImageEntry({
+                filename: row.filename,
+                mimeType: row.mediaType,
+              }) &&
+              !PARSE_READY_STATUSES.has(row.parseStatus),
+          );
+          if (pendingChatMentions.length > 0) {
+            lines.push(
+              "",
+              "These @mentioned chat files are still parsing (not in the document library yet):",
+              ...pendingChatMentions.map(
+                (row) =>
+                  `- ${row.filename} (attachment_id=${row.id}, parse_status=${row.parseStatus})`,
+              ),
+            );
+          }
         }
       }
 

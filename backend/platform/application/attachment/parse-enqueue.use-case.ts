@@ -12,6 +12,7 @@ import type { WorkspaceFile } from "../../domain/workspace/workspace-file.entity
 import {
   parseableFromWorkspaceFile,
 } from "../../domain/document/parseable-file.js";
+import { emailDerivedMaterializationIncomplete } from "./email-derived.use-case.js";
 import { parsedArtifactInManifest } from "../../domain/docstore/parsed-manifest.js";
 import { ParseStatus } from "../../domain/parse/parse-status.js";
 import {
@@ -127,11 +128,16 @@ export async function finalizeAttachmentParse(
   if (resolution.action === "reject") {
     throw new Error(`Unsupported file type for parse: ${row.mediaType}`);
   }
-  if (
-    row.parseStatus !== ParseStatus.FAILED &&
-    chatAttachmentParseAlreadyComplete(row, resolution.pipelineId)
-  ) {
-    return row;
+  if (row.parseStatus !== ParseStatus.FAILED) {
+    const derivedIncomplete =
+      resolution.pipelineId === "email_standard" &&
+      (await emailDerivedMaterializationIncomplete(row.chatId, row.id));
+    if (
+      !derivedIncomplete &&
+      chatAttachmentParseAlreadyComplete(row, resolution.pipelineId)
+    ) {
+      return row;
+    }
   }
   await enqueueParseJob(parseableFromChatAttachment(row), resolution.pipelineId);
   const running = await drizzleChatAttachmentRepository.getByIdOnly(row.id);
@@ -152,11 +158,17 @@ export async function finalizeWorkspaceFileParse(
   if (resolution.action === "reject") {
     throw new Error(`Unsupported file type for parse: ${row.mediaType}`);
   }
-  if (
-    row.parseStatus !== ParseStatus.FAILED &&
-    workspaceFileParseAlreadyComplete(row, resolution.pipelineId)
-  ) {
-    return row;
+  if (row.parseStatus !== ParseStatus.FAILED) {
+    const scopeId = parseableFromWorkspaceFile(row, row.userId).scopeId;
+    const derivedIncomplete =
+      resolution.pipelineId === "email_standard" &&
+      (await emailDerivedMaterializationIncomplete(scopeId, row.id));
+    if (
+      !derivedIncomplete &&
+      workspaceFileParseAlreadyComplete(row, resolution.pipelineId)
+    ) {
+      return row;
+    }
   }
   await enqueueParseJob(
     parseableFromWorkspaceFile(row, row.userId),

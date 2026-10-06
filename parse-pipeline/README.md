@@ -56,6 +56,7 @@ Workflows live at repo root:
 | `pdf_standard` | Document Mind (VLM default) |
 | `office_standard` | `.docx`: markitdown + quality gate → synthetic `pageindex.json`; fallback Document Mind. Other Office formats: Document Mind |
 | `document_mind_generic` | Document Mind |
+| `email_standard` | `.eml` (stdlib MIME → markdown; platform materializes embedded attachments) |
 
 ## Job store
 

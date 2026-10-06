@@ -13,6 +13,10 @@ Default URL: `http://127.0.0.1:2003/eve/v1/*`
 
 Run alongside omni (platform `/api/*`) and parse pipeline as for other agents.
 
+## Email (`.eml`)
+
+Upload `.eml` like any document: parse pipeline runs `email_standard` (MIME → markdown). Embedded attachments become separate chat/workspace files with their own parse status. `@` mentions stay disabled until each file is parse-ready. Email body is read from the parent `.eml` once it is Ready.
+
 ## Generation tools
 
 | Tool | Purpose |

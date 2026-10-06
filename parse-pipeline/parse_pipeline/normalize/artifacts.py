@@ -18,6 +18,8 @@ class NormalizedArtifacts:
     figure_files: dict[str, tuple[bytes, str, str]] = field(default_factory=dict)
     docx_probe: DocxProbe | None = None
     office_source_bytes: bytes | None = None
+    # filename, mime_type, bytes — materialized by platform after parent write
+    email_derived_parts: list[tuple[str, str, bytes]] = field(default_factory=list)
 
 
 def normalize_text_artifacts(

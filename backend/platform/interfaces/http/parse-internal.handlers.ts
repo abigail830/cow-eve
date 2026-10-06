@@ -16,6 +16,7 @@ import {
 import { hashRunToken } from "../../infrastructure/parse-pipeline/job-builder.js";
 import { resolveParseableFile } from "../../application/document/parse-document-router.js";
 import { recordParsedArtifactsForRun } from "../../application/document/parse-document-router.js";
+import { materializeEmailDerivedAttachments } from "../../application/attachment/email-derived.use-case.js";
 import { drizzleChatAttachmentRepository } from "../../infrastructure/persistence/attachment/drizzle-chat-attachment.repository.js";
 import {
   getParseJobRunForAttachmentToken,
@@ -219,6 +220,54 @@ export async function handleParseArtifactsBatch(
     status: "ok",
     artifacts: artifacts.map((item) => item.artifactKey),
   });
+}
+
+export async function handleParseEmailDerived(
+  attachmentId: string,
+  request: Request,
+): Promise<Response> {
+  const token = extractBearer(request.headers.get("authorization"));
+  if (!token) {
+    return Response.json({ error: "missing bearer token" }, { status: 401 });
+  }
+  const run = await getParseJobRunForAttachmentToken(
+    attachmentId,
+    hashRunToken(token),
+  );
+  if (!run || run.attachmentId !== attachmentId) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  let form: FormData;
+  try {
+    form = await request.formData();
+  } catch {
+    return Response.json({ error: "invalid multipart body" }, { status: 400 });
+  }
+
+  const parts: Array<{ filename: string; mediaType: string; bytes: Uint8Array }> =
+    [];
+  for (const value of form.values()) {
+    if (!(value instanceof File) || value.size <= 0) continue;
+    const name = value.name.trim() || "attachment.bin";
+    parts.push({
+      filename: name,
+      mediaType: value.type || "application/octet-stream",
+      bytes: new Uint8Array(await value.arrayBuffer()),
+    });
+  }
+
+  try {
+    const result = await materializeEmailDerivedAttachments({
+      run,
+      parentAttachmentId: attachmentId,
+      parts,
+    });
+    return Response.json({ status: "ok", ...result });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "email derived failed";
+    return Response.json({ error: message }, { status: 400 });
+  }
 }
 
 const MIME_TO_EXT: Record<string, string> = {

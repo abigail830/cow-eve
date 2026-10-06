@@ -27,6 +27,9 @@ export type MentionAttachmentOption = {
   sizeBytes: number;
   createdAt: string | null;
   source?: "chat" | "workspace";
+  parseStatus?: string | null;
+  parsePipelineId?: string | null;
+  parseJobId?: string | null;
 };
 
 type UploadTarget = {
@@ -312,7 +315,14 @@ export function mergeMentionAttachmentOptions(
   staged: readonly PreparedAttachment[],
   workspaceSession: readonly Pick<
     MentionAttachmentOption,
-    "id" | "filename" | "mediaType" | "sizeBytes" | "createdAt"
+    | "id"
+    | "filename"
+    | "mediaType"
+    | "sizeBytes"
+    | "createdAt"
+    | "parseStatus"
+    | "parsePipelineId"
+    | "parseJobId"
   >[] = [],
 ): MentionAttachmentOption[] {
   const options: MentionAttachmentOption[] = [];
@@ -329,6 +339,9 @@ export function mergeMentionAttachmentOptions(
       sizeBytes: item.sizeBytes,
       createdAt: item.createdAt,
       source: "chat",
+      parseStatus: item.parseStatus,
+      parsePipelineId: item.parsePipelineId,
+      parseJobId: item.parseJobId,
     });
   }
 
@@ -357,6 +370,9 @@ export function mergeMentionAttachmentOptions(
       sizeBytes: item.sizeBytes,
       createdAt: item.createdAt,
       source: "workspace",
+      parseStatus: item.parseStatus,
+      parsePipelineId: item.parsePipelineId,
+      parseJobId: item.parseJobId,
     });
   }
 

@@ -110,6 +110,8 @@ class JobRunner:
             reason = "pdf_dm_only_v1"
         elif pipeline_id == PipelineId.TEXT_STANDARD.value:
             reason = "local_text_no_analyze"
+        elif pipeline_id == PipelineId.EMAIL_STANDARD.value:
+            reason = "local_email_no_analyze"
         elif pipeline_id == PipelineId.SHEET_STANDARD.value:
             reason = "local_sheet_no_analyze"
         elif pipeline_id == PipelineId.AUDIO_TRANSCRIPTION_STANDARD.value:
@@ -125,6 +127,8 @@ class JobRunner:
     ) -> NormalizedArtifacts:
         if pipeline_id == PipelineId.TEXT_STANDARD.value:
             return await self._parse_local_text(record, file_bytes)
+        if pipeline_id == PipelineId.EMAIL_STANDARD.value:
+            return await self._parse_local_email(record, file_bytes)
         if pipeline_id == PipelineId.SHEET_STANDARD.value:
             return await self._parse_local_sheet(record, file_bytes, filename)
         if pipeline_id == PipelineId.OFFICE_STANDARD.value:
@@ -293,6 +297,42 @@ class JobRunner:
             ]
         }
         artifacts.meta_json = meta
+        return artifacts
+
+    async def _parse_local_email(self, record: JobRecord, file_bytes: bytes) -> NormalizedArtifacts:
+        import asyncio
+
+        from parse_pipeline.providers.local.email import parse_eml_bytes
+
+        await self._skip_stage(record, StageId.PARSE_SUBMIT, reason="sync_local")
+        await self._skip_stage(record, StageId.PARSE_WAIT, reason="sync_local")
+        await self._begin_stage(record, StageId.PARSE_COLLECT)
+        parsed = await asyncio.to_thread(parse_eml_bytes, file_bytes)
+        await self._finish_stage(
+            record,
+            StageId.PARSE_COLLECT,
+            outputs={
+                "provider_id": "local_email",
+                "line_count": parsed.markdown.count("\n") + 1,
+                "attachment_count": len(parsed.attachments),
+                "skipped_count": len(parsed.skipped_parts),
+            },
+        )
+        record.provider_id = "local_email"
+        artifacts = normalize_text_artifacts(
+            content=parsed.markdown,
+            job_id=record.job_id,
+            pipeline_id=record.pipeline_id,
+            parse_engine="local_email",
+            provider_id="local_email",
+            warnings=parsed.warnings,
+        )
+        meta = dict(artifacts.meta_json)
+        meta.update(parsed.meta)
+        artifacts.meta_json = meta
+        artifacts.email_derived_parts = [
+            (part.filename, part.mime_type, part.data) for part in parsed.attachments
+        ]
         return artifacts
 
     async def _parse_local_text(self, record: JobRecord, file_bytes: bytes) -> NormalizedArtifacts:
@@ -603,6 +643,22 @@ class JobRunner:
     async def _stage_write(self, record: JobRecord, spec: StorageSpec, normalized: NormalizedArtifacts) -> None:
         await self._begin_stage(record, StageId.WRITE)
         write_result = await write_normalized_artifacts(spec, normalized)
+        derived_writes = 0
+        if write_result.wrote_content and write_result.wrote_meta and normalized.email_derived_parts:
+            from parse_pipeline.storage.io import write_email_derived_http
+
+            if spec.write.get("email_derived") is None:
+                raise RuntimeError(
+                    "email_derived write target missing but message has embedded attachments",
+                )
+            derived_writes = await write_email_derived_http(
+                spec,
+                normalized.email_derived_parts,
+            )
+            if derived_writes != len(normalized.email_derived_parts):
+                raise RuntimeError(
+                    f"email_derived wrote {derived_writes} of {len(normalized.email_derived_parts)} parts",
+                )
         record.artifacts = JobArtifacts(
             content_md=write_result.wrote_content,
             meta_json=write_result.wrote_meta,
@@ -617,6 +673,7 @@ class JobRunner:
                 "meta_json": write_result.wrote_meta,
                 "pageindex_json": write_result.wrote_pageindex,
                 "figure_writes": write_result.figure_writes,
+                "email_derived_writes": derived_writes,
             },
         )
 

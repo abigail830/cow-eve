@@ -52,9 +52,24 @@
   color: inherit;
 }
 
-.composer-mention-item:hover,
-.composer-mention-item.is-selected {
+.composer-mention-item:hover:not(:disabled),
+.composer-mention-item.is-selected:not(:disabled) {
   background: #f5f5f5;
+}
+
+.composer-mention-item.is-disabled,
+.composer-mention-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.composer-mention-item.is-selected.is-disabled {
+  background: #f0f0f0;
+}
+
+.composer-mention-parse-status {
+  font-weight: 500;
+  color: #888;
 }
 
 .composer-mention-icon {

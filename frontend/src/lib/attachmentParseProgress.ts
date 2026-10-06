@@ -30,7 +30,8 @@ export function likelyNeedsParse(attachment: ChatAttachmentPublic): boolean {
   const name = attachment.filename.toLowerCase();
   if (mime === "application/pdf") return true;
   if (mime.startsWith("text/")) return true;
-  if (/\.(pdf|xls|xlsx|csv|tsv|md|markdown|txt)$/.test(name)) return true;
+  if (/\.(pdf|xls|xlsx|csv|tsv|md|markdown|txt|eml)$/.test(name)) return true;
+  if (mime === "message/rfc822" || mime === "application/eml") return true;
   if (/\.(doc|docx|ppt|pptx)$/.test(name)) return true;
   if (
     mime === "application/msword" ||
@@ -90,6 +91,77 @@ export function attachmentNeedsParsePoll(
 export function isParseReady(attachment: ChatAttachmentPublic): boolean {
   const status = effectiveParseStatus(attachment);
   return status === "ready" || status === "skipped";
+}
+
+/** @ mention menu: images skip parse; documents must be parse-ready. */
+export function isMentionAttachmentSelectable(input: {
+  mediaType: string;
+  filename: string;
+  parseStatus?: string | null;
+  parsePipelineId?: string | null;
+  parseJobId?: string | null;
+}): boolean {
+  const row: ChatAttachmentPublic = {
+    id: "",
+    chatId: "",
+    filename: input.filename,
+    mediaType: input.mediaType,
+    sizeBytes: 0,
+    parseStatus: input.parseStatus,
+    parsePipelineId: input.parsePipelineId ?? null,
+    parseJobId: input.parseJobId ?? null,
+    createdAt: "",
+  };
+  if (isImageAttachmentRow(row)) return true;
+  if (parseNotRequired(row)) return true;
+  return isParseReady(row);
+}
+
+/** Move @-mention selection, skipping rows that are not selectable. */
+export function moveMentionSelectableIndex(
+  options: ReadonlyArray<{
+    mediaType: string;
+    filename: string;
+    parseStatus?: string | null;
+    parsePipelineId?: string | null;
+    parseJobId?: string | null;
+  }>,
+  currentIndex: number,
+  direction: 1 | -1,
+): number {
+  if (options.length === 0) return 0;
+  let index = currentIndex;
+  for (let step = 0; step < options.length; step++) {
+    const next = index + direction;
+    if (next < 0 || next >= options.length) break;
+    index = next;
+    if (isMentionAttachmentSelectable(options[index]!)) return index;
+  }
+  return currentIndex;
+}
+
+export function mentionParseStatusLabel(input: {
+  mediaType: string;
+  filename: string;
+  parseStatus?: string | null;
+  parsePipelineId?: string | null;
+  parseJobId?: string | null;
+}): string | null {
+  const row: ChatAttachmentPublic = {
+    id: "",
+    chatId: "",
+    filename: input.filename,
+    mediaType: input.mediaType,
+    sizeBytes: 0,
+    parseStatus: input.parseStatus,
+    parsePipelineId: input.parsePipelineId ?? null,
+    parseJobId: input.parseJobId ?? null,
+    createdAt: "",
+  };
+  if (isImageAttachmentRow(row) || parseNotRequired(row)) return null;
+  const status = effectiveParseStatus(row);
+  if (status === "ready" || status === "skipped") return null;
+  return parseStatusLabel(row);
 }
 
 export function isAttachmentReadyForSend(

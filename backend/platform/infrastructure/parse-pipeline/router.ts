@@ -14,6 +14,9 @@ export function resolvePipeline(kind: AttachmentKind): PipelineResolution {
   if (kind === "text") {
     return { action: "parse", pipelineId: "text_standard" };
   }
+  if (kind === "email") {
+    return { action: "parse", pipelineId: "email_standard" };
+  }
   if (kind === "sheet") {
     return { action: "parse", pipelineId: "sheet_standard" };
   }

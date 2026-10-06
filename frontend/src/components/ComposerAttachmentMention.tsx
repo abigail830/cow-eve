@@ -3,6 +3,10 @@ import { FileText, ImageIcon, Search } from "lucide-react";
 import { formatBytes, isImageMime } from "../lib/attachments";
 import { formatMentionTimestamp } from "../lib/attachmentMention";
 import type { MentionAttachmentOption } from "../lib/attachmentUpload";
+import {
+  isMentionAttachmentSelectable,
+  mentionParseStatusLabel,
+} from "../lib/attachmentParseProgress";
 import "./ComposerAttachmentMention.css";
 
 type Props = {
@@ -81,20 +85,28 @@ export function ComposerAttachmentMention({
               : "No matching attachments."}
           </p>
         ) : (
-          filtered.map((item, index) => (
+          filtered.map((item, index) => {
+            const selectable = isMentionAttachmentSelectable(item);
+            const statusLabel = mentionParseStatusLabel(item);
+            return (
             <button
               key={`${item.source ?? "chat"}-${item.id}`}
               type="button"
               role="option"
               aria-selected={index === selectedIndex}
+              aria-disabled={!selectable}
+              disabled={!selectable}
               data-mention-index={index}
-              className={
-                index === selectedIndex
-                  ? "composer-mention-item is-selected"
-                  : "composer-mention-item"
-              }
+              className={[
+                "composer-mention-item",
+                index === selectedIndex ? "is-selected" : "",
+                !selectable ? "is-disabled" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               onMouseDown={(e) => {
                 e.preventDefault();
+                if (!selectable) return;
                 onSelect(item);
               }}
               onMouseEnter={() => onSelectedIndexChange(index)}
@@ -106,13 +118,18 @@ export function ComposerAttachmentMention({
               <span className="composer-mention-line">
                 <span className="composer-mention-name">{item.filename}</span>
                 <span className="composer-mention-meta">
+                  {statusLabel ? (
+                    <span className="composer-mention-parse-status">{statusLabel}</span>
+                  ) : null}
+                  {statusLabel ? " · " : null}
                   {item.source === "workspace" ? "Workspace · " : null}
                   {formatBytes(item.sizeBytes)} ·{" "}
                   {formatMentionTimestamp(item.createdAt)}
                 </span>
               </span>
             </button>
-          ))
+            );
+          })
         )}
       </div>
     </div>

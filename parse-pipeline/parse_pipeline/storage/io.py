@@ -236,3 +236,41 @@ async def write_normalized_artifacts(spec: StorageSpec, normalized: NormalizedAr
         wrote_pageindex=wrote_pageindex,
         figure_writes=sum(1 for wrote in figure_results if wrote),
     )
+
+
+async def write_email_derived_http(
+    spec: StorageSpec,
+    parts: list[tuple[str, str, bytes]],
+) -> int:
+    """POST embedded email attachments to platform after parent artifacts batch."""
+    if not parts:
+        return 0
+    target = spec.write.get("email_derived")
+    if target is None:
+        raise RuntimeError(
+            "email_derived write target missing in storage spec (platform too old or job payload stale)",
+        )
+    parsed = urlparse(target.url)
+    if parsed.scheme not in {"http", "https"}:
+        return 0
+
+    files: list[tuple[str, tuple[str, bytes, str]]] = []
+    for index, (filename, mime_type, data) in enumerate(parts):
+        safe_name = filename.replace("\x00", "") or f"attachment-{index + 1}.bin"
+        files.append(
+            (
+                "files",
+                (safe_name, data, mime_type or "application/octet-stream"),
+            ),
+        )
+
+    headers = {k: v for k, v in (target.headers or {}).items() if k.lower() != "content-type"}
+    async with http_put_client() as client:
+        response = await client.request(
+            target.method,
+            target.url,
+            files=files,
+            headers=headers,
+        )
+        response.raise_for_status()
+    return len(parts)

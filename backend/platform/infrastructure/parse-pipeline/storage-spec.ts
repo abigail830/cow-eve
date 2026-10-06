@@ -50,6 +50,11 @@ export function buildInternalStorageSpec(input: {
         content_type: "application/json",
         headers: authHeaders,
       },
+      email_derived: {
+        url: `${fileBase}/email-derived`,
+        method: "POST",
+        headers: authHeaders,
+      },
     },
   };
 }
