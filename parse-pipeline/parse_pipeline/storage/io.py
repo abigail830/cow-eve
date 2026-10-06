@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -257,9 +258,13 @@ async def write_email_derived_http(
     files: list[tuple[str, tuple[str, bytes, str]]] = []
     for index, (filename, mime_type, data) in enumerate(parts):
         safe_name = filename.replace("\x00", "") or f"attachment-{index + 1}.bin"
+        # Unique field names so platform can recover filename when multipart uses name="files".
+        field_name = re.sub(r"[^\w.\-+ ]", "_", safe_name).strip("._")[:120]
+        if not field_name:
+            field_name = f"attachment_{index + 1}.bin"
         files.append(
             (
-                "files",
+                field_name,
                 (safe_name, data, mime_type or "application/octet-stream"),
             ),
         )

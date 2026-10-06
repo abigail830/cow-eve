@@ -222,6 +222,24 @@ export async function handleParseArtifactsBatch(
   });
 }
 
+/** Multipart field name is often "files"; real filename is in Content-Disposition or field key. */
+export function resolveEmailDerivedPartFilename(
+  fieldName: string,
+  file: File | Blob,
+): string {
+  if (file instanceof File) {
+    const fromFile = file.name?.trim();
+    if (fromFile && fromFile !== "files" && fromFile !== "file") {
+      return fromFile;
+    }
+  }
+  const fromField = fieldName.trim();
+  if (fromField && fromField !== "files" && fromField !== "file") {
+    return fromField;
+  }
+  return "attachment.bin";
+}
+
 export async function handleParseEmailDerived(
   attachmentId: string,
   request: Request,
@@ -247,14 +265,23 @@ export async function handleParseEmailDerived(
 
   const parts: Array<{ filename: string; mediaType: string; bytes: Uint8Array }> =
     [];
-  for (const value of form.values()) {
-    if (!(value instanceof File) || value.size <= 0) continue;
-    const name = value.name.trim() || "attachment.bin";
+  for (const [fieldName, value] of form.entries()) {
+    if (!(value instanceof Blob) || value.size <= 0) continue;
     parts.push({
-      filename: name,
-      mediaType: value.type || "application/octet-stream",
+      filename: resolveEmailDerivedPartFilename(fieldName, value),
+      mediaType:
+        value instanceof File && value.type
+          ? value.type
+          : "application/octet-stream",
       bytes: new Uint8Array(await value.arrayBuffer()),
     });
+  }
+
+  if (parts.length === 0) {
+    return Response.json(
+      { error: "no attachment parts in multipart body" },
+      { status: 400 },
+    );
   }
 
   try {
