@@ -137,12 +137,25 @@ async def write_artifacts_batch_http(
     if pageindex_b is not None:
         files.append(("pageindex_json", ("pageindex.json", pageindex_b, "application/json")))
     headers = {k: v for k, v in (batch_target.headers or {}).items() if k.lower() != "content-type"}
+    method = (batch_target.method or "POST").upper()
     response = await client.request(
-        batch_target.method,
+        method,
         batch_target.url,
         files=files,
         headers=headers,
     )
+    if response.status_code >= 400 and method == "PUT":
+        response = await client.request(
+            "POST",
+            batch_target.url,
+            files=files,
+            headers=headers,
+        )
+    if response.status_code >= 400:
+        detail = (response.text or "").strip()[:2000]
+        raise RuntimeError(
+            f"artifacts batch HTTP {response.status_code} from {batch_target.url}: {detail}",
+        )
     response.raise_for_status()
     wrote_pageindex = pageindex_b is not None
     return True, True, wrote_pageindex

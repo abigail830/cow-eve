@@ -51,6 +51,11 @@ export function registerParseInternalRoutes(
       return withCors(response, request);
     }),
 
+    POST("/internal/parse/v1/files/:attachmentId/artifacts/batch", async (request, { params }) => {
+      const response = await handleParseArtifactsBatch(params.attachmentId, request);
+      return withCors(response, request);
+    }),
+
     POST("/internal/parse/v1/files/:attachmentId/email-derived", async (request, { params }) => {
       const response = await handleParseEmailDerived(params.attachmentId, request);
       return withCors(response, request);

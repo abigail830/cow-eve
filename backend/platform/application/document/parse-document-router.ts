@@ -46,7 +46,10 @@ export async function recordParsedArtifactsForRun(
     contentType: string;
   }>,
 ): Promise<boolean> {
-  if (run.sourceKind === "workspace_file") {
+  const workspaceRow = await drizzleWorkspaceRepository.getFileByIdOnly(
+    run.attachmentId,
+  );
+  if (workspaceRow || run.sourceKind === "workspace_file") {
     const updated = await drizzleWorkspaceRepository.recordParsedArtifactsBatch(
       run.attachmentId,
       { scopeId: run.scopeId, artifacts },

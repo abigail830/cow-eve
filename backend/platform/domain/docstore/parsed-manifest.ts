@@ -69,6 +69,17 @@ export function emptyParsedArtifactManifest(
   };
 }
 
+export function coerceParsedArtifactManifest(
+  manifest: unknown,
+  chatId: string,
+  attachmentId: string,
+): Record<string, unknown> {
+  if (manifest && typeof manifest === "object" && !Array.isArray(manifest)) {
+    return manifest as Record<string, unknown>;
+  }
+  return emptyParsedArtifactManifest(chatId, attachmentId);
+}
+
 export function mergeParsedArtifactRecord(
   manifest: Record<string, unknown> | null | undefined,
   input: {
@@ -80,7 +91,7 @@ export function mergeParsedArtifactRecord(
   },
 ): Record<string, unknown> {
   const base = {
-    ...(manifest ?? emptyParsedArtifactManifest(input.chatId, input.attachmentId)),
+    ...coerceParsedArtifactManifest(manifest, input.chatId, input.attachmentId),
   };
   const artifacts = {
     ...((base.artifacts as Record<string, unknown>) ?? {}),

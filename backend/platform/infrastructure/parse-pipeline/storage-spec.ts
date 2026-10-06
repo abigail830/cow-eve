@@ -29,7 +29,7 @@ export function buildInternalStorageSpec(input: {
     write: {
       artifacts_batch: {
         url: `${fileBase}/artifacts/batch`,
-        method: "PUT",
+        method: "POST",
         headers: authHeaders,
       },
       content_md: {

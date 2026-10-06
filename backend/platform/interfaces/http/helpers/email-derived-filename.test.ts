@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { File } from "node:buffer";
 import { describe, it } from "node:test";
 import {
+  readBatchArtifactsFromForm,
   readEmailDerivedPartsFromForm,
   resolveEmailDerivedPartFilename,
 } from "../parse-internal.handlers.js";
@@ -28,6 +29,28 @@ describe("resolveEmailDerivedPartFilename", () => {
       resolveEmailDerivedPartFilename("ignored_field", blob),
       "report.pdf",
     );
+  });
+});
+
+describe("readBatchArtifactsFromForm", () => {
+  it("reads content_md and meta_json upload parts", async () => {
+    const form = new FormData();
+    form.append(
+      "content_md",
+      new File([new TextEncoder().encode("# Hi")], "content.md", {
+        type: "text/markdown",
+      }),
+    );
+    form.append(
+      "meta_json",
+      new File([new TextEncoder().encode("{}")], "meta.json", {
+        type: "application/json",
+      }),
+    );
+    const batch = await readBatchArtifactsFromForm(form);
+    assert.equal(batch.contentData.byteLength, 4);
+    assert.equal(batch.metaData.byteLength, 2);
+    assert.equal(batch.pageData, null);
   });
 });
 

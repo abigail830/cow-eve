@@ -183,18 +183,17 @@ export async function handleParseArtifactsBatch(
     } catch {
       return Response.json({ error: "invalid multipart body" }, { status: 400 });
     }
-    const contentMd = form.get("content_md");
-    const metaJson = form.get("meta_json");
-    const pageindexJson = form.get("pageindex_json");
-    if (!(contentMd instanceof File) || !(metaJson instanceof File)) {
-      return Response.json(
-        { error: "content_md and meta_json required" },
-        { status: 400 },
-      );
+    let contentData: Uint8Array;
+    let metaData: Uint8Array;
+    let pageData: Uint8Array | null;
+    try {
+      ({ contentData, metaData, pageData } = await readBatchArtifactsFromForm(form));
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "content_md and meta_json required";
+      return Response.json({ error: message }, { status: 400 });
     }
 
-    const contentData = new Uint8Array(await contentMd.arrayBuffer());
-    const metaData = new Uint8Array(await metaJson.arrayBuffer());
     const artifacts: Array<{
       artifactKey: string;
       sizeBytes: number;
@@ -227,8 +226,7 @@ export async function handleParseArtifactsBatch(
       "application/json",
     );
 
-    if (pageindexJson instanceof File && pageindexJson.size > 0) {
-      const pageData = new Uint8Array(await pageindexJson.arrayBuffer());
+    if (pageData) {
       await saveParsedArtifact(
         run.scopeId,
         attachmentId,
@@ -272,6 +270,29 @@ export function isFormDataUploadPart(
     "size" in value &&
     typeof (value as Blob).size === "number"
   );
+}
+
+export async function readBatchArtifactsFromForm(form: FormData): Promise<{
+  contentData: Uint8Array;
+  metaData: Uint8Array;
+  pageData: Uint8Array | null;
+}> {
+  const contentMd = form.get("content_md");
+  const metaJson = form.get("meta_json");
+  const pageindexJson = form.get("pageindex_json");
+  if (!isFormDataUploadPart(contentMd) || !isFormDataUploadPart(metaJson)) {
+    throw new Error("content_md and meta_json required");
+  }
+  if (contentMd.size <= 0 || metaJson.size <= 0) {
+    throw new Error("content_md and meta_json required");
+  }
+  const contentData = new Uint8Array(await contentMd.arrayBuffer());
+  const metaData = new Uint8Array(await metaJson.arrayBuffer());
+  let pageData: Uint8Array | null = null;
+  if (isFormDataUploadPart(pageindexJson) && pageindexJson.size > 0) {
+    pageData = new Uint8Array(await pageindexJson.arrayBuffer());
+  }
+  return { contentData, metaData, pageData };
 }
 
 export async function readEmailDerivedPartsFromForm(
