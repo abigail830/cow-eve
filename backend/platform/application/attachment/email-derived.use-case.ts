@@ -117,7 +117,12 @@ export async function materializeEmailDerivedAttachments(input: {
     mediaType: string;
     bytes: Uint8Array;
   }>;
-}): Promise<{ created: number; skipped: number; materialized: number }> {
+}): Promise<{
+  created: number;
+  skipped: number;
+  dedupe_skipped: number;
+  materialized: number;
+}> {
   if (input.run.attachmentId !== input.parentAttachmentId) {
     throw new Error("Parent attachment id mismatch.");
   }
@@ -157,12 +162,13 @@ export async function materializeEmailDerivedAttachments(input: {
 
   let created = 0;
   let skipped = 0;
+  let dedupeSkipped = 0;
 
   for (const part of input.parts) {
     const hash = partHash(part.bytes);
     const existing = derivedParts.find((row) => row.part_hash === hash);
     if (existing) {
-      skipped += 1;
+      dedupeSkipped += 1;
       continue;
     }
 
@@ -236,6 +242,7 @@ export async function materializeEmailDerivedAttachments(input: {
   return {
     created,
     skipped,
+    dedupe_skipped: dedupeSkipped,
     materialized: created,
   };
 }

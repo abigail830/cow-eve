@@ -278,4 +278,22 @@ async def write_email_derived_http(
             headers=headers,
         )
         response.raise_for_status()
-    return len(parts)
+    try:
+        body = response.json()
+    except Exception as exc:
+        raise RuntimeError("email-derived response was not JSON") from exc
+    if not isinstance(body, dict):
+        raise RuntimeError("email-derived response was not a JSON object")
+    created = int(body.get("created", 0))
+    skipped = int(body.get("skipped", 0))
+    dedupe = int(body.get("dedupe_skipped", 0))
+    if created + skipped + dedupe != len(parts):
+        raise RuntimeError(
+            f"email-derived part count mismatch: created={created} skipped={skipped} "
+            f"dedupe={dedupe} sent={len(parts)} body={body!r}",
+        )
+    if created == 0 and dedupe != len(parts):
+        raise RuntimeError(
+            f"email-derived materialized no workspace/chat attachments: {body!r}",
+        )
+    return created + dedupe

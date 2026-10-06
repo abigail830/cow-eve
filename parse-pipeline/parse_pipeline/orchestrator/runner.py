@@ -644,6 +644,11 @@ class JobRunner:
         await self._begin_stage(record, StageId.WRITE)
         write_result = await write_normalized_artifacts(spec, normalized)
         derived_writes = 0
+        attachment_count = int(normalized.meta_json.get("attachment_count") or 0)
+        if attachment_count > 0 and not normalized.email_derived_parts:
+            raise RuntimeError(
+                f"email meta lists {attachment_count} attachment(s) but none were retained after normalize",
+            )
         if write_result.wrote_content and write_result.wrote_meta and normalized.email_derived_parts:
             from parse_pipeline.storage.io import write_email_derived_http
 

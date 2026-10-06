@@ -46,6 +46,7 @@ def finalize_normalized_artifacts(
         figure_files=figure_files,
         docx_probe=artifacts.docx_probe,
         office_source_bytes=artifacts.office_source_bytes,
+        email_derived_parts=list(artifacts.email_derived_parts),
     )
 
 
@@ -80,4 +81,5 @@ def finalize_office_markitdown_artifacts(artifacts: NormalizedArtifacts) -> Norm
         pageindex_json=synthetic.pageindex,
         warnings=warnings,
         figure_files=finalized.figure_files,
+        email_derived_parts=list(finalized.email_derived_parts),
     )
