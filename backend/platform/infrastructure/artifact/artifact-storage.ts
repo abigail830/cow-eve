@@ -61,6 +61,7 @@ export async function putArtifactBytes(
         access: blobAccess(),
         contentType: contentType ?? "application/octet-stream",
         addRandomSuffix: false,
+        allowOverwrite: true,
         ...blobCommandOptions(),
       });
     } catch (err) {
