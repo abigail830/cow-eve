@@ -8,8 +8,10 @@ import {
 
 const NOW = new Date("2026-10-07T12:02:00");
 
-function pngBytes(): Uint8Array {
-  return Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+function pngBytes(): ArrayBuffer {
+  const buffer = new ArrayBuffer(8);
+  new Uint8Array(buffer).set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  return buffer;
 }
 
 describe("normalizeClipboardImageFile", () => {
