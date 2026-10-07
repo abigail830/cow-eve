@@ -11,6 +11,10 @@ import {
 import { ArrowUp, FolderOpen, Paperclip, Square } from "lucide-react";
 import { prepareAttachmentsFromFiles } from "../lib/attachmentCompress";
 import {
+  clipboardTextBesideImages,
+  imageFilesFromClipboard,
+} from "../lib/clipboardImages";
+import {
   ATTACHMENT_ACCEPT,
   ATTACHMENT_LIMITS,
   isImageMime,
@@ -535,7 +539,10 @@ export function Composer({
   const addFiles = useCallback(
     async (files: readonly File[]) => {
       if (files.length === 0 || disabled || resuming) return;
-      if (persistAttachments && !(chatId || eveSessionId)) return;
+      if (persistAttachments && !(chatId || eveSessionId)) {
+        setAttachmentError("Send a message first to attach files.");
+        return;
+      }
       setAttachmentError(null);
       setPreparingAttachments(true);
       try {
@@ -689,19 +696,28 @@ export function Composer({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  function insertTextAtCursor(raw: string) {
+    const el = textareaRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? start;
+    const next = `${text.slice(0, start)}${raw}${text.slice(end)}`;
+    const cursor = start + raw.length;
+    setText(next);
+    requestAnimationFrame(() => {
+      const node = textareaRef.current;
+      if (!node) return;
+      node.focus();
+      node.setSelectionRange(cursor, cursor);
+      syncMentionFromTextarea(next, cursor);
+    });
+  }
+
   function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>) {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    const imageFiles: File[] = [];
-    for (const item of items) {
-      if (item.kind !== "file") continue;
-      const file = item.getAsFile();
-      if (file && file.type.startsWith("image/")) {
-        imageFiles.push(file);
-      }
-    }
+    const imageFiles = imageFilesFromClipboard(e.clipboardData);
     if (imageFiles.length === 0) return;
     e.preventDefault();
+    const pastedText = clipboardTextBesideImages(e.clipboardData);
+    if (pastedText) insertTextAtCursor(pastedText);
     void addFiles(imageFiles);
   }
 
@@ -901,7 +917,7 @@ export function Composer({
         <textarea
           ref={textareaRef}
           rows={MIN_LINES}
-          placeholder="Message… @ to mention an attachment, or attach a file"
+          placeholder="Message… paste a screenshot, @ to mention an attachment, or attach a file"
           disabled={inputLocked}
           value={text}
           onChange={(e) =>
