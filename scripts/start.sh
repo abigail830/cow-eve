@@ -59,6 +59,15 @@ start_nova_auditor() {
     "http://127.0.0.1:${NOVA_AUDITOR_PORT}/eve/v1/health"
 }
 
+start_x_proposal() {
+  start_service \
+    "x-proposal" \
+    "${ROOT_DIR}/backend" \
+    "set -a && [ -f .env ] && . ./.env; set +a; npm run dev:x-proposal" \
+    "${X_PROPOSAL_PORT}" \
+    "http://127.0.0.1:${X_PROPOSAL_PORT}/eve/v1/health"
+}
+
 start_frontend() {
   start_service \
     "frontend" \
@@ -86,12 +95,14 @@ case "${TARGET}" in
     start_omni
     start_research
     start_nova_auditor
+    start_x_proposal
     start_frontend
     ;;
   backend)
     start_omni
     start_research
     start_nova_auditor
+    start_x_proposal
     ;;
   frontend)
     start_frontend
@@ -105,6 +116,9 @@ case "${TARGET}" in
   nova-auditor)
     start_nova_auditor
     ;;
+  x-proposal)
+    start_x_proposal
+    ;;
   parse-pipeline)
     start_parse_pipeline
     ;;
@@ -113,7 +127,7 @@ case "${TARGET}" in
     ;;
   *)
     echo "Unknown target: ${TARGET}"
-    echo "Use: all | backend | frontend | omni | research | nova-auditor | parse-pipeline | proposal-knowledge"
+    echo "Use: all | backend | frontend | omni | research | nova-auditor | x-proposal | parse-pipeline | proposal-knowledge"
     exit 1
     ;;
 esac
@@ -131,6 +145,9 @@ if [[ "${TARGET}" == "all" || "${TARGET}" == "backend" || "${TARGET}" == "resear
 fi
 if [[ "${TARGET}" == "all" || "${TARGET}" == "backend" || "${TARGET}" == "nova-auditor" ]]; then
   echo "  Nova Auditor:   http://127.0.0.1:${NOVA_AUDITOR_PORT}"
+fi
+if [[ "${TARGET}" == "all" || "${TARGET}" == "backend" || "${TARGET}" == "x-proposal" ]]; then
+  echo "  X Proposal:     http://127.0.0.1:${X_PROPOSAL_PORT}"
 fi
 if [[ "${TARGET}" == "parse-pipeline" || ( "${TARGET}" != "frontend" && "${START_PARSE_PIPELINE:-1}" == "1" ) ]]; then
   echo "  Parse pipeline: http://${PARSE_PIPELINE_HOST}:${PARSE_PIPELINE_PORT}"

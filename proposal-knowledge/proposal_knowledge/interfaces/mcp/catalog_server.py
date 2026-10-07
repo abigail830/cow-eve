@@ -3,14 +3,21 @@ from __future__ import annotations
 from mcp.server.mcpserver import MCPServer
 
 from proposal_knowledge.application import catalog_service
+from proposal_knowledge.application.catalog_recall import (
+    recall_catalog as run_recall_catalog,
+)
 from proposal_knowledge.infrastructure.db.session import session_scope
 from proposal_knowledge.interfaces.mcp.request_context import require_auth
 
 catalog_mcp = MCPServer(
     "proposal-catalog",
     instructions=(
-        "Read-only product and package catalog. Always pick business_unit (from BU*) first. "
-        "When jurisdictions matter, call list_jurisdictions then pass jurisdiction on searches."
+        "Read-only product and package catalog for X Proposal. "
+        "Use recall_catalog with business_unit and queries[] (short concepts from the customer brief). "
+        "Dual-path recall returns products and packages with sku_semantic_for_ai / package_semantic_for_ai "
+        "for quotation layout and table-split guidance. "
+        "Then get_product / get_package / expand_package for drill-down. "
+        "When jurisdictions matter, list_jurisdictions then pass jurisdiction on recall_catalog."
     ),
 )
 
@@ -32,24 +39,33 @@ def list_jurisdictions(business_unit: str) -> list[str]:
 
 
 @catalog_mcp.tool()
-def search_products(
+def recall_catalog(
     business_unit: str,
-    query: str,
-    limit: int = 25,
+    queries: list[str],
     jurisdiction: str | None = None,
     department_team: str | None = None,
-) -> list[dict]:
-    """Search active products within a business_unit; optional jurisdiction and department_team filters."""
+    limit_products: int = 20,
+    limit_packages: int = 20,
+) -> dict:
+    """
+    Dual-path recall: score products and packages for business_unit.
+
+    Pass queries[] as 1–3 word concepts extracted from the customer need (not one long sentence).
+    Each hit includes full catalog rows, especially *_semantic_for_ai fields.
+    """
+    if not queries or not any(q and str(q).strip() for q in queries):
+        raise ValueError("queries must contain at least one non-empty concept string.")
     auth = require_auth()
     with session_scope() as session:
-        return catalog_service.search_products(
+        return run_recall_catalog(
             session,
             auth,
             business_unit=business_unit,
-            query=query,
-            limit=limit,
+            queries=[str(q) for q in queries],
             jurisdiction=jurisdiction,
             department_team=department_team,
+            limit_products=limit_products,
+            limit_packages=limit_packages,
         )
 
 
@@ -59,7 +75,7 @@ def get_product(
     sku: str,
     jurisdiction: str | None = None,
 ) -> dict:
-    """Get one product by SKU; optional jurisdiction validates applicability."""
+    """Get one product by SKU (full row including sku_semantic_for_ai)."""
     auth = require_auth()
     with session_scope() as session:
         return catalog_service.get_product(
@@ -72,28 +88,8 @@ def get_product(
 
 
 @catalog_mcp.tool()
-def search_packages(
-    business_unit: str,
-    query: str,
-    limit: int = 25,
-    jurisdiction: str | None = None,
-) -> list[dict]:
-    """Search solution packages within a business_unit."""
-    auth = require_auth()
-    with session_scope() as session:
-        return catalog_service.search_packages(
-            session,
-            auth,
-            business_unit=business_unit,
-            query=query,
-            limit=limit,
-            jurisdiction=jurisdiction,
-        )
-
-
-@catalog_mcp.tool()
 def get_package(business_unit: str, package_id: str) -> dict:
-    """Get package metadata by id."""
+    """Get package metadata by id (includes package_semantic_for_ai)."""
     auth = require_auth()
     with session_scope() as session:
         return catalog_service.get_package(

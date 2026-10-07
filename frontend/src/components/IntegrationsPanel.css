@@ -101,9 +101,15 @@
   overflow-y: auto;
   padding: 4px 20px 24px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   align-content: start;
+}
+
+@media (max-width: 960px) {
+  .integrations-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -229,6 +235,20 @@
   transition:
     background 0.15s ease,
     border-color 0.15s ease;
+}
+
+.integration-card-cta-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.integration-card-cta-icon .integrations-spin {
+  width: 16px;
+  height: 16px;
 }
 
 .integration-card-cta-ghost:hover:not(:disabled) {

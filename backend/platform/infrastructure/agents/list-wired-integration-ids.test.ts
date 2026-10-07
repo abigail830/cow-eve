@@ -34,4 +34,11 @@ describe("listWiredIntegrationIdsForPlatformAgent", () => {
       [],
     );
   });
+
+  it("wires proposal_knowledge only on x-proposal", () => {
+    const omni = listWiredIntegrationIdsForPlatformAgent("omni");
+    const xProposal = listWiredIntegrationIdsForPlatformAgent("x-proposal");
+    assert.ok(!omni.includes("proposal_knowledge"));
+    assert.deepEqual(xProposal, ["proposal_knowledge"]);
+  });
 });

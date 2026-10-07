@@ -34,6 +34,7 @@ const LOCAL_AGENT_DEV_URLS: Record<string, string> = {
   omni: "http://127.0.0.1:2000",
   research: "http://127.0.0.1:2002",
   "nova-auditor": "http://127.0.0.1:2003",
+  "x-proposal": "http://127.0.0.1:2004",
 };
 
 /** Eve session base URL for an agent (local dev: dedicated port; production: `/eve/<id>` on platform host). */

@@ -1,0 +1,1 @@
+This section outlines the estimated fees for our services. Fees may include one-off setup charges and recurring charges billed monthly, quarterly, or annually. Additional services outside this proposal require your approval before work begins. All fees are in Singapore Dollars unless stated otherwise, **exclusive of prevailing GST**.

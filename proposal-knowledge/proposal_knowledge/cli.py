@@ -13,10 +13,15 @@ from proposal_knowledge.application.auth_service import (
     list_api_keys,
     revoke_api_key,
 )
+from proposal_knowledge.application.backfill_jurisdictions import (
+    backfill_empty_product_jurisdictions,
+    patch_acorp_sg_offshore_jurisdictions,
+)
 from proposal_knowledge.application.import_catalog import (
     import_catalog_pair,
     import_packages_file,
     import_products_file,
+    purge_business_units_by_prefix,
 )
 from proposal_knowledge.application.import_cv import import_people_json
 from proposal_knowledge.config import get_settings, resolve_avatar_public_base_url
@@ -47,13 +52,22 @@ def main() -> None:
     imp = sub.add_parser("import", help="Import catalog or CV data")
     imp_sub = imp.add_subparsers(dest="kind", required=True)
 
+    def add_sanitize_flag(p: argparse.ArgumentParser) -> None:
+        p.add_argument(
+            "--sanitize-acorp",
+            action="store_true",
+            help="Rewrite INCORP-* to Acorp-* and incorp → Acorp in text fields",
+        )
+
     prod = imp_sub.add_parser("products", help="Product MDM export")
     prod.add_argument("--file", type=Path, help="Path to .xlsx or .csv")
     prod.add_argument("--xlsx", type=Path, help=argparse.SUPPRESS)
+    add_sanitize_flag(prod)
 
     pkg = imp_sub.add_parser("packages", help="Solution package export")
     pkg.add_argument("--file", type=Path, help="Path to .xlsx or .csv")
     pkg.add_argument("--xlsx", type=Path, help=argparse.SUPPRESS)
+    add_sanitize_flag(pkg)
 
     pair = imp_sub.add_parser(
         "catalog",
@@ -61,6 +75,33 @@ def main() -> None:
     )
     pair.add_argument("--products", type=Path, required=True)
     pair.add_argument("--packages", type=Path, required=True)
+    add_sanitize_flag(pair)
+
+    purge = imp_sub.add_parser(
+        "purge-bu-prefix",
+        help="Delete catalog rows where business_unit starts with prefix",
+    )
+    purge.add_argument("--prefix", required=True, help="e.g. INCORP-")
+
+    bf = imp_sub.add_parser(
+        "backfill-jurisdictions",
+        help="Set default jurisdiction on products with empty Jurisdictions (Acorp-XX → XX)",
+    )
+    bf.add_argument(
+        "--apply",
+        action="store_true",
+        help="Write changes (default is dry-run counts only)",
+    )
+
+    sg_off = imp_sub.add_parser(
+        "patch-acorp-sg-offshore-jurisdictions",
+        help="Acorp-SG only: BVI SKUs → VG, Cayman SKUs → KY",
+    )
+    sg_off.add_argument(
+        "--apply",
+        action="store_true",
+        help="Write changes (default is dry-run counts only)",
+    )
 
     people = imp_sub.add_parser("people", help="Team directory JSON")
     people.add_argument("--json", type=Path, required=True)
@@ -99,21 +140,48 @@ def main() -> None:
         return
 
     if args.command == "import":
+        sanitize = getattr(args, "sanitize_acorp", False)
+        if args.kind == "purge-bu-prefix":
+            with session_scope() as session:
+                n_prod, n_pkg = purge_business_units_by_prefix(session, args.prefix)
+            print(f"Purged {n_prod} products, {n_pkg} packages (prefix {args.prefix!r})")
+            return
+        if args.kind == "backfill-jurisdictions":
+            with session_scope() as session:
+                stats = backfill_empty_product_jurisdictions(
+                    session, apply=args.apply
+                )
+            mode = "applied" if args.apply else "dry-run"
+            print(f"backfill-jurisdictions ({mode}):")
+            for k in sorted(stats):
+                print(f"  {k}: {stats[k]}")
+            return
+        if args.kind == "patch-acorp-sg-offshore-jurisdictions":
+            with session_scope() as session:
+                stats = patch_acorp_sg_offshore_jurisdictions(
+                    session, apply=args.apply
+                )
+            mode = "applied" if args.apply else "dry-run"
+            print(f"patch-acorp-sg-offshore-jurisdictions ({mode}):")
+            for k in sorted(stats):
+                print(f"  {k}: {stats[k]}")
+            return
         if args.kind == "catalog":
             with session_scope() as session:
                 n_prod, n_pkg = import_catalog_pair(
                     session,
                     products_path=args.products,
                     packages_path=args.packages,
+                    sanitize_acorp=sanitize,
                 )
             print(f"Imported {n_prod} products, {n_pkg} packages")
             return
         path = _resolve_import_path(args)
         with session_scope() as session:
             if args.kind == "products":
-                n = import_products_file(session, path)
+                n = import_products_file(session, path, sanitize_acorp=sanitize)
             elif args.kind == "packages":
-                n = import_packages_file(session, path)
+                n = import_packages_file(session, path, sanitize_acorp=sanitize)
             else:
                 n = import_people_json(session, path)
         print(f"Imported {n} rows from {path}")

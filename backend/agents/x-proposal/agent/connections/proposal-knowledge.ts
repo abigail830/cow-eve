@@ -25,7 +25,7 @@ export default defineDynamic({
           out["proposal-catalog"] = defineMcpClientConnection({
             url: catalogUrl,
             description:
-              "Proposal product catalog (MDM): business units, jurisdictions, SKUs, and solution packages.",
+              "Proposal product catalog (MDM): business units, jurisdictions, SKUs, packages. Prefer dual-path recall_catalog when listed; drill-down with get_product / expand_package.",
             instanceKey: userId ?? "proposal-catalog",
             auth: {
               credentialOwner: "user",

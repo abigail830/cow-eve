@@ -1,0 +1,7 @@
+{
+  "SG": {
+    "gstRatePercent": 9,
+    "label": "GST",
+    "feesExclusiveOfTax": true
+  }
+}

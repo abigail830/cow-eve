@@ -1,0 +1,12 @@
+{
+  "mandatory": ["company_name", "contact_name", "contact_email"],
+  "stronglyRecommended": ["contact_title", "company_address", "entity_jurisdiction"],
+  "optional": [
+    "company_registration_no",
+    "tax_id",
+    "billing_contact",
+    "attention_line",
+    "proposal_date",
+    "reference_no"
+  ]
+}

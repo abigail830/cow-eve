@@ -10,12 +10,14 @@ export const WIRED_INTEGRATION_IDS_BY_EVE_AGENT: Readonly<
     "hubspot",
     "hybrid_search",
     "notion",
-    "proposal_knowledge",
     "zhipu_web_search"
   ],
   "research": [
     "hubspot",
     "hybrid_search",
     "zhipu_web_search"
+  ],
+  "x-proposal": [
+    "proposal_knowledge"
   ]
 } as const;

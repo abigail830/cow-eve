@@ -1,0 +1,12 @@
+{
+  "blueprints": [
+    {
+      "id": "acorp-sg-sme-abs",
+      "displayName": "Singapore SME — Ascentium Business Services"
+    },
+    {
+      "id": "acorp-sg-sme-rikvin",
+      "displayName": "Singapore SME — Rikvin (immigration-focused)"
+    }
+  ]
+}

@@ -117,12 +117,15 @@ def test_catalog_service_import_row_count(client: TestClient):
         ctx = authorize_bearer(session, client.mcp_key, SCOPE_MCP_CATALOG)
         units = catalog_service.list_business_units(session, ctx)
         assert any(u["business_unit"] == "INCORP-HK" for u in units)
-        products = catalog_service.search_products(
+        from proposal_knowledge.application.catalog_recall import recall_catalog
+
+        recalled = recall_catalog(
             session,
             ctx,
             business_unit="INCORP-HK",
-            query="incorp",
-            limit=5,
+            queries=["incorp"],
             jurisdiction="HK",
+            limit_products=5,
+            limit_packages=5,
         )
-        assert len(products) >= 1
+        assert len(recalled["products"]) >= 1

@@ -1,0 +1,16 @@
+{
+  "id": "sg-sme-rikvin",
+  "displayName": "SG SME — Rikvin template (no About block; SOS + Fees + First invoice)",
+  "sections": [
+    { "componentId": "cover" },
+    { "componentId": "table_of_contents" },
+    { "componentId": "proposal_letter" },
+    { "componentId": "executive_summary" },
+    { "componentId": "scope_of_services" },
+    { "componentId": "fee_intro_sg" },
+    { "componentId": "fee_table_dual_column" },
+    { "componentId": "fee_table_adhoc", "enabledIf": "has_adhoc_lines" },
+    { "componentId": "first_total_invoice", "enabledIf": "extension:first_total_invoice" },
+    { "componentId": "acceptance_signature_sg_rikvin" }
+  ]
+}

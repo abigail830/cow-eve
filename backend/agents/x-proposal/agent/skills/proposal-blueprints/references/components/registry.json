@@ -1,0 +1,66 @@
+{
+  "components": [
+    { "id": "cover", "kind": "shell", "displayName": "Cover page" },
+    { "id": "table_of_contents", "kind": "shell", "displayName": "Table of contents" },
+    {
+      "id": "about_firm_snapshot_sg_abs",
+      "kind": "static_marketing",
+      "displayName": "About Ascentium Singapore",
+      "snippetRef": "snippets/about-sg-abs.md"
+    },
+    {
+      "id": "proposal_letter",
+      "kind": "narrative",
+      "displayName": "RE: Fee Proposal letter",
+      "description": "Uses client.json and executive_summary.md"
+    },
+    {
+      "id": "executive_summary",
+      "kind": "narrative",
+      "displayName": "Executive summary (letter body)",
+      "description": "Source: executive_summary.md"
+    },
+    {
+      "id": "scope_of_services",
+      "kind": "narrative",
+      "displayName": "Scope of Services",
+      "description": "Assembled from PK SOW; source: scope_of_services.md"
+    },
+    {
+      "id": "fee_intro_sg",
+      "kind": "static_marketing",
+      "displayName": "Fees section intro",
+      "snippetRef": "snippets/fee-intro-sg.md"
+    },
+    {
+      "id": "fee_table_dual_column",
+      "kind": "quotation",
+      "displayName": "Services — One-off / Recurring fees",
+      "description": "Renders quotation.json with simplified_billing_frequency layout"
+    },
+    {
+      "id": "fee_table_adhoc",
+      "kind": "quotation",
+      "displayName": "Ad-hoc services table",
+      "description": "Optional ad-hoc rows from quotation.json"
+    },
+    {
+      "id": "first_total_invoice",
+      "kind": "extension",
+      "displayName": "Estimated first total invoice (GST)",
+      "description": "extensions/first_total_invoice.json; see playbooks/first-invoice.md"
+    },
+    {
+      "id": "acceptance_signature_sg_abs",
+      "kind": "legal_boilerplate",
+      "displayName": "Acceptance of Proposal (ABS)",
+      "snippetRef": "snippets/acceptance-sg-abs.md"
+    },
+    {
+      "id": "acceptance_signature_sg_rikvin",
+      "kind": "legal_boilerplate",
+      "displayName": "Acceptance of Proposal (Rikvin)",
+      "snippetRef": "snippets/acceptance-sg-rikvin.md"
+    }
+  ]
+}

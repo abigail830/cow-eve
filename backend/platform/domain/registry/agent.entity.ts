@@ -45,6 +45,16 @@ export const AGENT_REGISTRY: readonly AgentRegistryEntry[] = [
     eveAgent: "nova-auditor",
     defaultDevUrl: "http://127.0.0.1:2003",
   },
+  {
+    id: "x-proposal",
+    category: "domain",
+    displayName: "X Proposal",
+    description:
+      "Catalog-backed proposals via blueprints (SG SME ABS & Rikvin): matching, quotation, and Compose IR",
+    avatar: "/agents/avatar7.png",
+    eveAgent: "x-proposal",
+    defaultDevUrl: "http://127.0.0.1:2004",
+  },
 ];
 
 export function listAgents(): readonly AgentRegistryEntry[] {

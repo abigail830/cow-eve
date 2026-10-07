@@ -15,6 +15,7 @@ service_status_line "proposal-knowledge" "${PROPOSAL_KNOWLEDGE_PORT}"
 service_status_line "omni" "${OMNI_PORT}"
 service_status_line "research" "${RESEARCH_PORT}"
 service_status_line "nova-auditor" "${NOVA_AUDITOR_PORT}"
+service_status_line "x-proposal" "${X_PROPOSAL_PORT}"
 service_status_line "frontend" "${FRONTEND_PORT}"
 echo
 echo "Logs: ${LOG_DIR}"

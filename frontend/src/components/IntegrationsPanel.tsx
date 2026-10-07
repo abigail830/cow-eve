@@ -1,5 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, Loader2, Plug } from "lucide-react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  Check,
+  ExternalLink,
+  Link2,
+  Loader2,
+  Plug,
+  Settings2,
+  Unplug,
+  X,
+} from "lucide-react";
 import {
   connectIntegrationOAuth,
   disconnectIntegrationOAuth,
@@ -68,6 +77,36 @@ function FieldInput({
   );
 }
 
+function IntegrationIconButton({
+  label,
+  onClick,
+  disabled,
+  variant = "ghost",
+  ariaExpanded,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: "ghost" | "primary";
+  ariaExpanded?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={`integration-card-cta integration-card-cta-icon integration-card-cta-${variant}`}
+      aria-label={label}
+      title={label}
+      aria-expanded={ariaExpanded}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
 function OAuthIntegrationCard({
   item,
   agentId,
@@ -130,23 +169,30 @@ function OAuthIntegrationCard({
                 Not available on this deployment.
               </span>
             ) : item.connected ? (
-              <button
-                type="button"
-                className="integration-card-cta integration-card-cta-ghost"
+              <IntegrationIconButton
+                label={busy ? "Disconnecting…" : "Disconnect"}
                 disabled={busy}
                 onClick={() => void handleDisconnect()}
               >
-                {busy ? "Working…" : "Disconnect"}
-              </button>
+                {busy ? (
+                  <Loader2 size={16} className="integrations-spin" aria-hidden />
+                ) : (
+                  <Unplug size={16} strokeWidth={2} aria-hidden />
+                )}
+              </IntegrationIconButton>
             ) : (
-              <button
-                type="button"
-                className="integration-card-cta integration-card-cta-primary"
+              <IntegrationIconButton
+                label={busy ? "Connecting…" : "Connect"}
+                variant="primary"
                 disabled={busy}
                 onClick={() => void handleConnect()}
               >
-                {busy ? "Redirecting…" : "Connect"}
-              </button>
+                {busy ? (
+                  <Loader2 size={16} className="integrations-spin" aria-hidden />
+                ) : (
+                  <Link2 size={16} strokeWidth={2} aria-hidden />
+                )}
+              </IntegrationIconButton>
             )}
           </div>
           <p className="integration-card-desc">{item.description}</p>
@@ -256,7 +302,7 @@ function ApiKeyIntegrationCard({
     }
   };
 
-  const primaryActionLabel = item.configured ? "Manage" : "Connect";
+  const manageLabel = item.configured ? "Manage" : "Connect";
 
   return (
     <article
@@ -284,29 +330,33 @@ function ApiKeyIntegrationCard({
             </div>
             <div className="integration-card-head-actions">
               {expanded ? (
-                <button
-                  type="button"
-                  className="integration-card-cta integration-card-cta-primary"
+                <IntegrationIconButton
+                  label={saving ? "Saving…" : "Save"}
+                  variant="primary"
                   disabled={saving}
                   onClick={() => void handleSave()}
                 >
-                  {saving ? "Saving…" : "Save"}
-                </button>
+                  {saving ? (
+                    <Loader2 size={16} className="integrations-spin" aria-hidden />
+                  ) : (
+                    <Check size={16} strokeWidth={2.25} aria-hidden />
+                  )}
+                </IntegrationIconButton>
               ) : null}
-              <button
-                type="button"
-                className={
-                  expanded
-                    ? "integration-card-cta integration-card-cta-ghost"
-                    : item.configured
-                      ? "integration-card-cta integration-card-cta-ghost"
-                      : "integration-card-cta integration-card-cta-primary"
-                }
-                aria-expanded={expanded}
+              <IntegrationIconButton
+                label={expanded ? "Close" : manageLabel}
+                variant={expanded || item.configured ? "ghost" : "primary"}
+                ariaExpanded={expanded}
                 onClick={() => (expanded ? closeSetup() : openSetup())}
               >
-                {expanded ? "Close" : primaryActionLabel}
-              </button>
+                {expanded ? (
+                  <X size={16} strokeWidth={2.25} aria-hidden />
+                ) : item.configured ? (
+                  <Settings2 size={16} strokeWidth={2} aria-hidden />
+                ) : (
+                  <Link2 size={16} strokeWidth={2} aria-hidden />
+                )}
+              </IntegrationIconButton>
             </div>
           </div>
           <p className="integration-card-desc">{item.description}</p>

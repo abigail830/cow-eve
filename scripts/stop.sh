@@ -15,6 +15,7 @@ source "${SCRIPT_DIR}/lib.sh"
 TARGET="${1:-all}"
 
 stop_backend() {
+  stop_service "x-proposal" "${X_PROPOSAL_PORT}"
   stop_service "nova-auditor" "${NOVA_AUDITOR_PORT}"
   stop_service "research" "${RESEARCH_PORT}"
   stop_service "omni" "${OMNI_PORT}"
@@ -44,6 +45,9 @@ case "${TARGET}" in
     ;;
   nova-auditor)
     stop_service "nova-auditor" "${NOVA_AUDITOR_PORT}"
+    ;;
+  x-proposal)
+    stop_service "x-proposal" "${X_PROPOSAL_PORT}"
     ;;
   parse-pipeline)
     stop_parse_pipeline

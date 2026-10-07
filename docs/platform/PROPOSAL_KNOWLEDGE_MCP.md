@@ -19,7 +19,7 @@ Optional defaults when users have not set integration URLs:
 
 ## User integration (`proposal_knowledge`)
 
-Wired on **Omni** via `agents/omni/agent/connections/proposal-knowledge.ts`.
+Wired on **X Proposal** via `agents/x-proposal/agent/connections/proposal-knowledge.ts` (not Omni).
 
 Users can override catalog/CV MCP URLs in Integrations; the API key is stored encrypted per user. Platform env vars act as fallback.
 

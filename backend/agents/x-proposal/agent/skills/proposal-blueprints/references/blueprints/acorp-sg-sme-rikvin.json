@@ -1,0 +1,23 @@
+{
+  "id": "acorp-sg-sme-rikvin",
+  "displayName": "Singapore SME — Rikvin (immigration-focused)",
+  "catalog": {
+    "businessUnit": "Acorp-SG"
+  },
+  "compose": {
+    "graph": "sg-sme-rikvin",
+    "sosMode": "sos_separate_then_fees",
+    "quotationLayout": "simplified_billing_frequency"
+  },
+  "output": {
+    "defaultFormat": "docx",
+    "supported": ["docx", "pptx", "html"]
+  },
+  "defaults": {
+    "tier": "B",
+    "extensions": ["first_total_invoice"]
+  },
+  "clientSchemaOverlay": "client-acorp-sg",
+  "letterEntity": "Rikvin Pte. Ltd.",
+  "kbTags": ["sg-sme", "sg-rikvin", "immigration"]
+}
