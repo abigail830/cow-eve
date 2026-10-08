@@ -431,6 +431,16 @@
   margin-top: 8px;
 }
 
+.chat-status-dismiss {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #8a4b16;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .chat-banner {
   margin-bottom: 12px;
   padding: 10px 12px;

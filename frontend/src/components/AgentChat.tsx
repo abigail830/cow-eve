@@ -483,6 +483,9 @@ function AgentChatSession({
   const [cancelling, setCancelling] = useState(false);
   /** Set when stop was requested but the turn is still busy after a long wait. */
   const [stopSlowWarning, setStopSlowWarning] = useState(false);
+  /** Stop reconnecting a persisted stream that never reaches session idle. */
+  const [resumeAbandoned, setResumeAbandoned] = useState(false);
+  const [stuckTurnNotice, setStuckTurnNotice] = useState(false);
   const [hitlResponding, setHitlResponding] = useState(false);
   const [pendingDeleteChat, setPendingDeleteChat] = useState<ChatSummary | null>(
     null,
@@ -500,13 +503,25 @@ function AgentChatSession({
   onStreamingChangeRef.current = onStreamingChange;
 
   const host = agentHost(agent.id);
+  const shouldResumeStream = bound.resume && !resumeAbandoned;
+
+  const dismissStuckStream = useCallback(() => {
+    setResumeAbandoned(true);
+    setStuckTurnNotice(false);
+    setBound((current) => ({
+      ...current,
+      resume: false,
+      key: `${current.key}-idle`,
+    }));
+  }, []);
+
   const { data, status, error, events, session, send, cancel, respond } =
     useEveAgent({
       host,
       auth: token ? { bearer: () => token } : undefined,
       initialSession: bound.session,
       initialEvents: bound.events,
-      resume: bound.resume,
+      resume: shouldResumeStream,
       onSessionChange: (session) => {
         const nextId = session?.sessionId;
         if (!nextId || nextId === knownSessionIdRef.current) return;
@@ -627,6 +642,39 @@ function AgentChatSession({
     pendingSendAttachmentHintsRef.current = [];
     setOptimisticWorkspaceFiles(new Map());
   }, [bound.key]);
+
+  useEffect(() => {
+    setResumeAbandoned(false);
+    setStuckTurnNotice(false);
+  }, [bound.chatId, agent.id]);
+
+  const streamProgressRef = useRef({
+    eventCount: 0,
+    status: "ready" as string,
+  });
+  streamProgressRef.current = { eventCount: events.length, status };
+
+  useEffect(() => {
+    if (!shouldResumeStream || !activeChatId) return;
+    const baseline = bound.events?.length ?? 0;
+    const timer = window.setTimeout(() => {
+      const { eventCount, status: liveStatus } = streamProgressRef.current;
+      const stillBusy =
+        liveStatus === "streaming" ||
+        liveStatus === "resuming" ||
+        liveStatus === "submitted";
+      if (stillBusy && eventCount <= baseline) {
+        dismissStuckStream();
+        setStuckTurnNotice(true);
+      }
+    }, 90_000);
+    return () => window.clearTimeout(timer);
+  }, [
+    activeChatId,
+    bound.events?.length,
+    dismissStuckStream,
+    shouldResumeStream,
+  ]);
 
   const prevProjectIdRef = useRef(projectId);
   useEffect(() => {
@@ -1345,6 +1393,7 @@ function AgentChatSession({
                   messages={data.messages}
                   events={timelineEvents}
                   streaming={isBusy}
+                  resuming={isResuming}
                   apiBase={API_URL}
                   token={token}
                   chatId={activeChatId ?? bound.chatId}
@@ -1367,6 +1416,24 @@ function AgentChatSession({
                     {stopSlowWarning
                       ? "Stop is taking longer than usual. Searches or MCP calls may still be running—click Stop again or refresh this chat to reconnect."
                       : "Stopping… waiting for the current step to finish."}
+                  </p>
+                ) : null}
+                {stuckTurnNotice ? (
+                  <p className="chat-status" role="status">
+                    This turn stopped making progress (often after a deploy or
+                    restart). Tools marked Interrupted did not finish. Send a new
+                    message here or start a new chat.
+                  </p>
+                ) : null}
+                {shouldResumeStream && isBusy ? (
+                  <p className="chat-status">
+                    <button
+                      type="button"
+                      className="chat-status-dismiss"
+                      onClick={() => dismissStuckStream()}
+                    >
+                      Stop reconnecting this turn
+                    </button>
                   </p>
                 ) : null}
                 {errorMessage ? (

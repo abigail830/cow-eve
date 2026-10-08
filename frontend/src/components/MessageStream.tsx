@@ -61,6 +61,8 @@ import "./MessageStream.css";
 type Props = {
   messages: readonly EveMessage[];
   streaming?: boolean;
+  /** Catching up on a persisted Eve stream (same as AgentChat `isResuming`). */
+  resuming?: boolean;
   apiBase: string;
   token?: string | null;
   chatId?: string | null;
@@ -102,6 +104,7 @@ function PartView({
   onHitlRespond,
   hitlResponding,
   superseded = false,
+  turnActive = false,
 }: {
   part: EveMessagePart;
   apiBase: string;
@@ -112,6 +115,8 @@ function PartView({
   onHitlRespond?: (responses: InputResponse[]) => void | Promise<void>;
   hitlResponding?: boolean;
   superseded?: boolean;
+  /** True while the Eve turn is still streaming or resuming a persisted stream. */
+  turnActive?: boolean;
 }) {
   if (part.type === "text") {
     return <MarkdownContent text={part.text} className="msg-text" />;
@@ -208,11 +213,12 @@ function PartView({
       output != null ||
       state === "output-available" ||
       state === "output-error";
-    const toolInProgress =
-      !toolDone &&
-      (state === "input-streaming" ||
-        state === "input-available" ||
-        state === "approval-requested");
+    const toolOpen =
+      state === "input-streaming" ||
+      state === "input-available" ||
+      state === "approval-requested";
+    const toolInterrupted = !toolDone && toolOpen && !turnActive;
+    const toolInProgress = !toolDone && toolOpen && turnActive;
 
     const stepLabel = dynamicToolStepLabel(
       name,
@@ -241,7 +247,7 @@ function PartView({
       >
         <summary>
           <StepChevron />
-          {toolDone ? (
+          {toolDone || toolInterrupted ? (
             <span className="step-check" aria-hidden>
               ✓
             </span>
@@ -275,8 +281,16 @@ function PartView({
           </span>
           {toolInProgress ? (
             <span className="step-running">Running…</span>
+          ) : toolInterrupted ? (
+            <span className="step-running">Interrupted</span>
           ) : null}
         </summary>
+        {toolInterrupted ? (
+          <p className="msg-step-stale-workflow" role="status">
+            This step did not finish (server restart, stop, or a lost workflow).
+            Send a new message to continue, or open a new chat for a clean run.
+          </p>
+        ) : null}
         {staleWorkflowHint ? (
           <p className="msg-step-stale-workflow" role="status">
             {staleWorkflowHint}
@@ -390,6 +404,7 @@ function UserAttachmentChip({
 export function MessageStream({
   messages,
   streaming = false,
+  resuming = false,
   apiBase,
   token,
   chatId,
@@ -406,6 +421,7 @@ export function MessageStream({
   onHitlRespond,
   hitlResponding,
 }: Props) {
+  const turnActive = streaming || resuming;
   const [libraryAttachments, setLibraryAttachments] = useState<
     ChatAttachmentPublic[]
   >([]);
@@ -688,6 +704,7 @@ export function MessageStream({
                   onHitlRespond={onHitlRespond}
                   hitlResponding={hitlResponding}
                   superseded={preSteer}
+                  turnActive={turnActive}
                 />
               ))}
               {isLastAssistant ? <StreamingIndicator /> : null}
