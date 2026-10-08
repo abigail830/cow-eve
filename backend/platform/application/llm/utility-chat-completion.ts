@@ -64,12 +64,32 @@ export async function completeUtilityChat(
     }>;
   };
   const message = data.choices?.[0]?.message;
-  const content = (message?.content ?? "").trim();
-  if (content) return content;
-
-  const reasoning = message?.reasoning_content?.trim();
-  if (reasoning) {
+  const content = utilityCompletionText(message);
+  if (!content && message?.reasoning_content?.trim()) {
     console.warn("[utility-llm] model returned reasoning only; content empty");
   }
-  return "";
+  return content;
+}
+
+/** Prefer the answer. A short final reasoning line is only a fallback. */
+export function utilityCompletionText(
+  message:
+    | {
+        content?: string | null;
+        reasoning_content?: string | null;
+      }
+    | undefined,
+): string {
+  const content = (message?.content ?? "").trim();
+  if (content) return content;
+  const reasoning = (message?.reasoning_content ?? "").trim();
+  if (!reasoning) return "";
+  const line =
+    reasoning
+      .split("\n")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .at(-1) ?? "";
+  if (!line || line.length > 80) return "";
+  return line;
 }

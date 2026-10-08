@@ -23,17 +23,34 @@ function truncatePromptBody(text: string, maxChars: number): string {
   return `${text.slice(0, maxChars)}…`;
 }
 
+/** Interim titles stay until an LLM title lands. Retry after the trigger turn. */
+export function shouldGenerateChatTitle(input: {
+  titleSource: string | null;
+  userTurnCount: number;
+  triggerTurn: number;
+}): boolean {
+  if (input.titleSource === "user" || input.titleSource === "llm") return false;
+  return input.userTurnCount >= input.triggerTurn;
+}
+
 export async function generateAndApplyChatTitle(chatId: string): Promise<boolean> {
   if (!isChatTitleLlmEnabled()) return false;
 
   const meta = await drizzleChatRepository.getChatMetaById(chatId);
   if (!meta) return false;
-  if (meta.titleSource === "user" || meta.titleSource === "llm") return false;
 
   const events = await drizzleChatRepository.listChatEvents(chatId);
   const userTurnCount = countUserTurnMessages(events);
   const triggerTurn = getTitleLlmAfterUserTurn();
-  if (userTurnCount !== triggerTurn) return false;
+  if (
+    !shouldGenerateChatTitle({
+      titleSource: meta.titleSource,
+      userTurnCount,
+      triggerTurn,
+    })
+  ) {
+    return false;
+  }
 
   const userMessages = extractUserMessageTexts(
     events,

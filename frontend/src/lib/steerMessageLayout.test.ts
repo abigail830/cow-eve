@@ -83,4 +83,55 @@ describe("steerMessageLayout", () => {
       "connection_execute",
     );
   });
+
+  it("places a steer user after the first reply when Eve inserts it in front", () => {
+    const messages = [
+      {
+        id: "u1",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Draft the deck" }],
+      },
+      {
+        id: "u2",
+        role: "user" as const,
+        parts: [{ type: "text" as const, text: "Here are the screenshots" }],
+      },
+      {
+        id: "a1",
+        role: "assistant" as const,
+        parts: [
+          { type: "text" as const, text: "Before I start" },
+          {
+            type: "dynamic-tool" as const,
+            toolName: "ask_question",
+            toolCallId: "q1",
+            state: "approval-requested" as const,
+            input: {},
+          },
+          { type: "reasoning" as const, text: "Second turn" },
+          {
+            type: "dynamic-tool" as const,
+            toolName: "ask_question",
+            toolCallId: "q2",
+            state: "approval-requested" as const,
+            input: {},
+          },
+        ],
+      },
+    ] as EveMessage[];
+
+    const expanded = expandSteeredAssistantMessages(messages, new Map());
+    assert.deepEqual(
+      expanded.map((message) => message.id),
+      ["u1", "a1", "u2", "a1:steer:u2"],
+    );
+    assert.equal(expanded[1]?.parts.length, 2);
+    assert.equal(expanded[3]?.parts.length, 2);
+    assert.equal(
+      expanded[3]?.parts[1]?.type === "dynamic-tool"
+        ? expanded[3].parts[1].toolCallId
+        : "",
+      "q2",
+    );
+  });
 });

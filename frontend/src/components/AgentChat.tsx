@@ -9,6 +9,10 @@ import {
 import type { ArtifactSpec } from "@fde/artifact-spec";
 import { ArtifactPreviewPanel } from "@fde/artifact-ui";
 import { collectPendingInputRequests } from "@fde/question-ui";
+import {
+  supersededToolCallIds,
+  useSteerAssistantSplitMap,
+} from "../lib/steerMessageLayout";
 import { useEveAgent } from "eve/react";
 import type { InputResponse, MessageStreamEvent } from "eve/client";
 import {
@@ -571,10 +575,13 @@ function AgentChatSession({
   // - resuming → catch-up only: no Stop, no send
   const isBusy = status === "submitted" || status === "streaming";
   const isResuming = status === "resuming";
-  const pendingHitl = useMemo(
-    () => collectPendingInputRequests(data.messages),
-    [data.messages],
-  );
+  const steerSplits = useSteerAssistantSplitMap(data.messages);
+  const pendingHitl = useMemo(() => {
+    const superseded = supersededToolCallIds(data.messages, steerSplits);
+    return collectPendingInputRequests(data.messages).filter(
+      (item) => !superseded.has(item.toolCallId),
+    );
+  }, [data.messages, steerSplits]);
   const hitlAwaitingAnswer =
     pendingHitl.length > 0 && !isResuming && !hitlResponding;
 

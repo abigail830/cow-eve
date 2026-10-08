@@ -38,6 +38,7 @@ import {
 } from "../lib/platformProductTurns";
 import {
   expandSteeredAssistantMessages,
+  steerPlacement,
   useSteerAssistantSplitMap,
 } from "../lib/steerMessageLayout";
 import { AudioCaptureUserBubble } from "./AudioCaptureUserBubble";
@@ -100,6 +101,7 @@ function PartView({
   onPreviewArtifact,
   onHitlRespond,
   hitlResponding,
+  superseded = false,
 }: {
   part: EveMessagePart;
   apiBase: string;
@@ -109,6 +111,7 @@ function PartView({
   onPreviewArtifact?: (spec: ArtifactSpec) => void;
   onHitlRespond?: (responses: InputResponse[]) => void | Promise<void>;
   hitlResponding?: boolean;
+  superseded?: boolean;
 }) {
   if (part.type === "text") {
     return <MarkdownContent text={part.text} className="msg-text" />;
@@ -128,6 +131,44 @@ function PartView({
     const name = "toolName" in part ? String(part.toolName) : "tool";
     const state = "state" in part ? String(part.state) : "";
     const output = "output" in part ? part.output : null;
+    const toolStillOpen =
+      state === "input-streaming" ||
+      state === "input-available" ||
+      state === "approval-requested";
+
+    if (superseded && toolStillOpen) {
+      const request = part.toolMetadata?.eve?.inputRequest;
+      const prompt =
+        request && typeof request.prompt === "string" ? request.prompt.trim() : "";
+      if (prompt) {
+        return (
+          <div className="msg-hitl">
+            <div className="hitl-card hitl-card--answered" role="status">
+              <p className="hitl-card-kicker">Clarification needed</p>
+              <p className="hitl-card-prompt">{prompt}</p>
+              <p className="hitl-card-answer">
+                <span className="hitl-card-answer-label">Skipped.</span> A later
+                message was sent before this was answered.
+              </p>
+            </div>
+          </div>
+        );
+      }
+      return (
+        <details className="msg-step">
+          <summary>
+            <StepChevron />
+            <span className="step-check" aria-hidden>
+              ✓
+            </span>
+            <span className="msg-step-summary-line">
+              <span className="msg-step-action">{name}</span>
+            </span>
+            <span className="step-running">Skipped</span>
+          </summary>
+        </details>
+      );
+    }
 
     if (onHitlRespond) {
       const hitlView = resolveHitlToolPart({
@@ -470,6 +511,11 @@ export function MessageStream({
     (acc, row, index) => (row.type === "message" ? index : acc),
     -1,
   );
+  const lastTimeline = timeline[timeline.length - 1];
+  const steerStreamingAfterUser =
+    streamingOnAssistant &&
+    lastTimeline?.type === "message" &&
+    lastTimeline.message.role === "user";
 
   function renderAudioCaptureTurn(capture: AudioCapturePublic) {
     return (
@@ -625,6 +671,7 @@ export function MessageStream({
         }
 
         const assistantCopyText = assistantMessageCopyText(msg.parts);
+        const preSteer = steerPlacement(msg) === "head";
 
         return (
           <div key={msg.id} className="msg-row assistant">
@@ -640,6 +687,7 @@ export function MessageStream({
                   onPreviewArtifact={onPreviewArtifact}
                   onHitlRespond={onHitlRespond}
                   hitlResponding={hitlResponding}
+                  superseded={preSteer}
                 />
               ))}
               {isLastAssistant ? <StreamingIndicator /> : null}
@@ -649,7 +697,7 @@ export function MessageStream({
         );
       })}
       {legacyAudioCaptures.map((capture) => renderAudioCaptureTurn(capture))}
-      {streamingPending ? (
+      {streamingPending || steerStreamingAfterUser ? (
         <div className="msg-row assistant">
           <div className="msg-assistant">
             <StreamingIndicator />

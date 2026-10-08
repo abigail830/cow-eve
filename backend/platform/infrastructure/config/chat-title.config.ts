@@ -24,4 +24,4 @@ export function isChatTitleLlmEnabled(): boolean {
 
 export const CHAT_TITLE_SNIPPET_MAX_CHARS = 500;
 export const CHAT_TITLE_PROMPT_MAX_CHARS = 2000;
-export const CHAT_TITLE_LLM_MAX_TOKENS = 32;
+export const CHAT_TITLE_LLM_MAX_TOKENS = 128;
