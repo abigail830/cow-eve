@@ -40,7 +40,7 @@
     "@upstash/redis": "^1.38.4",
     "@vercel/blob": "^2.8.0",
     "@vercel/connect": "2.2.0",
-    "ai": "^7.0.105",
+    "ai": "^7.0.128",
     "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.45.2",
     "e2b": "^2.51.0",
