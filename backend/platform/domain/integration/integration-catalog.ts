@@ -34,6 +34,7 @@ export const INTEGRATION_ZHIPU_WEB_SEARCH = "zhipu_web_search";
 export const INTEGRATION_HYBRID_SEARCH = "hybrid_search";
 export const INTEGRATION_NOTION = "notion";
 export const INTEGRATION_HUBSPOT = "hubspot";
+export const INTEGRATION_FEISHU = "feishu";
 export const INTEGRATION_PROPOSAL_KNOWLEDGE = "proposal_knowledge";
 
 export const INTEGRATION_CATALOG: readonly IntegrationDefinition[] = [
@@ -101,6 +102,17 @@ export const INTEGRATION_CATALOG: readonly IntegrationDefinition[] = [
     name: "HubSpot",
     description: "Connect HubSpot CRM via remote MCP (OAuth).",
     docUrl: "https://developers.hubspot.com/mcp",
+    authKind: "oauth",
+    scope: "agent",
+    fields: [],
+  },
+  {
+    id: INTEGRATION_FEISHU,
+    name: "Feishu",
+    description:
+      "Connect Feishu to read messages, docs, and calendar via Open Platform APIs.",
+    docUrl:
+      "https://open.feishu.cn/document/sso/web-application-end-user-consent/guide",
     authKind: "oauth",
     scope: "agent",
     fields: [],

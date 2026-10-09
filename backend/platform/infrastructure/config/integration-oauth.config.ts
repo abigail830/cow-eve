@@ -43,3 +43,18 @@ export function getHubspotMcpOAuthConfig(): {
     }),
   };
 }
+
+export function getFeishuOAuthConfig(): {
+  appId: string | null;
+  appSecret: string | null;
+  redirectUri: string | null;
+} {
+  return {
+    appId: process.env.FEISHU_APP_ID?.trim() || null,
+    appSecret: process.env.FEISHU_APP_SECRET?.trim() || null,
+    redirectUri: resolveIntegrationOAuthRedirectUri({
+      integrationId: "feishu",
+      envRedirectUri: process.env.FEISHU_OAUTH_REDIRECT_URI,
+    }),
+  };
+}

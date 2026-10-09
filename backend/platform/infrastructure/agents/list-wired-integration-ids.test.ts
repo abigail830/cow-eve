@@ -26,6 +26,7 @@ describe("listWiredIntegrationIdsForPlatformAgent", () => {
     assert.ok(ids.includes("hubspot"));
     assert.ok(ids.includes("hybrid_search"));
     assert.ok(ids.includes("zhipu_web_search"));
+    assert.ok(ids.includes("feishu"));
   });
 
   it("returns empty for unknown platform agent", () => {
@@ -39,6 +40,8 @@ describe("listWiredIntegrationIdsForPlatformAgent", () => {
     const omni = listWiredIntegrationIdsForPlatformAgent("omni");
     const xProposal = listWiredIntegrationIdsForPlatformAgent("x-proposal");
     assert.ok(!omni.includes("proposal_knowledge"));
-    assert.deepEqual(xProposal, ["proposal_knowledge"]);
+    assert.ok(xProposal.includes("proposal_knowledge"));
+    assert.ok(xProposal.includes("feishu"));
+    assert.ok(!omni.includes("proposal_knowledge"));
   });
 });

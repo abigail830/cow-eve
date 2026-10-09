@@ -6,6 +6,13 @@ import {
   refreshHubspotToken,
 } from "./providers/hubspot.js";
 import {
+  INTEGRATION_FEISHU,
+  buildFeishuAuthorizeUrl,
+  exchangeFeishuCode,
+  isFeishuOAuthConfigured,
+  refreshFeishuToken,
+} from "./providers/feishu.js";
+import {
   INTEGRATION_NOTION,
   buildNotionAuthorizeUrl,
   exchangeNotionCode,
@@ -47,6 +54,14 @@ const OAUTH_HANDLERS: Record<string, OAuthIntegrationHandler> = {
     buildAuthorizeUrl: buildHubspotAuthorizeUrl,
     exchangeCode: exchangeHubspotCode,
     refreshAccessToken: refreshHubspotToken,
+  },
+  [INTEGRATION_FEISHU]: {
+    id: INTEGRATION_FEISHU,
+    authKind: "oauth",
+    isPlatformConfigured: isFeishuOAuthConfigured,
+    buildAuthorizeUrl: buildFeishuAuthorizeUrl,
+    exchangeCode: exchangeFeishuCode,
+    refreshAccessToken: refreshFeishuToken,
   },
 };
 

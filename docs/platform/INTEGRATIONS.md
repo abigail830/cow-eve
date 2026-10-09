@@ -7,7 +7,7 @@ Cow Eve stores per-user integration credentials in Postgres (`user_integrations`
 | Kind | Examples | User flow |
 |------|----------|-----------|
 | `api_key` | Hybrid Search, Zhipu Web Search | Customize → Integrations → enter keys |
-| `oauth` | Notion, HubSpot MCP | Customize → Integrations → **Connect** (PKCE) |
+| `oauth` | Notion, HubSpot MCP, Feishu | Customize → Integrations → **Connect** (PKCE for Notion/HubSpot; Feishu uses app secret) |
 
 OAuth tokens are encrypted at rest; the model never sees bearer tokens (Eve connection `getToken`).
 
@@ -16,7 +16,7 @@ OAuth tokens are encrypted at rest; the model never sees bearer tokens (Eve conn
 | Scope | Storage | Examples |
 |-------|---------|----------|
 | `user` | `user_integrations` | Hybrid Search, Zhipu API keys (shared by all agents) |
-| `agent` | `agent_integrations` (PK: user + agent + integration) | Notion, HubSpot OAuth per agent |
+| `agent` | `agent_integrations` (PK: user + agent + integration) | Notion, HubSpot, Feishu OAuth per agent |
 
 Customize → Integrations always requires `agentId`. Eve resolves the active agent from the chat tied to the Eve session when mounting MCP connections.
 
@@ -38,6 +38,15 @@ Customize → Integrations always requires `agentId`. Eve resolves the active ag
 **Quote `DATABASE_URL` in `.env` if it contains `&`**, so `source .env` during `./scripts/restart.sh omni` loads all variables.
 
 Restart omni after env changes. Users connect per agent under Customize → Integrations (agent-scoped credentials).
+
+### Feishu Open Platform
+
+1. Create a **自建应用** on [Feishu Open Platform](https://open.feishu.cn/app) and enable the scopes you need (default in code: `offline_access`, `im:message:readonly`, `docx:document:readonly`, `calendar:calendar:readonly`).
+2. Set **Redirect URL** to `{backend}/api/integrations/feishu/callback` (e.g. `http://127.0.0.1:2000/api/integrations/feishu/callback` locally).
+3. Copy **App ID** and **App Secret** into `backend/.env` as `FEISHU_APP_ID` / `FEISHU_APP_SECRET` (see [`.env.example`](../../backend/.env.example)).
+4. Optional: `FEISHU_OAUTH_SCOPE`, `FEISHU_API_BASE`, `FEISHU_OAUTH_AUTHORIZE_BASE` (same as agent-platform).
+
+Feishu uses Open Platform OAuth v2 (`/open-apis/authen/v2/oauth/token`) with `client_secret` — PKCE is not sent to Feishu. Agents expose read-only tools: `feishu_list_chats`, `feishu_list_messages`, `feishu_get_doc_content`, `feishu_list_calendar_events`.
 
 ## Eve runtime (source of truth for “which agent gets which integration”)
 

@@ -20,6 +20,69 @@ function redirectResponse(location: string): Response {
   });
 }
 
+async function handleIntegrationOAuthCallback(
+  request: Request,
+  integrationId: string,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  const error = url.searchParams.get("error");
+  const errorDescription = url.searchParams.get("error_description");
+  if (error) {
+    const message = (errorDescription ?? error).replace(/\+/g, " ");
+    return redirectResponse(
+      integrationOAuthCallbackRedirect({
+        integrationId,
+        status: "error",
+        error: message,
+      }),
+    );
+  }
+  if (!code || !state) {
+    return redirectResponse(
+      integrationOAuthCallbackRedirect({
+        integrationId,
+        status: "error",
+        error: "Missing OAuth code or state.",
+      }),
+    );
+  }
+  if (!getDatabaseUrl()) {
+    return redirectResponse(
+      integrationOAuthCallbackRedirect({
+        integrationId,
+        status: "error",
+        error: "Database is not configured.",
+      }),
+    );
+  }
+  try {
+    const result = await completeIntegrationOAuth({
+      integrationId,
+      code,
+      state,
+    });
+    return redirectResponse(
+      integrationOAuthCallbackRedirect({
+        integrationId,
+        status: "connected",
+        agentId: result.agentId,
+      }),
+    );
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "OAuth callback failed.";
+    return redirectResponse(
+      integrationOAuthCallbackRedirect({
+        integrationId,
+        status: "error",
+        error: message,
+      }),
+    );
+  }
+}
+
 export function registerIntegrationRoutes(
   ctx: PlatformRouteContext,
 ): RouteDefinition[] {
@@ -31,6 +94,7 @@ export function registerIntegrationRoutes(
     preflight("/api/integrations/:id/connect"),
     preflight("/api/integrations/:id/disconnect"),
     preflight("/api/integrations/:id/callback"),
+    preflight("/api/v1/integrations/:id/callback"),
 
     GET("/api/integrations", async (request) => {
       const auth = await requireUser(request);
@@ -103,65 +167,13 @@ export function registerIntegrationRoutes(
       }
     }),
 
-    GET("/api/integrations/:id/callback", async (request, { params }) => {
-      const url = new URL(request.url);
-      const code = url.searchParams.get("code");
-      const state = url.searchParams.get("state");
-      const error = url.searchParams.get("error");
-      const errorDescription = url.searchParams.get("error_description");
-      if (error) {
-        const message = (errorDescription ?? error).replace(/\+/g, " ");
-        return redirectResponse(
-          integrationOAuthCallbackRedirect({
-            integrationId: params.id,
-            status: "error",
-            error: message,
-          }),
-        );
-      }
-      if (!code || !state) {
-        return redirectResponse(
-          integrationOAuthCallbackRedirect({
-            integrationId: params.id,
-            status: "error",
-            error: "Missing OAuth code or state.",
-          }),
-        );
-      }
-      if (!getDatabaseUrl()) {
-        return redirectResponse(
-          integrationOAuthCallbackRedirect({
-            integrationId: params.id,
-            status: "error",
-            error: "Database is not configured.",
-          }),
-        );
-      }
-      try {
-        const result = await completeIntegrationOAuth({
-          integrationId: params.id,
-          code,
-          state,
-        });
-        return redirectResponse(
-          integrationOAuthCallbackRedirect({
-            integrationId: params.id,
-            status: "connected",
-            agentId: result.agentId,
-          }),
-        );
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "OAuth callback failed.";
-        return redirectResponse(
-          integrationOAuthCallbackRedirect({
-            integrationId: params.id,
-            status: "error",
-            error: message,
-          }),
-        );
-      }
-    }),
+    GET("/api/integrations/:id/callback", async (request, { params }) =>
+      handleIntegrationOAuthCallback(request, params.id),
+    ),
+    /** agent-platform compatibility (`/api/v1/integrations/...`) */
+    GET("/api/v1/integrations/:id/callback", async (request, { params }) =>
+      handleIntegrationOAuthCallback(request, params.id),
+    ),
 
     POST("/api/integrations/:id/disconnect", async (request, { params }) => {
       const auth = await requireUser(request);

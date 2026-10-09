@@ -4,20 +4,24 @@ export const WIRED_INTEGRATION_IDS_BY_EVE_AGENT: Readonly<
   Record<string, readonly string[]>
 > = {
   "nova-auditor": [
+    "feishu",
     "hybrid_search"
   ],
   "omni": [
+    "feishu",
     "hubspot",
     "hybrid_search",
     "notion",
     "zhipu_web_search"
   ],
   "research": [
+    "feishu",
     "hubspot",
     "hybrid_search",
     "zhipu_web_search"
   ],
   "x-proposal": [
+    "feishu",
     "proposal_knowledge"
   ]
 } as const;
