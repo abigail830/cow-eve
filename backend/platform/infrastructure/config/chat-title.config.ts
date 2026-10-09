@@ -13,9 +13,9 @@ function parsePositiveInt(raw: string, fallback: number): number {
   return Math.min(n, 10);
 }
 
-/** User message count after which we run the one-shot LLM title (default 2). */
+/** User message count after which we run the one-shot LLM title (default 3). */
 export function getTitleLlmAfterUserTurn(): number {
-  return parsePositiveInt(trimEnv("TITLE_LLM_AFTER_USER_TURN"), 2);
+  return parsePositiveInt(trimEnv("TITLE_LLM_AFTER_USER_TURN"), 3);
 }
 
 export function isChatTitleLlmEnabled(): boolean {

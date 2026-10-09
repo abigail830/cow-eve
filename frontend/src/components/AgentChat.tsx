@@ -531,6 +531,9 @@ function AgentChatSession({
       },
       onFinish: () => {
         onRefreshChats();
+        // Chat title LLM runs async after turn.completed; refresh again when it lands.
+        window.setTimeout(() => onRefreshChats(), 3500);
+        window.setTimeout(() => onRefreshChats(), 9000);
       },
     });
 
