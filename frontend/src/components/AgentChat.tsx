@@ -387,6 +387,13 @@ export function AgentChat({
         );
         void refreshChats();
       }}
+      onAbandonStreamResume={() => {
+        setBound((current) => ({
+          ...current,
+          resume: false,
+          key: `${current.key}-idle`,
+        }));
+      }}
     />
   );
 }
@@ -418,6 +425,8 @@ type SessionProps = {
   onProjectIdChange?: (projectId: string | null) => void;
   onReloadConversation?: (chatId: string) => void;
   onCaptureChatLinked?: (chatId: string) => void;
+  /** Clears bound.resume and remount key when user abandons a stuck stream resume. */
+  onAbandonStreamResume: () => void;
 };
 
 function AgentChatSession({
@@ -445,6 +454,7 @@ function AgentChatSession({
   onProjectIdChange,
   onReloadConversation,
   onCaptureChatLinked,
+  onAbandonStreamResume,
 }: SessionProps) {
   const [projectsOpen, setProjectsOpen] = useState(false);
   const navigate = useNavigate();
@@ -508,12 +518,8 @@ function AgentChatSession({
   const dismissStuckStream = useCallback(() => {
     setResumeAbandoned(true);
     setStuckTurnNotice(false);
-    setBound((current) => ({
-      ...current,
-      resume: false,
-      key: `${current.key}-idle`,
-    }));
-  }, []);
+    onAbandonStreamResume();
+  }, [onAbandonStreamResume]);
 
   const { data, status, error, events, session, send, cancel, respond } =
     useEveAgent({
