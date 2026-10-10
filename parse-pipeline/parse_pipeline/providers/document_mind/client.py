@@ -30,6 +30,9 @@ class DocumentMindConfig:
     output_formats: list[str] | None = None
     poll_interval_sec: float = 5.0
     layout_step_size: int = 50
+    api_read_timeout_ms: int = 30_000
+    api_connect_timeout_ms: int = 10_000
+    result_chunk_retries: int = 1
 
 
 @dataclass
@@ -55,6 +58,19 @@ class DocumentMindClient:
         cfg.endpoint = self._config.endpoint
         return DocMindClient(cfg)
 
+    def _runtime(self):
+        from alibabacloud_tea_util import models as util_models
+
+        runtime = util_models.RuntimeOptions()
+        runtime.read_timeout = self._config.api_read_timeout_ms
+        runtime.connect_timeout = self._config.api_connect_timeout_ms
+        return runtime
+
+    @staticmethod
+    def _is_transient_api_error(exc: BaseException) -> bool:
+        message = str(exc).lower()
+        return "timed out" in message or "timeout" in message
+
     def submit(
         self,
         file_bytes: bytes,
@@ -62,7 +78,6 @@ class DocumentMindClient:
         output_formats: list[str] | None = None,
     ) -> str:
         from alibabacloud_docmind_api20220711 import models as dm_models
-        from alibabacloud_tea_util import models as util_models
 
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else None
         formats = output_formats or self._config.output_formats or list(DEFAULT_OUTPUT_FORMATS)
@@ -74,8 +89,7 @@ class DocumentMindClient:
             enhancement_mode=self._config.enhancement_mode,
             output_format=formats,
         )
-        runtime = util_models.RuntimeOptions()
-        response = self._client.submit_doc_parser_job_advance(request, runtime)
+        response = self._client.submit_doc_parser_job_advance(request, self._runtime())
         task_id = response.body.data.id
         if not task_id:
             raise RuntimeError("Document Mind submit returned no task id")
@@ -85,7 +99,7 @@ class DocumentMindClient:
         from alibabacloud_docmind_api20220711 import models as dm_models
 
         request = dm_models.QueryDocParserStatusRequest(id=task_id)
-        response = self._client.query_doc_parser_status(request)
+        response = self._client.query_doc_parser_status(request, self._runtime())
         if response.body.data is None:
             return {}
         data = response.body.data.to_map()
@@ -99,11 +113,40 @@ class DocumentMindClient:
             layout_num=layout_num,
             layout_step_size=layout_step_size,
         )
-        response = self._client.get_doc_parser_result(request)
+        response = self._client.get_doc_parser_result(request, self._runtime())
         if response.body.data is None:
             return {}
         data = response.body.data.to_map() if hasattr(response.body.data, "to_map") else response.body.data
         return data if isinstance(data, dict) else {}
+
+    def get_result_chunk_with_retry(
+        self,
+        task_id: str,
+        layout_num: int,
+        layout_step_size: int,
+    ) -> dict[str, Any]:
+        max_retries = max(0, self._config.result_chunk_retries)
+        total_attempts = 1 + max_retries
+        last_exc: BaseException | None = None
+        for attempt in range(total_attempts):
+            try:
+                return self.get_result_chunk(task_id, layout_num, layout_step_size)
+            except Exception as exc:
+                if not self._is_transient_api_error(exc) or attempt >= max_retries:
+                    raise
+                last_exc = exc
+                delay = min(2.0**attempt, 10.0)
+                logger.warning(
+                    "Document Mind get_doc_parser_result timed out (layout_num=%s); retry %s/%s in %.1fs",
+                    layout_num,
+                    attempt + 1,
+                    max_retries,
+                    delay,
+                )
+                time.sleep(delay)
+        if last_exc is not None:
+            raise last_exc
+        return {}
 
     @staticmethod
     def _table_to_html(table_layout: dict[str, Any]) -> str:
@@ -159,7 +202,7 @@ class DocumentMindClient:
         layout_num = 0
         step = self._config.layout_step_size
         while True:
-            chunk = self.get_result_chunk(task_id, layout_num, step)
+            chunk = self.get_result_chunk_with_retry(task_id, layout_num, step)
             layouts = chunk.get("layouts") or []
             if not layouts:
                 break
@@ -245,6 +288,9 @@ def build_client_from_settings(settings: Settings, job_options: dict[str, Any] |
         output_formats=output_formats,
         poll_interval_sec=settings.document_mind_poll_interval_sec,
         layout_step_size=settings.document_mind_layout_step_size,
+        api_read_timeout_ms=int(settings.document_mind_api_read_timeout_sec * 1000),
+        api_connect_timeout_ms=int(settings.document_mind_api_connect_timeout_sec * 1000),
+        result_chunk_retries=settings.document_mind_result_chunk_retries,
     )
     return DocumentMindClient(config)
 

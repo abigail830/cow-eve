@@ -19,6 +19,9 @@ def _client() -> DocumentMindClient:
         access_key_secret="secret",
         endpoint="docmind-api.cn-hangzhou.aliyuncs.com",
         output_formats=list(DEFAULT_OUTPUT_FORMATS),
+        api_read_timeout_ms=30_000,
+        api_connect_timeout_ms=10_000,
+        result_chunk_retries=1,
     )
     client = DocumentMindClient(config)
     client._client = MagicMock()
@@ -50,6 +53,9 @@ def test_submit_passes_output_format_to_sdk() -> None:
         DM_OUTPUT_MARKDOWN,
         DM_OUTPUT_VISUAL_LAYOUT,
     ]
+    runtime = captured["runtime"]
+    assert runtime.read_timeout == 30_000
+    assert runtime.connect_timeout == 10_000
 
 
 @pytest.mark.asyncio

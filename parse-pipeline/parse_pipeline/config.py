@@ -32,6 +32,20 @@ class Settings(BaseSettings):
     document_mind_enhancement_mode: str = Field(default="VLM", alias="DOCUMENT_MIND_ENHANCEMENT_MODE")
     document_mind_poll_interval_sec: float = Field(default=5.0, alias="DOCUMENT_MIND_POLL_INTERVAL_SEC")
     document_mind_layout_step_size: int = Field(default=50, alias="DOCUMENT_MIND_LAYOUT_STEP_SIZE")
+    # Tea SDK default read timeout is 10s; bump slightly for GetDocParserResult chunks.
+    document_mind_api_read_timeout_sec: float = Field(
+        default=30.0,
+        alias="DOCUMENT_MIND_API_READ_TIMEOUT_SEC",
+    )
+    document_mind_api_connect_timeout_sec: float = Field(
+        default=10.0,
+        alias="DOCUMENT_MIND_API_CONNECT_TIMEOUT_SEC",
+    )
+    # Extra attempts after the first failure (1 = at most one retry).
+    document_mind_result_chunk_retries: int = Field(
+        default=1,
+        alias="DOCUMENT_MIND_RESULT_CHUNK_RETRIES",
+    )
 
     office_markitdown_enabled: bool = Field(default=True, alias="OFFICE_MARKITDOWN_ENABLED")
 

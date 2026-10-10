@@ -81,6 +81,8 @@ Async API flow (阿里云文档解析大模型版):
 2. `QueryDocParserStatus` — poll until `Status=success|failed` (`parse_wait` emits stage updates each poll)
 3. `GetDocParserResult` — paginated layout/markdown collect
 
+Large decks can hit the Tea SDK default **10s read timeout** on step 3; defaults are **30s** read timeout and **one retry** (`DOCUMENT_MIND_API_READ_TIMEOUT_SEC`, `DOCUMENT_MIND_RESULT_CHUNK_RETRIES=1`) on the runner (GHA or local worker).
+
 **OutputFormat** (job `options.document_mind.output_formats`, default `["markdown", "visualLayoutInfo"]`):
 
 | Value | Effect |
