@@ -156,7 +156,7 @@ async function uploadWorkspaceFileViaBlob(
   const filename = file.name || "upload";
   let prepareRes: Response;
   try {
-    prepareRes = await workspaceFetch("/api/workspace/files/prepare-blob-upload", {
+    prepareRes = await workspaceFetch("/api/workspace-upload/prepare-blob-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -190,7 +190,7 @@ async function uploadWorkspaceFileViaBlob(
   try {
     await upload(prepared.pathname, file, {
       access: "private",
-      handleUploadUrl: `${API_URL}/api/workspace/files/blob-upload`,
+      handleUploadUrl: `${API_URL}/api/workspace-upload/blob-upload`,
       clientPayload: prepared.clientPayload,
       headers: workspaceAuthHeaders(),
       multipart: file.size > 8 * 1024 * 1024,
@@ -204,7 +204,7 @@ async function uploadWorkspaceFileViaBlob(
 
   let finalizeRes: Response;
   try {
-    finalizeRes = await workspaceFetch("/api/workspace/files/finalize-blob-upload", {
+    finalizeRes = await workspaceFetch("/api/workspace-upload/finalize-blob-upload", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

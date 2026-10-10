@@ -30,9 +30,9 @@ export function registerWorkspaceRoutes(
 
   return [
     preflight("/api/workspace/batch-file-lookup"),
-    preflight("/api/workspace/files/prepare-blob-upload"),
-    preflight("/api/workspace/files/finalize-blob-upload"),
-    preflight("/api/workspace/files/blob-upload"),
+    preflight("/api/workspace-upload/prepare-blob-upload"),
+    preflight("/api/workspace-upload/finalize-blob-upload"),
+    preflight("/api/workspace-upload/blob-upload"),
     preflight("/api/workspace/folders"),
     preflight("/api/workspace/folders/:id"),
     preflight("/api/workspace/folders/:id/files"),
@@ -128,7 +128,7 @@ export function registerWorkspaceRoutes(
       return json({ ok: true }, 200, request);
     }),
 
-    POST("/api/workspace/files/prepare-blob-upload", async (request) => {
+    POST("/api/workspace-upload/prepare-blob-upload", async (request) => {
       const auth = await requireUser(request);
       if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
       if (!getDatabaseUrl()) {
@@ -166,7 +166,7 @@ export function registerWorkspaceRoutes(
       return json({ ok: true, ...result }, 200, request);
     }),
 
-    POST("/api/workspace/files/finalize-blob-upload", async (request) => {
+    POST("/api/workspace-upload/finalize-blob-upload", async (request) => {
       const auth = await requireUser(request);
       if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
       if (!getDatabaseUrl()) {
@@ -215,7 +215,7 @@ export function registerWorkspaceRoutes(
       return json({ ok: true, file: result.file }, 201, request);
     }),
 
-    POST("/api/workspace/files/blob-upload", async (request) => {
+    POST("/api/workspace-upload/blob-upload", async (request) => {
       let body: HandleUploadBody;
       try {
         body = (await request.json()) as HandleUploadBody;
