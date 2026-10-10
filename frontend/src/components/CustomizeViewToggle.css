@@ -1,0 +1,62 @@
+.customize-view-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  padding: 2px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--work-item-border, var(--border-subtle));
+  background: var(--work-item-bg, var(--surface-muted));
+  flex-shrink: 0;
+}
+
+.customize-view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: calc(var(--radius-md, 8px) - 2px);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.customize-view-toggle-btn:hover {
+  color: var(--color-text-secondary);
+}
+
+.customize-view-toggle-btn.active {
+  background: var(--work-card-bg, var(--surface-raised));
+  color: var(--color-ink);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.customize-view-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 520px) {
+  .customize-view-toggle-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .customize-view-toggle-btn {
+    padding: 0 8px;
+  }
+}

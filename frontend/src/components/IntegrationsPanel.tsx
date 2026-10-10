@@ -77,6 +77,29 @@ function FieldInput({
   );
 }
 
+function IntegrationCardIcon() {
+  return (
+    <span className="integration-card-icon" aria-hidden>
+      <Plug size={20} strokeWidth={1.75} />
+    </span>
+  );
+}
+
+function IntegrationStatus({ connected }: { connected: boolean }) {
+  return (
+    <span
+      className={
+        connected
+          ? "integration-status integration-status-on"
+          : "integration-status integration-status-off"
+      }
+    >
+      <span className="integration-status-dot" aria-hidden />
+      {connected ? "Connected" : "Not connected"}
+    </span>
+  );
+}
+
 function IntegrationIconButton({
   label,
   onClick,
@@ -144,72 +167,56 @@ function OAuthIntegrationCard({
     }
   };
 
+  const showActions = item.platformConfigured;
+
   return (
     <article className="integration-card">
-      <div className="integration-card-row">
-        <span className="integration-card-icon" aria-hidden>
-          <Plug size={20} strokeWidth={1.75} />
-        </span>
+      <div className="integration-card-inner">
+        <IntegrationCardIcon />
         <div className="integration-card-main">
           <div className="integration-card-head">
-            <div className="integration-card-title-row">
-              <span className="integration-card-name">{item.name}</span>
-              <span
-                className={
-                  item.connected
-                    ? "integration-status-badge integration-status-badge-on"
-                    : "integration-status-badge integration-status-badge-off"
-                }
-              >
-                {item.connected ? "Connected" : "Not connected"}
-              </span>
-            </div>
-            {!item.platformConfigured ? (
-              <span className="integration-card-desc integration-muted">
-                Not available on this deployment.
-              </span>
-            ) : item.connected ? (
-              <IntegrationIconButton
-                label={busy ? "Disconnecting…" : "Disconnect"}
-                disabled={busy}
-                onClick={() => void handleDisconnect()}
-              >
-                {busy ? (
-                  <Loader2 size={16} className="integrations-spin" aria-hidden />
+            <h3 className="integration-card-name">{item.name}</h3>
+            {showActions ? (
+              <div className="integration-card-head-actions">
+                {item.connected ? (
+                  <IntegrationIconButton
+                    label={busy ? "Disconnecting…" : "Disconnect"}
+                    disabled={busy}
+                    onClick={() => void handleDisconnect()}
+                  >
+                    {busy ? (
+                      <Loader2 size={16} className="integrations-spin" aria-hidden />
+                    ) : (
+                      <Unplug size={16} strokeWidth={2} aria-hidden />
+                    )}
+                  </IntegrationIconButton>
                 ) : (
-                  <Unplug size={16} strokeWidth={2} aria-hidden />
+                  <IntegrationIconButton
+                    label={busy ? "Connecting…" : "Connect"}
+                    variant="primary"
+                    disabled={busy}
+                    onClick={() => void handleConnect()}
+                  >
+                    {busy ? (
+                      <Loader2 size={16} className="integrations-spin" aria-hidden />
+                    ) : (
+                      <Link2 size={16} strokeWidth={2} aria-hidden />
+                    )}
+                  </IntegrationIconButton>
                 )}
-              </IntegrationIconButton>
-            ) : (
-              <IntegrationIconButton
-                label={busy ? "Connecting…" : "Connect"}
-                variant="primary"
-                disabled={busy}
-                onClick={() => void handleConnect()}
-              >
-                {busy ? (
-                  <Loader2 size={16} className="integrations-spin" aria-hidden />
-                ) : (
-                  <Link2 size={16} strokeWidth={2} aria-hidden />
-                )}
-              </IntegrationIconButton>
-            )}
+              </div>
+            ) : null}
           </div>
-          <p className="integration-card-desc">{item.description}</p>
-          {item.connected && item.accountLabel ? (
-            <p className="integration-card-desc integration-muted">
-              Account: {item.accountLabel}
+          {!item.platformConfigured ? (
+            <p className="integration-card-desc integration-card-desc-muted">
+              Not available on this deployment.
             </p>
+          ) : (
+            <p className="integration-card-desc">{item.description}</p>
+          )}
+          {item.connected && item.accountLabel ? (
+            <p className="integration-card-meta">{item.accountLabel}</p>
           ) : null}
-          <a
-            className="integration-doc-link"
-            href={item.docUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-            <ExternalLink size={13} strokeWidth={2} aria-hidden />
-          </a>
           {error ? (
             <p className="integration-inline-error" role="alert">
               {error}
@@ -217,6 +224,18 @@ function OAuthIntegrationCard({
           ) : null}
         </div>
       </div>
+      <footer className="integration-card-footer">
+        <IntegrationStatus connected={item.connected && item.platformConfigured} />
+        <a
+          className="integration-doc-link"
+          href={item.docUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Docs
+          <ExternalLink size={12} strokeWidth={2} aria-hidden />
+        </a>
+      </footer>
     </article>
   );
 }
@@ -310,24 +329,11 @@ function ApiKeyIntegrationCard({
         expanded ? "integration-card integration-card-expanded" : "integration-card"
       }
     >
-      <div className="integration-card-row">
-        <span className="integration-card-icon" aria-hidden>
-          <Plug size={20} strokeWidth={1.75} />
-        </span>
+      <div className="integration-card-inner">
+        <IntegrationCardIcon />
         <div className="integration-card-main">
           <div className="integration-card-head">
-            <div className="integration-card-title-row">
-              <span className="integration-card-name">{item.name}</span>
-              <span
-                className={
-                  item.configured
-                    ? "integration-status-badge integration-status-badge-on"
-                    : "integration-status-badge integration-status-badge-off"
-                }
-              >
-                {item.configured ? "Connected" : "Not connected"}
-              </span>
-            </div>
+            <h3 className="integration-card-name">{item.name}</h3>
             <div className="integration-card-head-actions">
               {expanded ? (
                 <IntegrationIconButton
@@ -362,6 +368,20 @@ function ApiKeyIntegrationCard({
           <p className="integration-card-desc">{item.description}</p>
         </div>
       </div>
+      {!expanded ? (
+        <footer className="integration-card-footer">
+          <IntegrationStatus connected={item.configured} />
+          <a
+            className="integration-doc-link"
+            href={item.docUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Docs
+            <ExternalLink size={12} strokeWidth={2} aria-hidden />
+          </a>
+        </footer>
+      ) : null}
 
       {expanded ? (
         <div className="integration-card-setup">
@@ -543,8 +563,8 @@ export function IntegrationsPanel({ agentId, embedded = false }: Props) {
             )}
           </div>
           <p className="integrations-account-note">
-            User-scoped integrations (API keys) apply to every agent. Agent-scoped
-            integrations (Notion, HubSpot) are configured separately per agent.
+            User-scoped integrations (API keys) apply to every agent. OAuth
+            integrations (Notion, HubSpot, Feishu) are configured per agent.
           </p>
         </section>
       </div>

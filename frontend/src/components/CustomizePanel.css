@@ -43,10 +43,18 @@
   white-space: nowrap;
 }
 
+.customize-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
 .customize-add {
   position: relative;
   flex: 0 0 auto;
-  margin-left: auto;
 }
 
 .customize-add-btn {

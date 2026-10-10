@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarClock, ChevronDown, Plus, Target } from "lucide-react";
+import {
+  readCustomizeViewMode,
+  writeCustomizeViewMode,
+  type CustomizeResourceViewMode,
+} from "../lib/customize-view-mode";
+import { CustomizeViewToggle } from "./CustomizeViewToggle";
 import { IntegrationsPanel } from "./IntegrationsPanel";
 import {
   ProjectListPanel,
@@ -65,7 +71,23 @@ export function CustomizePanel({
   const scheduleRef = useRef<SchedulePanelHandle>(null);
   const addRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [projectsView, setProjectsView] = useState<CustomizeResourceViewMode>(
+    () => readCustomizeViewMode("projects"),
+  );
+  const [schedulesView, setSchedulesView] = useState<CustomizeResourceViewMode>(
+    () => readCustomizeViewMode("schedules"),
+  );
   const addAction = ADD_ACTIONS[tab];
+
+  function setProjectsViewMode(mode: CustomizeResourceViewMode) {
+    setProjectsView(mode);
+    writeCustomizeViewMode("projects", mode);
+  }
+
+  function setSchedulesViewMode(mode: CustomizeResourceViewMode) {
+    setSchedulesView(mode);
+    writeCustomizeViewMode("schedules", mode);
+  }
 
   useEffect(() => {
     setMenuOpen(false);
@@ -129,21 +151,38 @@ export function CustomizePanel({
               Integrations
             </button>
           </div>
-          {addAction ? (
-            <div className="customize-add" ref={addRef}>
-              <button
-                type="button"
-                className="customize-add-btn"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((open) => !open)}
-              >
-                <Plus size={16} strokeWidth={2} aria-hidden />
-                Add
-                <ChevronDown size={14} strokeWidth={2} aria-hidden />
-              </button>
-              {menuOpen ? (
-                <AddMenu action={addAction} onSelect={runAdd} />
+          {addAction || tab === "projects" || tab === "schedules" ? (
+            <div className="customize-toolbar-actions">
+              {tab === "projects" ? (
+                <CustomizeViewToggle
+                  value={projectsView}
+                  onChange={setProjectsViewMode}
+                  label="Projects layout"
+                />
+              ) : tab === "schedules" ? (
+                <CustomizeViewToggle
+                  value={schedulesView}
+                  onChange={setSchedulesViewMode}
+                  label="Schedules layout"
+                />
+              ) : null}
+              {addAction ? (
+                <div className="customize-add" ref={addRef}>
+                  <button
+                    type="button"
+                    className="customize-add-btn"
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                    onClick={() => setMenuOpen((open) => !open)}
+                  >
+                    <Plus size={16} strokeWidth={2} aria-hidden />
+                    Add
+                    <ChevronDown size={14} strokeWidth={2} aria-hidden />
+                  </button>
+                  {menuOpen ? (
+                    <AddMenu action={addAction} onSelect={runAdd} />
+                  ) : null}
+                </div>
               ) : null}
             </div>
           ) : null}
@@ -154,6 +193,7 @@ export function CustomizePanel({
           <ProjectListPanel
             ref={projectRef}
             agentId={agentId}
+            viewMode={projectsView}
             showCreateButton={false}
             onEnterProject={onEnterProject}
             onEditProject={onEditProject}
@@ -162,6 +202,7 @@ export function CustomizePanel({
           <SchedulePanel
             ref={scheduleRef}
             agentId={agentId}
+            viewMode={schedulesView}
             showCreateButton={false}
             onOpenResultChat={(chatId, task) =>
               onOpenScheduleResult(task, chatId)

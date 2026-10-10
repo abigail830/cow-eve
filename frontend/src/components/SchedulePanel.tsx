@@ -15,6 +15,14 @@ import {
   updateSchedule,
   type ScheduledTaskPublic,
 } from "../lib/api";
+import {
+  readCustomizeViewMode,
+  writeCustomizeViewMode,
+  type CustomizeResourceViewMode,
+} from "../lib/customize-view-mode";
+import { plainSummary } from "../lib/plain-summary";
+import { CustomizeViewToggle } from "./CustomizeViewToggle";
+import "./CustomizeResourceList.css";
 import "./SchedulePanel.css";
 
 type FormState = {
@@ -66,6 +74,20 @@ function statusLabel(status: string | null) {
     default:
       return status ?? "—";
   }
+}
+
+function scheduleListMeta(task: ScheduledTaskPublic): string {
+  const cadence =
+    task.everyMinutes == null ? "One-time" : `Every ${task.everyMinutes} min`;
+  const parts = [
+    task.enabled ? "Enabled" : "Paused",
+    cadence,
+    `Next ${formatDateTime(task.nextRunAt)}`,
+  ];
+  if (task.lastStatus) {
+    parts.push(`Last run: ${statusLabel(task.lastStatus)}`);
+  }
+  return parts.join(" · ");
 }
 
 function formFromSchedule(task: ScheduledTaskPublic): FormState {
@@ -218,6 +240,7 @@ function ScheduleTaskForm({
 
 type Props = {
   agentId?: string;
+  viewMode?: CustomizeResourceViewMode;
   onOpenResultChat?: (
     chatId: string,
     task: ScheduledTaskPublic,
@@ -231,9 +254,20 @@ export type SchedulePanelHandle = {
 
 export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
   function SchedulePanel(
-    { agentId = "omni", onOpenResultChat, showCreateButton = true },
+    {
+      agentId = "omni",
+      viewMode: viewModeProp,
+      onOpenResultChat,
+      showCreateButton = true,
+    },
     ref,
   ) {
+  const [internalView, setInternalView] = useState<CustomizeResourceViewMode>(
+    () => readCustomizeViewMode("schedules"),
+  );
+  const viewMode = viewModeProp ?? internalView;
+  const viewControlled = viewModeProp !== undefined;
+
   const [schedules, setSchedules] = useState<ScheduledTaskPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -348,6 +382,16 @@ export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
     <div className="schedule-panel">
       {showCreateButton ? (
         <div className="schedule-panel-toolbar">
+          {!viewControlled ? (
+            <CustomizeViewToggle
+              value={viewMode}
+              onChange={(mode) => {
+                setInternalView(mode);
+                writeCustomizeViewMode("schedules", mode);
+              }}
+              label="Schedules layout"
+            />
+          ) : null}
           <button
             type="button"
             className="schedule-panel-create"
@@ -388,7 +432,13 @@ export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
             </p>
           </div>
         ) : (
-          <ul className="schedule-list">
+          <ul
+            className={
+              viewMode === "list"
+                ? "customize-resource-list"
+                : "schedule-list schedule-list--card"
+            }
+          >
             {schedules.map((task) =>
               editingId === task.id ? (
                 <li key={task.id} className="schedule-card schedule-card-editing">
@@ -402,86 +452,158 @@ export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
                     onCancel={resetFormState}
                   />
                 </li>
+              ) : viewMode === "list" ? (
+                <li key={task.id} className="customize-resource-row">
+                  <span className="customize-resource-row-icon" aria-hidden>
+                    <CalendarClock size={18} strokeWidth={1.75} />
+                  </span>
+                  <div className="customize-resource-row-body">
+                    <h3 className="customize-resource-row-title">
+                      {task.name || "Untitled task"}
+                    </h3>
+                    <p
+                      className={
+                        plainSummary(task.prompt)
+                          ? "customize-resource-row-subtitle"
+                          : "customize-resource-row-subtitle customize-resource-row-subtitle--empty"
+                      }
+                    >
+                      {plainSummary(task.prompt) || "No prompt yet."}
+                    </p>
+                    <p className="customize-resource-row-meta-line">
+                      {scheduleListMeta(task)}
+                    </p>
+                    {task.lastError ? (
+                      <p className="schedule-item-error schedule-item-error--row">
+                        {task.lastError}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="customize-resource-row-actions">
+                    {task.lastChatId ? (
+                      <button
+                        type="button"
+                        className="customize-row-btn"
+                        onClick={() =>
+                          onOpenResultChat?.(task.lastChatId!, task)
+                        }
+                      >
+                        View result
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="customize-row-icon-btn"
+                      aria-label={`Edit ${task.name || "task"}`}
+                      disabled={pending}
+                      onClick={() => startEdit(task)}
+                    >
+                      <Pencil size={15} strokeWidth={2} aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      className="customize-row-icon-btn customize-row-icon-btn--danger"
+                      aria-label={`Delete ${task.name || "task"}`}
+                      disabled={pending}
+                      onClick={() => void handleDelete(task.id)}
+                    >
+                      <Trash2 size={15} strokeWidth={2} aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      className="customize-row-btn customize-row-btn--primary"
+                      disabled={pending}
+                      onClick={() => void toggleEnabled(task)}
+                    >
+                      {task.enabled ? "Pause" : "Enable"}
+                    </button>
+                  </div>
+                </li>
               ) : (
                 <li key={task.id} className="schedule-card">
-                  <div className="schedule-card-row">
+                  <div className="schedule-card-inner">
                     <span className="schedule-card-icon" aria-hidden>
                       <CalendarClock size={20} strokeWidth={1.75} />
                     </span>
                     <div className="schedule-card-main">
                       <div className="schedule-card-head">
-                        <span className="schedule-card-name">
+                        <h3 className="schedule-card-name">
                           {task.name || "Untitled task"}
-                        </span>
+                        </h3>
                         <div className="schedule-card-actions">
                           <button
                             type="button"
-                            className="schedule-card-cta"
+                            className="schedule-card-icon-btn"
+                            aria-label={`Edit ${task.name || "task"}`}
+                            disabled={pending}
                             onClick={() => startEdit(task)}
                           >
-                            <Pencil size={14} strokeWidth={2} aria-hidden />
-                            Edit
+                            <Pencil size={15} strokeWidth={2} aria-hidden />
                           </button>
                           <button
                             type="button"
-                            className="schedule-card-cta schedule-card-cta-danger"
+                            className="schedule-card-icon-btn schedule-card-icon-btn--danger"
                             aria-label={`Delete ${task.name || "task"}`}
                             disabled={pending}
                             onClick={() => void handleDelete(task.id)}
                           >
-                            <Trash2 size={14} strokeWidth={2} aria-hidden />
+                            <Trash2 size={15} strokeWidth={2} aria-hidden />
                           </button>
                         </div>
                       </div>
                       <p className="schedule-card-desc">{task.prompt}</p>
-                      <p className="schedule-card-meta">
-                        <span
-                          className={
-                            task.enabled
-                              ? "schedule-badge enabled"
-                              : "schedule-badge disabled"
-                          }
-                        >
-                          {task.enabled ? "Enabled" : "Paused"}
-                        </span>
-                        <span
-                          className={`schedule-badge status-${task.lastStatus ?? "none"}`}
-                        >
-                          {statusLabel(task.lastStatus)}
-                        </span>
-                        <span>
-                          {task.everyMinutes == null
-                            ? "One-time"
-                            : `Every ${task.everyMinutes} min`}
-                        </span>
-                        <span>Next {formatDateTime(task.nextRunAt)}</span>
-                      </p>
                       {task.lastError ? (
                         <p className="schedule-item-error">{task.lastError}</p>
                       ) : null}
-                      <div className="schedule-card-footer">
-                        {task.lastChatId ? (
-                          <button
-                            type="button"
-                            className="schedule-card-cta"
-                            onClick={() =>
-                              onOpenResultChat?.(task.lastChatId!, task)
-                            }
-                          >
-                            View result
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="schedule-card-cta"
-                          disabled={pending}
-                          onClick={() => void toggleEnabled(task)}
-                        >
-                          {task.enabled ? "Pause" : "Enable"}
-                        </button>
-                      </div>
                     </div>
                   </div>
+                  <footer className="schedule-card-footer">
+                    <div className="schedule-card-footer-start">
+                      <span
+                        className={
+                          task.enabled
+                            ? "schedule-status schedule-status-on"
+                            : "schedule-status schedule-status-off"
+                        }
+                      >
+                        <span className="schedule-status-dot" aria-hidden />
+                        {task.enabled ? "Enabled" : "Paused"}
+                      </span>
+                      {task.lastStatus ? (
+                        <span className="schedule-status schedule-status-neutral">
+                          Last run: {statusLabel(task.lastStatus)}
+                        </span>
+                      ) : null}
+                      <p className="schedule-card-footer-detail">
+                        {task.everyMinutes == null
+                          ? "One-time"
+                          : `Every ${task.everyMinutes} min`}
+                        <span aria-hidden> · </span>
+                        Next {formatDateTime(task.nextRunAt)}
+                      </p>
+                    </div>
+                    <div className="schedule-card-footer-actions">
+                      {task.lastChatId ? (
+                        <button
+                          type="button"
+                          className="schedule-card-cta schedule-card-cta-ghost"
+                          onClick={() =>
+                            onOpenResultChat?.(task.lastChatId!, task)
+                          }
+                        >
+                          View result
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="schedule-card-cta schedule-card-cta-primary"
+                        disabled={pending}
+                        onClick={() => void toggleEnabled(task)}
+                      >
+                        {task.enabled ? "Pause" : "Enable"}
+                      </button>
+                    </div>
+                  </footer>
                 </li>
               ),
             )}
