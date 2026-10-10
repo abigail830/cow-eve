@@ -63,7 +63,7 @@ function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function getUploadPolicy(): Promise<UploadPolicy> {
+export async function fetchAttachmentUploadPolicy(): Promise<UploadPolicy> {
   if (uploadPolicyCache) return uploadPolicyCache;
   const res = await attachmentFetch("/api/chat-attachments/upload-policy");
   const data = (await res.json()) as {
@@ -226,7 +226,7 @@ export async function uploadChatAttachment(
     throw new Error("Cannot upload attachment before chat session exists.");
   }
 
-  const policy = await getUploadPolicy();
+  const policy = await fetchAttachmentUploadPolicy();
   if (attachment.sizeBytes > policy.maxBytesPerFile) {
     throw new Error(
       `File exceeds the ${Math.round(policy.maxBytesPerFile / (1024 * 1024))} MB limit.`,

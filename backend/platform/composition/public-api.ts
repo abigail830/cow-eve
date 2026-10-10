@@ -178,6 +178,10 @@ export {
   type WorkspaceFilePublic,
   type WorkspaceFilePreviewBundle,
 } from "../application/workspace/workspace-file.use-case";
+export {
+  finalizeWorkspaceFileBlobUpload,
+  prepareWorkspaceFileBlobUpload,
+} from "../application/workspace/workspace-file-blob-upload.use-case.js";
 export { loadDocumentPreviewArtifacts } from "../application/doc-retrieval/document-preview-artifacts.js";
 export type { DocumentPreviewArtifacts } from "../application/doc-retrieval/document-preview-artifacts.js";
 export {

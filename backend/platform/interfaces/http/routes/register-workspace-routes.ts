@@ -1,8 +1,10 @@
+import type { HandleUploadBody } from "@vercel/blob/client";
 import { DELETE, GET, OPTIONS, PATCH, POST, type RouteDefinition } from "eve/channels";
 import {
   createWorkspaceFolderForUser,
   deleteWorkspaceFileForUser,
   deleteWorkspaceFolderForUser,
+  finalizeWorkspaceFileBlobUpload,
   getDatabaseUrl,
   getWorkspaceFileDownloadForUser,
   getWorkspaceFileFigureForUser,
@@ -11,10 +13,14 @@ import {
   listWorkspaceFilesForUser,
   listWorkspaceFilesByIdsForUser,
   listWorkspaceFoldersForUser,
+  prepareWorkspaceFileBlobUpload,
   renameWorkspaceFolderForUser,
   uploadWorkspaceFileForUser,
   retryWorkspaceFileParseForUser,
 } from "../../../composition/public-api.js";
+import { ATTACHMENT_SERVER_MULTIPART_MAX_BYTES } from "../../../infrastructure/config/attachment-limits.config.js";
+import { hasBlobStorageConfigured } from "../../../infrastructure/artifact/blob-client.js";
+import { handleWorkspaceFileBlobUploadRequest } from "../workspace-file-blob-upload.handler.js";
 import type { PlatformRouteContext } from "../platform-route-context.js";
 
 export function registerWorkspaceRoutes(
@@ -24,6 +30,9 @@ export function registerWorkspaceRoutes(
 
   return [
     preflight("/api/workspace/batch-file-lookup"),
+    preflight("/api/workspace/files/prepare-blob-upload"),
+    preflight("/api/workspace/files/finalize-blob-upload"),
+    preflight("/api/workspace/files/blob-upload"),
     preflight("/api/workspace/folders"),
     preflight("/api/workspace/folders/:id"),
     preflight("/api/workspace/folders/:id/files"),
@@ -119,6 +128,144 @@ export function registerWorkspaceRoutes(
       return json({ ok: true }, 200, request);
     }),
 
+    POST("/api/workspace/files/prepare-blob-upload", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+      let body: {
+        folderId?: string;
+        filename?: string;
+        mediaType?: string;
+        sizeBytes?: number;
+      };
+      try {
+        body = (await request.json()) as typeof body;
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400, request);
+      }
+      const folderId = String(body.folderId ?? "").trim();
+      if (!folderId) {
+        return json({ ok: false, error: "folderId is required" }, 400, request);
+      }
+      const result = await prepareWorkspaceFileBlobUpload({
+        userId: auth.principalId,
+        folderId,
+        filename: String(body.filename ?? "").trim() || "upload",
+        mediaType: String(body.mediaType ?? "").trim() || "application/octet-stream",
+        sizeBytes: Number(body.sizeBytes ?? 0),
+      });
+      if ("error" in result) {
+        return json({ ok: false, error: result.error }, 400, request);
+      }
+      return json({ ok: true, ...result }, 200, request);
+    }),
+
+    POST("/api/workspace/files/finalize-blob-upload", async (request) => {
+      const auth = await requireUser(request);
+      if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
+      if (!getDatabaseUrl()) {
+        return json(
+          { ok: false, error: "DATABASE_URL is not configured" },
+          503,
+          request,
+        );
+      }
+      let body: {
+        folderId?: string;
+        fileId?: string;
+        filename?: string;
+        mediaType?: string;
+        sizeBytes?: number;
+      };
+      try {
+        body = (await request.json()) as typeof body;
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400, request);
+      }
+      const folderId = String(body.folderId ?? "").trim();
+      const fileId = String(body.fileId ?? "").trim();
+      if (!folderId || !fileId) {
+        return json(
+          { ok: false, error: "folderId and fileId are required" },
+          400,
+          request,
+        );
+      }
+      const result = await finalizeWorkspaceFileBlobUpload({
+        userId: auth.principalId,
+        folderId,
+        fileId,
+        filename: String(body.filename ?? "").trim() || "upload",
+        mediaType: String(body.mediaType ?? "").trim() || "application/octet-stream",
+        sizeBytes: Number(body.sizeBytes ?? 0),
+      });
+      if (!result.file) {
+        return json(
+          { ok: false, error: result.error ?? "Finalize failed" },
+          400,
+          request,
+        );
+      }
+      return json({ ok: true, file: result.file }, 201, request);
+    }),
+
+    POST("/api/workspace/files/blob-upload", async (request) => {
+      let body: HandleUploadBody;
+      try {
+        body = (await request.json()) as HandleUploadBody;
+      } catch {
+        return json({ ok: false, error: "Invalid JSON body" }, 400, request);
+      }
+
+      if (body.type === "blob.generate-client-token") {
+        const auth = await requireUser(request);
+        if (!auth) {
+          return json({ ok: false, error: "Unauthorized" }, 401, request);
+        }
+        try {
+          const result = await handleWorkspaceFileBlobUploadRequest({
+            request,
+            body,
+            userId: auth.principalId,
+          });
+          return json(result, 200, request);
+        } catch (err) {
+          return json(
+            {
+              ok: false,
+              error: err instanceof Error ? err.message : "Blob upload token failed",
+            },
+            400,
+            request,
+          );
+        }
+      }
+
+      try {
+        const result = await handleWorkspaceFileBlobUploadRequest({
+          request,
+          body,
+          userId: "",
+        });
+        return json(result, 200, request);
+      } catch (err) {
+        return json(
+          {
+            ok: false,
+            error: err instanceof Error ? err.message : "Blob upload callback failed",
+          },
+          400,
+          request,
+        );
+      }
+    }),
+
     GET("/api/workspace/folders/:id/files", async (request, { params }) => {
       const auth = await requireUser(request);
       if (!auth) return json({ ok: false, error: "Unauthorized" }, 401, request);
@@ -141,6 +288,20 @@ export function registerWorkspaceRoutes(
       const file = form.get("file");
       if (!(file instanceof File)) {
         return json({ ok: false, error: "file field required" }, 400, request);
+      }
+      if (
+        hasBlobStorageConfigured() &&
+        file.size > ATTACHMENT_SERVER_MULTIPART_MAX_BYTES
+      ) {
+        return json(
+          {
+            ok: false,
+            error:
+              "File is too large for API upload. Use direct blob upload (refresh the app if you still see this).",
+          },
+          413,
+          request,
+        );
       }
       try {
         const bytes = new Uint8Array(await file.arrayBuffer());

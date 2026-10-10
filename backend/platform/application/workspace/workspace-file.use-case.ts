@@ -7,7 +7,11 @@ import {
   getAttachmentBytes,
   putAttachmentBytes,
 } from "../../infrastructure/attachment/attachment-storage.js";
-import { ATTACHMENT_MAX_BYTES_PER_FILE } from "../../infrastructure/config/attachment-limits.config.js";
+import {
+  ATTACHMENT_MAX_BYTES_PER_FILE,
+  ATTACHMENT_SERVER_MULTIPART_MAX_BYTES,
+} from "../../infrastructure/config/attachment-limits.config.js";
+import { hasBlobStorageConfigured } from "../../infrastructure/artifact/blob-client.js";
 import { loadParsedFigureBytes } from "../doc-retrieval/load-parsed-figure.js";
 import { loadDocumentPreviewArtifacts } from "../doc-retrieval/document-preview-artifacts.js";
 import type { AttachmentKind } from "../../domain/attachment/attachment-kinds.js";
@@ -38,7 +42,7 @@ export type WorkspaceFilePublic = {
   createdAt: string;
 };
 
-function toPublic(row: WorkspaceFile): WorkspaceFilePublic {
+export function toPublic(row: WorkspaceFile): WorkspaceFilePublic {
   return {
     id: row.id,
     folderId: row.folderId,
@@ -55,42 +59,37 @@ function toPublic(row: WorkspaceFile): WorkspaceFilePublic {
   };
 }
 
-export async function uploadWorkspaceFileForUser(input: {
+export async function createWorkspaceFileAndStartParse(input: {
   userId: string;
   folderId: string;
+  fileId: string;
   filename: string;
   mediaType: string;
-  bytes: Uint8Array;
+  sizeBytes: number;
+  storageKey: string;
+  contentHash: string | null;
 }): Promise<{ file: WorkspaceFilePublic | null; error?: string }> {
-  if (input.bytes.byteLength > ATTACHMENT_MAX_BYTES_PER_FILE) {
-    return { file: null, error: "File exceeds size limit." };
+  let kind;
+  try {
+    kind = classifyAttachment({
+      filename: input.filename,
+      mimeType: input.mediaType,
+    });
+  } catch {
+    return { file: null, error: "Unsupported file type." };
   }
-  const folder = await drizzleWorkspaceRepository.getFolderForUser({
-    userId: input.userId,
-    folderId: input.folderId,
-  });
-  if (!folder) return { file: null, error: "Folder not found." };
-
-  const fileId = crypto.randomUUID();
-  const storageKey = storageKeyFor(fileId, input.filename);
-  const scopeId = workspaceLibraryId(input.userId);
-  await putAttachmentBytes(scopeId, storageKey, input.bytes, input.mediaType);
 
   const row = await drizzleWorkspaceRepository.createFile({
-    id: fileId,
+    id: input.fileId,
     userId: input.userId,
     folderId: input.folderId,
     filename: input.filename,
     mediaType: input.mediaType,
-    sizeBytes: input.bytes.byteLength,
-    storageKey,
-    contentHash: sha256Bytes(input.bytes),
+    sizeBytes: input.sizeBytes,
+    storageKey: input.storageKey,
+    contentHash: input.contentHash,
   });
 
-  const kind = classifyAttachment({
-    filename: input.filename,
-    mimeType: input.mediaType,
-  });
   try {
     const parsed = await finalizeWorkspaceFileParse(row, kind);
     return { file: toPublic(parsed) };
@@ -109,6 +108,49 @@ export async function uploadWorkspaceFileForUser(input: {
       (await drizzleWorkspaceRepository.getFileByIdOnly(row.id)) ?? latest;
     return { file: toPublic(after) };
   }
+}
+
+export async function uploadWorkspaceFileForUser(input: {
+  userId: string;
+  folderId: string;
+  filename: string;
+  mediaType: string;
+  bytes: Uint8Array;
+}): Promise<{ file: WorkspaceFilePublic | null; error?: string }> {
+  if (input.bytes.byteLength > ATTACHMENT_MAX_BYTES_PER_FILE) {
+    return { file: null, error: "File exceeds size limit." };
+  }
+  if (
+    hasBlobStorageConfigured() &&
+    input.bytes.byteLength > ATTACHMENT_SERVER_MULTIPART_MAX_BYTES
+  ) {
+    return {
+      file: null,
+      error:
+        "File is too large to upload through the API route. The app will use direct blob upload.",
+    };
+  }
+  const folder = await drizzleWorkspaceRepository.getFolderForUser({
+    userId: input.userId,
+    folderId: input.folderId,
+  });
+  if (!folder) return { file: null, error: "Folder not found." };
+
+  const fileId = crypto.randomUUID();
+  const storageKey = storageKeyFor(fileId, input.filename);
+  const scopeId = workspaceLibraryId(input.userId);
+  await putAttachmentBytes(scopeId, storageKey, input.bytes, input.mediaType);
+
+  return createWorkspaceFileAndStartParse({
+    userId: input.userId,
+    folderId: input.folderId,
+    fileId,
+    filename: input.filename,
+    mediaType: input.mediaType,
+    sizeBytes: input.bytes.byteLength,
+    storageKey,
+    contentHash: sha256Bytes(input.bytes),
+  });
 }
 
 export async function listWorkspaceFilesByIdsForUser(input: {

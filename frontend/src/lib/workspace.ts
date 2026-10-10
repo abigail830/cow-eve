@@ -1,4 +1,6 @@
+import { upload } from "@vercel/blob/client";
 import type { DocumentPreviewBundle } from "@fde/artifact-ui";
+import { fetchAttachmentUploadPolicy } from "./attachmentUpload";
 import { API_URL } from "./config";
 import { getToken } from "./session";
 
@@ -132,7 +134,104 @@ export async function lookupWorkspaceFiles(
   return data.files ?? [];
 }
 
-export async function uploadWorkspaceFile(
+function workspaceAuthHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function rethrowWorkspaceNetworkError(err: unknown, context: string): never {
+  if (err instanceof TypeError) {
+    throw new Error(
+      `Network error while ${context}. If the file is over 4 MB, use an updated app build with workspace blob upload; otherwise verify ${API_URL} is reachable.`,
+    );
+  }
+  throw err instanceof Error ? err : new Error(`${context} failed`);
+}
+
+async function uploadWorkspaceFileViaBlob(
+  folderId: string,
+  file: File,
+): Promise<WorkspaceFilePublic> {
+  const mediaType = file.type || "application/octet-stream";
+  const filename = file.name || "upload";
+  let prepareRes: Response;
+  try {
+    prepareRes = await workspaceFetch("/api/workspace/files/prepare-blob-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        folderId,
+        filename,
+        mediaType,
+        sizeBytes: file.size,
+      }),
+    });
+  } catch (err: unknown) {
+    rethrowWorkspaceNetworkError(err, "preparing upload");
+  }
+  const prepared = (await prepareRes.json()) as {
+    ok?: boolean;
+    error?: string;
+    fileId?: string;
+    folderId?: string;
+    pathname?: string;
+    clientPayload?: string;
+  };
+  if (
+    !prepareRes.ok ||
+    !prepared.fileId ||
+    !prepared.folderId ||
+    !prepared.pathname ||
+    !prepared.clientPayload
+  ) {
+    throw new Error(prepared.error ?? `Prepare upload failed (${prepareRes.status})`);
+  }
+
+  try {
+    await upload(prepared.pathname, file, {
+      access: "private",
+      handleUploadUrl: `${API_URL}/api/workspace/files/blob-upload`,
+      clientPayload: prepared.clientPayload,
+      headers: workspaceAuthHeaders(),
+      multipart: file.size > 8 * 1024 * 1024,
+      contentType: mediaType,
+    });
+  } catch (err: unknown) {
+    throw new Error(
+      err instanceof Error ? err.message : "Direct blob upload failed",
+    );
+  }
+
+  let finalizeRes: Response;
+  try {
+    finalizeRes = await workspaceFetch("/api/workspace/files/finalize-blob-upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        folderId: prepared.folderId,
+        fileId: prepared.fileId,
+        filename,
+        mediaType,
+        sizeBytes: file.size,
+      }),
+    });
+  } catch (err: unknown) {
+    rethrowWorkspaceNetworkError(err, "finalizing upload");
+  }
+  const finalized = (await finalizeRes.json()) as {
+    ok?: boolean;
+    error?: string;
+    file?: WorkspaceFilePublic;
+  };
+  if (!finalizeRes.ok || !finalized.file) {
+    throw new Error(
+      finalized.error ?? `Finalize upload failed (${finalizeRes.status})`,
+    );
+  }
+  return finalized.file;
+}
+
+async function uploadWorkspaceFileViaMultipart(
   folderId: string,
   file: File,
 ): Promise<WorkspaceFilePublic> {
@@ -145,11 +244,7 @@ export async function uploadWorkspaceFile(
       { method: "POST", body: form },
     );
   } catch (err: unknown) {
-    const hint =
-      err instanceof TypeError
-        ? `Cannot reach API at ${API_URL}. Is the backend running on that host?`
-        : null;
-    throw new Error(hint ?? (err instanceof Error ? err.message : "Upload failed"));
+    rethrowWorkspaceNetworkError(err, "uploading file");
   }
   let data: { ok?: boolean; error?: string; file?: WorkspaceFilePublic };
   try {
@@ -161,6 +256,25 @@ export async function uploadWorkspaceFile(
     throw new Error(data.error ?? `Upload failed (${res.status})`);
   }
   return data.file;
+}
+
+export async function uploadWorkspaceFile(
+  folderId: string,
+  file: File,
+): Promise<WorkspaceFilePublic> {
+  const policy = await fetchAttachmentUploadPolicy();
+  if (file.size > policy.maxBytesPerFile) {
+    throw new Error(
+      `File exceeds the ${Math.round(policy.maxBytesPerFile / (1024 * 1024))} MB limit.`,
+    );
+  }
+  if (
+    policy.clientBlobUpload &&
+    file.size > policy.serverMultipartMaxBytes
+  ) {
+    return uploadWorkspaceFileViaBlob(folderId, file);
+  }
+  return uploadWorkspaceFileViaMultipart(folderId, file);
 }
 
 export async function retryWorkspaceFileParse(
@@ -189,11 +303,7 @@ export async function deleteWorkspaceFile(fileId: string): Promise<void> {
       { method: "DELETE" },
     );
   } catch (err: unknown) {
-    const hint =
-      err instanceof TypeError
-        ? `Cannot reach API at ${API_URL}. Is the backend running?`
-        : null;
-    throw new Error(hint ?? (err instanceof Error ? err.message : "Delete failed"));
+    rethrowWorkspaceNetworkError(err, "deleting file");
   }
   let data: { error?: string };
   try {
