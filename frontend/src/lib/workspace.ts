@@ -1,6 +1,7 @@
 import { upload } from "@vercel/blob/client";
 import type { DocumentPreviewBundle } from "@fde/artifact-ui";
 import { fetchAttachmentUploadPolicy } from "./attachmentUpload";
+import { ATTACHMENT_LIMITS } from "./attachments";
 import { API_URL } from "./config";
 import { getToken } from "./session";
 
@@ -139,10 +140,22 @@ function workspaceAuthHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-function rethrowWorkspaceNetworkError(err: unknown, context: string): never {
+function rethrowWorkspaceNetworkError(
+  err: unknown,
+  context: string,
+  fileSizeBytes?: number,
+): never {
   if (err instanceof TypeError) {
+    const overMultipart =
+      fileSizeBytes != null &&
+      fileSizeBytes > ATTACHMENT_LIMITS.serverMultipartMaxBytes;
+    if (overMultipart) {
+      throw new Error(
+        `Upload failed while ${context}: the file exceeds the ${Math.round(ATTACHMENT_LIMITS.serverMultipartMaxBytes / (1024 * 1024))} MB API body limit. Reload the page (hard refresh) and try again so the app uses direct blob upload.`,
+      );
+    }
     throw new Error(
-      `Network error while ${context}. If the file is over 4 MB, use an updated app build with workspace blob upload; otherwise verify ${API_URL} is reachable.`,
+      `Network error while ${context}. Verify ${API_URL} is reachable and you are signed in.`,
     );
   }
   throw err instanceof Error ? err : new Error(`${context} failed`);
@@ -167,7 +180,7 @@ async function uploadWorkspaceFileViaBlob(
       }),
     });
   } catch (err: unknown) {
-    rethrowWorkspaceNetworkError(err, "preparing upload");
+    rethrowWorkspaceNetworkError(err, "preparing upload", file.size);
   }
   const prepared = (await prepareRes.json()) as {
     ok?: boolean;
@@ -216,7 +229,7 @@ async function uploadWorkspaceFileViaBlob(
       }),
     });
   } catch (err: unknown) {
-    rethrowWorkspaceNetworkError(err, "finalizing upload");
+    rethrowWorkspaceNetworkError(err, "finalizing upload", file.size);
   }
   const finalized = (await finalizeRes.json()) as {
     ok?: boolean;
@@ -244,15 +257,26 @@ async function uploadWorkspaceFileViaMultipart(
       { method: "POST", body: form },
     );
   } catch (err: unknown) {
-    rethrowWorkspaceNetworkError(err, "uploading file");
+    rethrowWorkspaceNetworkError(err, "uploading file", file.size);
   }
   let data: { ok?: boolean; error?: string; file?: WorkspaceFilePublic };
   try {
     data = (await res.json()) as typeof data;
   } catch {
+    if (res.status === 413) {
+      throw new Error(
+        `File exceeds the ${Math.round(ATTACHMENT_LIMITS.serverMultipartMaxBytes / (1024 * 1024))} MB upload limit for this channel. Reload the page and try again (direct blob upload).`,
+      );
+    }
     throw new Error(`Upload failed (${res.status})`);
   }
   if (!res.ok || !data.file) {
+    if (res.status === 413) {
+      throw new Error(
+        data.error ??
+          `File exceeds the ${Math.round(ATTACHMENT_LIMITS.serverMultipartMaxBytes / (1024 * 1024))} MB upload limit. Reload the page and try again.`,
+      );
+    }
     throw new Error(data.error ?? `Upload failed (${res.status})`);
   }
   return data.file;
@@ -268,10 +292,12 @@ export async function uploadWorkspaceFile(
       `File exceeds the ${Math.round(policy.maxBytesPerFile / (1024 * 1024))} MB limit.`,
     );
   }
-  if (
-    policy.clientBlobUpload &&
-    file.size > policy.serverMultipartMaxBytes
-  ) {
+  const multipartMax = Math.min(
+    policy.serverMultipartMaxBytes,
+    ATTACHMENT_LIMITS.serverMultipartMaxBytes,
+  );
+  if (file.size > multipartMax) {
+    // Always use blob for large files; do not rely on upload-policy (may be cached false).
     return uploadWorkspaceFileViaBlob(folderId, file);
   }
   return uploadWorkspaceFileViaMultipart(folderId, file);

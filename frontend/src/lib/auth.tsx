@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { resetAttachmentUploadPolicyCache } from "./attachmentUpload";
 import { login as loginApi } from "./api";
 import {
   clearSession,
@@ -31,12 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const result = await loginApi(email, password);
     setSession(result.token, result.user);
+    resetAttachmentUploadPolicyCache();
     setToken(result.token);
     setUser(result.user);
   }, []);
 
   const logout = useCallback(() => {
     clearSession();
+    resetAttachmentUploadPolicyCache();
     setToken(null);
     setUser(null);
   }, []);

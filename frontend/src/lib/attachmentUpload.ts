@@ -72,15 +72,20 @@ export async function fetchAttachmentUploadPolicy(): Promise<UploadPolicy> {
     policy?: UploadPolicy;
   };
   if (!res.ok || !data.policy) {
-    uploadPolicyCache = {
+    // Do not cache failures — a transient error would force multipart for the whole session.
+    return {
       maxBytesPerFile: ATTACHMENT_LIMITS.maxBytesPerFile,
       serverMultipartMaxBytes: ATTACHMENT_LIMITS.serverMultipartMaxBytes,
       clientBlobUpload: false,
     };
-    return uploadPolicyCache;
   }
   uploadPolicyCache = data.policy;
   return uploadPolicyCache;
+}
+
+/** Call after login/logout so blob vs multipart reflects the current session. */
+export function resetAttachmentUploadPolicyCache(): void {
+  uploadPolicyCache = null;
 }
 
 function shouldUseDirectBlobUpload(
