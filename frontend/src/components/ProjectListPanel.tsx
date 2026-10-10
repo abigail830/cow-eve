@@ -6,7 +6,6 @@ import {
   useState,
 } from "react";
 import { Loader2, Pencil, Plus, Target, Trash2 } from "lucide-react";
-import { MarkdownContent } from "./MarkdownContent";
 import {
   createProject,
   deleteProject,
@@ -18,7 +17,7 @@ import {
   writeCustomizeViewMode,
   type CustomizeResourceViewMode,
 } from "../lib/customize-view-mode";
-import { plainSummary } from "../lib/plain-summary";
+import { cardPreview, plainSummary } from "../lib/plain-summary";
 import { CustomizeViewToggle } from "./CustomizeViewToggle";
 import "./CustomizeResourceList.css";
 import "./ProjectListPanel.css";
@@ -173,6 +172,7 @@ export const ProjectListPanel = forwardRef<ProjectListHandle, Props>(
           {projects.map((project) => {
             const summary = project.instructions.trim();
             const summaryPlain = plainSummary(summary);
+            const cardBlurb = cardPreview(summary);
 
             if (viewMode === "list") {
               return (
@@ -232,7 +232,7 @@ export const ProjectListPanel = forwardRef<ProjectListHandle, Props>(
               <li key={project.id} className="project-card">
                 <div className="project-card-inner">
                   <span className="project-card-icon" aria-hidden>
-                    <Target size={20} strokeWidth={1.75} />
+                    <Target size={18} strokeWidth={1.75} />
                   </span>
                   <div className="project-card-main">
                     <div className="project-card-head">
@@ -260,15 +260,15 @@ export const ProjectListPanel = forwardRef<ProjectListHandle, Props>(
                         </button>
                       </div>
                     </div>
-                    <div className="project-card-desc">
-                      {summary ? (
-                        <MarkdownContent text={summary} />
-                      ) : (
-                        <p className="project-card-desc-empty">
-                          No instructions yet.
-                        </p>
-                      )}
-                    </div>
+                    <p
+                      className={
+                        cardBlurb
+                          ? "project-card-desc"
+                          : "project-card-desc project-card-desc--empty"
+                      }
+                    >
+                      {cardBlurb || "No instructions yet."}
+                    </p>
                   </div>
                 </div>
                 <footer className="project-card-footer">

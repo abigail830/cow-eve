@@ -20,7 +20,7 @@ import {
   writeCustomizeViewMode,
   type CustomizeResourceViewMode,
 } from "../lib/customize-view-mode";
-import { plainSummary } from "../lib/plain-summary";
+import { cardPreview, plainSummary } from "../lib/plain-summary";
 import { CustomizeViewToggle } from "./CustomizeViewToggle";
 import "./CustomizeResourceList.css";
 import "./SchedulePanel.css";
@@ -523,7 +523,7 @@ export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
                 <li key={task.id} className="schedule-card">
                   <div className="schedule-card-inner">
                     <span className="schedule-card-icon" aria-hidden>
-                      <CalendarClock size={20} strokeWidth={1.75} />
+                      <CalendarClock size={18} strokeWidth={1.75} />
                     </span>
                     <div className="schedule-card-main">
                       <div className="schedule-card-head">
@@ -551,7 +551,15 @@ export const SchedulePanel = forwardRef<SchedulePanelHandle, Props>(
                           </button>
                         </div>
                       </div>
-                      <p className="schedule-card-desc">{task.prompt}</p>
+                      <p
+                        className={
+                          cardPreview(task.prompt)
+                            ? "schedule-card-desc"
+                            : "schedule-card-desc schedule-card-desc--empty"
+                        }
+                      >
+                        {cardPreview(task.prompt) || "No prompt yet."}
+                      </p>
                       {task.lastError ? (
                         <p className="schedule-item-error">{task.lastError}</p>
                       ) : null}
