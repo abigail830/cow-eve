@@ -1,0 +1,205 @@
+/**
+ * AQRL Light — LRQA-aligned light: white rail, #F4F5F7 work pane,
+ * teal #088C8A accent, mint highlight #F0FDF4, Inter body type.
+ */
+[data-theme="aqrl-light"] {
+  --font-body: "Inter", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  --font-heading: "Inter", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+
+  --accent: #088c8a;
+  --accent-strong: #067a78;
+  --accent-soft: #5eead4;
+  --accent-muted: #f0fdf4;
+  --accent-on-accent: #ffffff;
+
+  --color-ink: #111827;
+  --text-primary: var(--color-ink);
+  --color-text-secondary: #4b5563;
+  --text-secondary: var(--color-text-secondary);
+  --color-text-muted: #6b7280;
+  --text-muted: var(--color-text-muted);
+
+  --surface-canvas: #f4f5f7;
+  --surface-raised: #ffffff;
+  --surface-muted: #eef0f3;
+  --surface-nav: #ffffff;
+  --surface-overlay: rgba(255, 255, 255, 0.94);
+
+  --work-card-bg: #ffffff;
+  --work-card-border: #e5e7eb;
+  --work-item-bg: #ffffff;
+  --work-item-border: #e5e7eb;
+  --work-hint-fg: var(--color-ink);
+
+  --border-subtle: #e5e7eb;
+  --border-default: #d1d5db;
+
+  --color-info: var(--accent);
+  --color-error: #dc3545;
+  --color-teal: var(--accent);
+
+  --btn-primary-bg: var(--accent);
+  --btn-primary-fg: var(--accent-on-accent);
+  --badge-neutral-bg: #f3f4f6;
+  --badge-neutral-fg: var(--color-text-secondary);
+  --badge-success-bg: var(--accent-muted);
+  --badge-success-fg: #047857;
+  --badge-muted-bg: #f3f4f6;
+  --badge-muted-fg: #667085;
+  --badge-warning-bg: #fff7ed;
+  --badge-warning-fg: #c2410c;
+  --badge-info-bg: color-mix(in srgb, var(--accent) 12%, #ffffff);
+  --badge-info-fg: var(--accent-strong);
+
+  --paper-cover: #f0fdf4;
+  --paper-cover-soft: color-mix(in srgb, var(--paper-cover) 70%, transparent);
+  --paper-cover-muted: color-mix(in srgb, var(--paper-cover) 42%, transparent);
+  --paper-cover-faint: color-mix(in srgb, var(--surface-canvas) 88%, var(--paper-cover));
+  --paper-cover-border: color-mix(
+    in srgb,
+    var(--accent) 18%,
+    rgba(0, 0, 0, 0.06)
+  );
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-composer: 16px;
+  --radius-pill: 999px;
+
+  --page-title-size: 1.0625rem;
+  --page-title-weight: 600;
+  --page-title-tracking: -0.01em;
+  --page-title-line-height: 1.3;
+  --page-title-fg: var(--color-ink);
+
+  --page-tab-size: 0.8125rem;
+  --page-tab-weight: 500;
+  --page-tab-pad-y: 6px;
+  --page-tab-pad-x: 12px;
+  --page-tab-gap: 6px;
+  --page-tab-radius: var(--radius-md);
+  --page-tab-bg: transparent;
+  --page-tab-fg: var(--color-text-secondary);
+  --page-tab-border: transparent;
+  --page-tab-hover-bg: rgba(8, 140, 138, 0.06);
+  --page-tab-hover-fg: var(--color-ink);
+  --page-tab-hover-border: transparent;
+  --page-tab-active-bg: var(--accent-muted);
+  --page-tab-active-fg: var(--accent);
+  --page-tab-active-border: color-mix(in srgb, var(--accent) 35%, transparent);
+
+  --segment-tab-active-bg: var(--page-tab-active-bg);
+  --segment-tab-active-fg: var(--page-tab-active-fg);
+  --segment-tab-hover-bg: var(--page-tab-hover-bg);
+  --segment-tab-hover-fg: var(--page-tab-hover-fg);
+  --ambient-overlay-opacity: 0.18;
+  --ambient-grain-opacity: 0.05;
+
+  --chat-font-size: 14px;
+  --chat-line-height: 1.55;
+
+  --theme-preview-rail: #ffffff;
+  --theme-preview-rail-accent: var(--accent);
+  --theme-preview-rail-line: #e5e7eb;
+  --theme-preview-chat: #f4f5f7;
+  --theme-preview-chat-line: #d1d5db;
+
+  --nav-fg: var(--color-ink);
+  --nav-fg-muted: var(--color-text-secondary);
+  --nav-fg-subtle: var(--color-text-muted);
+  --nav-fg-icon: #6b7280;
+  --nav-title-fg: var(--color-ink);
+  --nav-hover-bg: rgba(8, 140, 138, 0.06);
+  --nav-hover-fg-icon: var(--color-ink);
+  --nav-active-bg: #f0fdf4;
+  --nav-active-fg: #088c8a;
+  --nav-border: var(--border-subtle);
+  --nav-identity-ring: rgba(0, 0, 0, 0.06);
+  --nav-folder-active-bg: #ffffff;
+  --nav-folder-active-border: color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
+  --nav-folder-active-fg: var(--color-ink);
+
+  --nav-user-name-fg: var(--text-primary);
+  --nav-user-email-fg: var(--text-muted);
+  --nav-user-avatar-bg: color-mix(in srgb, var(--accent) 16%, #ffffff);
+  --nav-user-avatar-fg: var(--accent-strong);
+  --nav-user-trigger-hover: rgba(8, 140, 138, 0.06);
+
+  --chat-user-bubble-bg: #088c8a;
+  --chat-user-bubble-fg: #ffffff;
+  --chat-user-bubble-link-fg: var(--accent-soft);
+
+  --chat-header-bg: transparent;
+
+  --composer-border: var(--border-default);
+  --composer-bg: #ffffff;
+  --composer-shadow: 0 2px 16px rgba(17, 24, 39, 0.06);
+  --composer-text-fg: var(--text-primary);
+  --composer-muted-fg: var(--text-muted);
+  --composer-icon-hover-bg: var(--accent-muted);
+  --composer-toolbar-border: var(--border-subtle);
+  --composer-toolbar-bg: #ffffff;
+  --composer-toolbar-fg: var(--color-ink);
+  --composer-toolbar-hover-bg: var(--accent-muted);
+
+  --ambient-linear: linear-gradient(
+    165deg,
+    #ffffff 0%,
+    #f4f5f7 55%,
+    color-mix(in srgb, var(--accent-muted) 40%, #f4f5f7) 100%
+  );
+  --ambient-orb-primary-inner: color-mix(in srgb, var(--accent) 20%, transparent);
+  --ambient-orb-primary-mid: color-mix(in srgb, var(--accent-soft) 35%, transparent);
+  --ambient-orb-secondary: color-mix(in srgb, var(--accent-muted) 85%, #ffffff);
+  --ambient-overlay-highlight: rgba(255, 255, 255, 0.55);
+  --ambient-overlay-tint: color-mix(in srgb, var(--accent) 10%, transparent);
+
+  --glass-surface: rgba(255, 255, 255, 0.72);
+  --glass-surface-raised: rgba(255, 255, 255, 0.92);
+  --glass-surface-strong: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.65);
+
+  --home-greeting-fg: var(--color-ink);
+  --home-lead-fg: var(--color-text-secondary);
+  --home-footer-fg: var(--color-text-muted);
+  --home-header-fg: var(--color-ink);
+  --home-brand-agent-fg: var(--color-ink);
+  --home-brand-team-fg: var(--accent);
+  --home-agent-card-desc-fg: var(--color-text-secondary);
+  --home-agent-card-name-highlight-fg: var(--accent);
+  --nav-agent-name-highlight-fg: var(--accent);
+  --home-header-border: transparent;
+  --home-header-shadow: 0 4px 20px rgba(17, 24, 39, 0.06);
+}
+
+[data-theme="aqrl-light"] .chat-header {
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+
+[data-theme="aqrl-light"] .chat-history-item.active {
+  background: #f0fdf4;
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-subtle));
+  box-shadow: none;
+}
+
+[data-theme="aqrl-light"] .chat-history-item.active .chat-history-title {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+[data-theme="aqrl-light"] .agent-nav-item.active svg {
+  color: var(--nav-active-fg);
+}
+
+[data-theme="aqrl-light"] .composer {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in srgb, var(--surface-canvas) 50%, transparent) 40%,
+    var(--surface-canvas) 100%
+  );
+}

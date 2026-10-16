@@ -2,6 +2,7 @@
 @import "./styles/page-chrome.css";
 @import "./styles/themes/asc.css";
 @import "./styles/themes/arql.css";
+@import "./styles/themes/aqrl-light.css";
 @import "./styles/themes/inspire.css";
 
 :root {

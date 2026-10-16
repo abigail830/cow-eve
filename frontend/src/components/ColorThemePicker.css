@@ -161,6 +161,26 @@
   background: #e2e6e8;
 }
 
+.color-theme-swatch-aqrl-light .color-theme-swatch-rail {
+  background: #ffffff;
+}
+
+.color-theme-swatch-aqrl-light .color-theme-swatch-rail-accent {
+  background: #088c8a;
+}
+
+.color-theme-swatch-aqrl-light .color-theme-swatch-rail-line {
+  background: #e5e7eb;
+}
+
+.color-theme-swatch-aqrl-light .color-theme-swatch-main {
+  background: #f4f5f7;
+}
+
+.color-theme-swatch-aqrl-light .color-theme-swatch-main-line {
+  background: #d1d5db;
+}
+
 .color-theme-swatch-inspire .color-theme-swatch-rail {
   background: #f7f9fb;
 }
